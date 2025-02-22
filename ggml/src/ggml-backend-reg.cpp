@@ -66,6 +66,10 @@
 #include "ggml-kompute.h"
 #endif
 
+#ifdef GGML_USE_ZDNN
+#include "ggml-zdnn.h"
+#endif
+
 // disable C++17 deprecation warning for std::codecvt_utf8
 #if defined(__clang__)
 #    pragma clang diagnostic push
@@ -179,6 +183,9 @@ struct ggml_backend_registry {
 #endif
 #ifdef GGML_USE_KOMPUTE
         register_backend(ggml_backend_kompute_reg());
+#endif
+#ifdef GGML_USE_ZDNN
+        register_backend(ggml_backend_zdnn_reg());
 #endif
 #ifdef GGML_USE_CPU
         register_backend(ggml_backend_cpu_reg());
@@ -562,18 +569,19 @@ void ggml_backend_load_all_from_path(const char * dir_path) {
     bool silent = false;
 #endif
 
-    ggml_backend_load_best("blas", silent, dir_path);
-    ggml_backend_load_best("cann", silent, dir_path);
-    ggml_backend_load_best("cuda", silent, dir_path);
-    ggml_backend_load_best("hip", silent, dir_path);
+    ggml_backend_load_best("blas"   , silent, dir_path);
+    ggml_backend_load_best("cann"   , silent, dir_path);
+    ggml_backend_load_best("cuda"   , silent, dir_path);
+    ggml_backend_load_best("hip"    , silent, dir_path);
     ggml_backend_load_best("kompute", silent, dir_path);
-    ggml_backend_load_best("metal", silent, dir_path);
-    ggml_backend_load_best("rpc", silent, dir_path);
-    ggml_backend_load_best("sycl", silent, dir_path);
-    ggml_backend_load_best("vulkan", silent, dir_path);
-    ggml_backend_load_best("opencl", silent, dir_path);
-    ggml_backend_load_best("musa", silent, dir_path);
-    ggml_backend_load_best("cpu", silent, dir_path);
+    ggml_backend_load_best("metal"  , silent, dir_path);
+    ggml_backend_load_best("rpc"    , silent, dir_path);
+    ggml_backend_load_best("sycl"   , silent, dir_path);
+    ggml_backend_load_best("vulkan" , silent, dir_path);
+    ggml_backend_load_best("opencl" , silent, dir_path);
+    ggml_backend_load_best("musa"   , silent, dir_path);
+    ggml_backend_load_best("zdnn"   , silent, dir_path);
+    ggml_backend_load_best("cpu"    , silent, dir_path);
     // check the environment variable GGML_BACKEND_PATH to load an out-of-tree backend
     const char * backend_path = std::getenv("GGML_BACKEND_PATH");
     if (backend_path) {

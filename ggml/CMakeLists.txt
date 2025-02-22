@@ -191,6 +191,8 @@ option(GGML_OPENCL_PROFILING                "ggml: use OpenCL profiling (increas
 option(GGML_OPENCL_EMBED_KERNELS            "ggml: embed kernels"                             ON)
 option(GGML_OPENCL_USE_ADRENO_KERNELS       "ggml: use optimized kernels for Adreno"          ON)
 
+option(GGML_ZDNN                            "ggml: use zDNN accelerator"                      ON)
+
 # toolchain for vulkan-shaders-gen
 set   (GGML_VULKAN_SHADERS_GEN_TOOLCHAIN "" CACHE FILEPATH "ggml: toolchain file for vulkan-shaders-gen")
 
@@ -253,6 +255,7 @@ set(GGML_PUBLIC_HEADERS
     include/ggml-rpc.h
     include/ggml-sycl.h
     include/ggml-vulkan.h
+    include/ggml-zdnn.h
     include/gguf.h)
 
 set_target_properties(ggml PROPERTIES PUBLIC_HEADER "${GGML_PUBLIC_HEADERS}")

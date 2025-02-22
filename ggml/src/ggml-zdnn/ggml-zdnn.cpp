@@ -5,6 +5,7 @@
 #include "zdnn.h"
 
 #include <string>
+#include <memory>
 #include <stdint.h>
 
 struct ggml_backend_zdnn_context {
@@ -89,7 +90,7 @@ static struct ggml_backend_i ggml_backend_zdnn_i = {
     /* .graph_plan_free     = */ NULL,
     /* .graph_plan_update   = */ NULL,
     /* .graph_plan_compute  = */ NULL,
-    /* .graph_compute       = */ ggml_backend_zdnn_graph_compute(),
+    /* .graph_compute       = */ ggml_backend_zdnn_graph_compute,
     /* .event_record        = */ NULL,
     /* .event_wait          = */ NULL,
 };

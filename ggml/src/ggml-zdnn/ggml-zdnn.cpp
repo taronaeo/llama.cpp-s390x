@@ -16,7 +16,66 @@ struct ggml_backend_zdnn_context {
 // --------------------------------------------------------------------------
 // zDNN Interfacing API
 // --------------------------------------------------------------------------
+zdnn_data_types ggml_zdnn_type_mapping(ggml_type type) {
+    switch (type) {
+        case GGML_TYPE_F32:
+            return FP32;
+        case GGML_TYPE_F16:
+            return FP16;
+        case GGML_TYPE_I8:
+            return INT8;
+        case GGML_TYPE_I32:
+            return INT32;
+        case GGML_TYPE_Q8_0:
+            return INT8;
+        default:
+            GGML_ABORT("unable to determine zTensor data type");
+            break;
+    }
+}
 
+void ggml_zdnn_create_tensor(const ggml_tensor * tensor,
+                              zdnn_tensor_desc * pre_tfm_desc,
+                              zdnn_tensor_desc * tfm_desc,
+                                       int64_t * ne,
+                                        size_t * nb,
+                                       int64_t   dims,
+                                        size_t   offset);
+
+void ggml_zdnn_op_add(ggml_backend_zdnn_context & ctx, ggml_tensor * dst) {
+    ggml_tensor * src0 = dst->src[0];
+    ggml_tensor * src1 = dst->src[1];
+    GGML_ASSERT(ggml_can_repeat(src1, src0) && ggml_are_same_shape(src0, dst));
+
+    zdnn_tensor * ztensor_src0;
+    zdnn_tensor * ztensor_src1;
+    zdnn_tensor * ztensor_dst;
+}
+
+static bool ggml_zdnn_compute_forward(ggml_backend_zdnn_context & ctx,
+                                      struct ggml_tensor * dst) {
+    switch (dst->op) {
+        case GGML_OP_ADD:
+            ggml_zdnn_op_add(ctx, dst);
+            break;
+        case GGML_OP_ADD1:
+        case GGML_OP_SUB:
+        case GGML_OP_MUL:
+        case GGML_OP_DIV:
+        case GGML_OP_SQR:
+        case GGML_OP_SQRT:
+        case GGML_OP_LOG:
+        case GGML_OP_NORM:
+        case GGML_OP_MUL_MAT:
+        case GGML_OP_MUL_MAT_ID:
+        case GGML_OP_RESHAPE: // TODO: verify if should op
+        case GGML_OP_SOFT_MAX:
+        case GGML_OP_LEAKY_RELU:
+            break;
+        default:
+            GGML_ABORT("%s: unsupported op %s\n", __func__, ggml_op_desc(node));
+    }
+}
 
 // --------------------------------------------------------------------------
 // Backend buffer type
@@ -45,38 +104,30 @@ static void ggml_backend_zdnn_free(ggml_backend_t backend) {
 }
 
 static enum ggml_status ggml_backend_zdnn_graph_compute(ggml_backend_t backend, struct ggml_cgraph * cgraph) {
+    ggml_backend_zdnn_context * ctx = (ggml_backend_zdnn_context *)backend->context;
+
     for (int i = 0; i < cgraph->n_nodes; i++) {
-        struct ggml_tensor * node = cgraph->nodes[i];
+        ggml_tensor * node = cgraph->nodes[i];
 
-        switch (node->op) {
-            // GGML required ops
-            case GGML_OP_VIEW:
-            case GGML_OP_PERMUTE:
-
-            // zDNN ops
-            case GGML_OP_ADD:
-            case GGML_OP_ADD1:
-            case GGML_OP_SUB:
-            case GGML_OP_MUL:
-            case GGML_OP_DIV:
-            case GGML_OP_SQR:
-            case GGML_OP_SQRT:
-            case GGML_OP_LOG:
-            case GGML_OP_NORM:
-            case GGML_OP_MUL_MAT:
-            case GGML_OP_MUL_MAT_ID:
-            case GGML_OP_RESHAPE:
-            case GGML_OP_SOFT_MAX:
-            case GGML_OP_LEAKY_RELU:
-                break;
-            default:
-                GGML_ABORT("%s: unsupported op %s\n", __func__, ggml_op_desc(node));
+        if (ggml_is_empty(node)
+            || node->op == GGML_OP_NONE
+            || node->op == GGML_OP_RESHAPE
+            || node->op == GGML_OP_VIEW
+            || node->op == GGML_OP_PERMUTE
+            || node->op == GGML_OP_TRANSPOSE) {
+            continue;
         }
 
-        return GGML_STATUS_SUCCESS;
+        bool ok = ggml_zdnn_compute_forward(*ctx, node);
+        if (!ok) {
+            GGML_LOG_ERROR("%s: unsupported op %s (%s)\n",
+                           __func__, node->name, ggml_op_name(node->op));
+        }
 
-        GGML_UNUSED(backend);
+        GGML_ASSERT(ok);
     }
+
+    return GGML_STATUS_SUCCESS;
 }
 
 static struct ggml_backend_i ggml_backend_zdnn_i = {

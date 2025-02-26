@@ -14,6 +14,20 @@ struct ggml_backend_zdnn_context {
 };
 
 // --------------------------------------------------------------------------
+// zDNN Internal Helper Functions
+// --------------------------------------------------------------------------
+static uint32_t ggml_backend_zdnn_get_tensor_rank() {
+    uint32_t rank = 0;
+    for (int i = 0; i < GGML_MAX_DIMS; i++) {
+        if ((0 != tensor->ne[i]) && (1 != tensor->ne[i])) {
+            rank++;
+        }
+    }
+
+    return rank;
+}
+
+// --------------------------------------------------------------------------
 // zDNN Interfacing API
 // --------------------------------------------------------------------------
 zdnn_data_types ggml_zdnn_type_mapping(ggml_type type) {

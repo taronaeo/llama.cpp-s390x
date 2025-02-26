@@ -325,6 +325,11 @@ static const char * ggml_backend_zdnn_reg_get_name(ggml_backend_reg_t reg) {
 }
 
 static size_t ggml_backend_zdnn_reg_get_device_count(ggml_backend_reg_t reg) {
+    // TODO: implement support for multiple zAIUs
+    // Theoretically, customers can create an LPAR that spans across
+    // multiple drawers and utilise all zAIU accelerators within those
+    // drawers. But we want to ensure that zAIU is working for at least
+    // 1 processor before we implement support for additionals.
     return 1;
 
     GGML_UNUSED(reg);

@@ -3,34 +3,30 @@
 #include "ggml-backend-impl.h"
 
 #include "zdnn.h"
+#include "ggml-zdnn/common.h"
 
 #include <string>
 #include <memory>
 #include <stdint.h>
 
-struct ggml_backend_zdnn_context {
-    std::unique_ptr<char[]> work_data;
-    size_t work_size = 0;
-};
-
 // --------------------------------------------------------------------------
 // zDNN Internal Helper Functions
 // --------------------------------------------------------------------------
-static uint32_t ggml_backend_zdnn_get_tensor_rank() {
-    uint32_t rank = 0;
-    for (int i = 0; i < GGML_MAX_DIMS; i++) {
-        if ((0 != tensor->ne[i]) && (1 != tensor->ne[i])) {
-            rank++;
-        }
-    }
-
-    return rank;
-}
+//static uint32_t ggml_backend_zdnn_get_tensor_rank() {
+//    uint32_t rank = 0;
+//    for (int i = 0; i < GGML_MAX_DIMS; i++) {
+//        if ((0 != tensor->ne[i]) && (1 != tensor->ne[i])) {
+//            rank++;
+//        }
+//    }
+//
+//    return rank;
+//}
 
 // --------------------------------------------------------------------------
 // zDNN Interfacing API
 // --------------------------------------------------------------------------
-zdnn_data_types ggml_zdnn_type_mapping(ggml_type type) {
+static zdnn_data_types ggml_zdnn_type_mapping(ggml_type type) {
     switch (type) {
         case GGML_TYPE_F32:
             return FP32;
@@ -56,19 +52,74 @@ void ggml_zdnn_create_tensor(const ggml_tensor * tensor,
                                        int64_t   dims,
                                         size_t   offset);
 
-void ggml_zdnn_op_add(ggml_backend_zdnn_context & ctx, ggml_tensor * dst) {
-    ggml_tensor * src0 = dst->src[0];
-    ggml_tensor * src1 = dst->src[1];
+void ggml_zdnn_op_add(ggml_backend_zdnn_context & ctx, ggml_tensor * tensor) {
+    GGML_UNUSED(ctx);
+
+    ggml_tensor * src0 = tensor->src[0];
+    ggml_tensor * src1 = tensor->src[1];
+    ggml_tensor * dst  = tensor;
     GGML_ASSERT(ggml_can_repeat(src1, src0) && ggml_are_same_shape(src0, dst));
+
+    // TODO: Check for broadcast and follow
+
+    zdnn_status status;
+    zdnn_tensor_desc pre_tfm_desc, tfm_desc;
 
     zdnn_tensor * ztensor_src0;
     zdnn_tensor * ztensor_src1;
     zdnn_tensor * ztensor_dst;
+
+    // Note: GGML stores dimension and strides in reverse order!
+    // Read more: https://clehaxze.tw/gemlog/2024/12-28-building-new-ggml-backends-for-novel-accelerators-how-challenge-and-oppertunities-fosdem-2025-draft.gmi#:~:text=GGML%20stores%20dimension%20and%20strides%20in%20REVERSE%20order
+    uint32_t dim_n = dst->ne[3], dim_h = dst->ne[2],
+             dim_w = dst->ne[1], dim_c = dst->ne[0];
+
+    zdnn_init_pre_transformed_desc(ZDNN_4D, ggml_zdnn_type_mapping(src0->type), &pre_tfm_desc,
+                                   dim_n, dim_h, dim_w, dim_c);
+
+    status = zdnn_generate_transformed_desc(&pre_tfm_desc, &tfm_desc);
+    assert(status == ZDNN_OK);
+
+    status = zdnn_init_ztensor_with_malloc(&pre_tfm_desc, &tfm_desc, &ztensor_src0);
+    assert(status == ZDNN_OK);
+
+    status = zdnn_init_ztensor_with_malloc(&pre_tfm_desc, &tfm_desc, &ztensor_src1);
+    assert(status == ZDNN_OK);
+
+    status = zdnn_init_ztensor_with_malloc(&pre_tfm_desc, &tfm_desc, &ztensor_dst);
+    assert(status == ZDNN_OK);
+
+    status = zdnn_transform_ztensor(&ztensor_src0, src0->data);
+    assert(status == ZDNN_OK);
+
+    status = zdnn_transform_ztensor(&ztensor_src1, src1->data);
+    assert(status == ZDNN_OK);
+
+    status = zdnn_add(&ztensor_src0, &ztensor_src1, &ztensor_dst);
+    assert(status == ZDNN_OK);
+
+    status = zdnn_transform_origtensor(&ztensor_dst, tensor->data);
+    assert(status == ZDNN_OK);
+
+    status = zdnn_free_ztensor_buffer(&ztensor_src0);
+    assert(status == ZDNN_OK);
+
+    status = zdnn_free_ztensor_buffer(&ztensor_src1);
+    assert(status == ZDNN_OK);
+
+    status = zdnn_free_ztensor_buffer(&ztensor_dst);
+    assert(status == ZDNN_OK);
 }
 
 static bool ggml_zdnn_compute_forward(ggml_backend_zdnn_context & ctx,
                                       struct ggml_tensor * dst) {
     switch (dst->op) {
+        case GGML_OP_NONE:
+        case GGML_OP_RESHAPE:
+        case GGML_OP_VIEW:
+        case GGML_OP_PERMUTE:
+        case GGML_OP_TRANSPOSE:
+            break;
         case GGML_OP_ADD:
             ggml_zdnn_op_add(ctx, dst);
             break;
@@ -82,13 +133,14 @@ static bool ggml_zdnn_compute_forward(ggml_backend_zdnn_context & ctx,
         case GGML_OP_NORM:
         case GGML_OP_MUL_MAT:
         case GGML_OP_MUL_MAT_ID:
-        case GGML_OP_RESHAPE: // TODO: verify if should op
         case GGML_OP_SOFT_MAX:
         case GGML_OP_LEAKY_RELU:
             break;
         default:
-            GGML_ABORT("%s: unsupported op %s\n", __func__, ggml_op_desc(node));
+            return false;
     }
+
+    return true;
 }
 
 // --------------------------------------------------------------------------
@@ -254,10 +306,15 @@ static bool ggml_backend_zdnn_device_supports_op(ggml_backend_dev_t dev, const s
     switch (op->op) {
         // GGML required ops
         case GGML_OP_VIEW:
+        case GGML_OP_RESHAPE:
+        case GGML_OP_VIEW:
         case GGML_OP_PERMUTE:
+        case GGML_OP_TRANSPOSE:
+            return true;
 
         // zDNN ops
         case GGML_OP_ADD:
+            return ggml_n_dims(src0) == 1 && ggml_n_dims(src1) == 1;
         case GGML_OP_ADD1:
         case GGML_OP_SUB:
         case GGML_OP_MUL:
@@ -288,7 +345,6 @@ static bool ggml_backend_zdnn_device_supports_op(ggml_backend_dev_t dev, const s
     }
 
     GGML_UNUSED(dev);
-    GGML_UNUSED(src1); // TODO: remove when impl op
 }
 
 static bool ggml_backend_zdnn_device_supports_buft(ggml_backend_dev_t dev, ggml_backend_buffer_type_t buft) {

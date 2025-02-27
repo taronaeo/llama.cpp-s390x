@@ -65,9 +65,9 @@ void ggml_zdnn_op_add(ggml_backend_zdnn_context & ctx, ggml_tensor * tensor) {
     zdnn_status status;
     zdnn_tensor_desc pre_tfm_desc, tfm_desc;
 
-    zdnn_tensor * ztensor_src0;
-    zdnn_tensor * ztensor_src1;
-    zdnn_tensor * ztensor_dst;
+    zdnn_ztensor * ztensor_src0;
+    zdnn_ztensor * ztensor_src1;
+    zdnn_ztensor * ztensor_dst;
 
     // Note: GGML stores dimension and strides in reverse order!
     // Read more: https://clehaxze.tw/gemlog/2024/12-28-building-new-ggml-backends-for-novel-accelerators-how-challenge-and-oppertunities-fosdem-2025-draft.gmi#:~:text=GGML%20stores%20dimension%20and%20strides%20in%20REVERSE%20order
@@ -305,7 +305,7 @@ static bool ggml_backend_zdnn_device_supports_op(ggml_backend_dev_t dev, const s
 
     switch (op->op) {
         // GGML required ops
-        case GGML_OP_VIEW:
+        case GGML_OP_NONE:
         case GGML_OP_RESHAPE:
         case GGML_OP_VIEW:
         case GGML_OP_PERMUTE:
@@ -325,7 +325,6 @@ static bool ggml_backend_zdnn_device_supports_op(ggml_backend_dev_t dev, const s
         case GGML_OP_NORM:
         case GGML_OP_MUL_MAT:
         case GGML_OP_MUL_MAT_ID:
-        case GGML_OP_RESHAPE:
         case GGML_OP_SOFT_MAX:
         case GGML_OP_LEAKY_RELU:
             return false; // TODO: disable all support first to showcase device reg

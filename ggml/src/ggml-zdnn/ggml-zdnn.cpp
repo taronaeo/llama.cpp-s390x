@@ -65,9 +65,9 @@ void ggml_zdnn_op_add(ggml_backend_zdnn_context & ctx, ggml_tensor * tensor) {
     zdnn_status status;
     zdnn_tensor_desc pre_tfm_desc, tfm_desc;
 
-    zdnn_ztensor * ztensor_src0;
-    zdnn_ztensor * ztensor_src1;
-    zdnn_ztensor * ztensor_dst;
+    zdnn_ztensor ztensor_src0;
+    zdnn_ztensor ztensor_src1;
+    zdnn_ztensor ztensor_dst;
 
     // Note: GGML stores dimension and strides in reverse order!
     // Read more: https://clehaxze.tw/gemlog/2024/12-28-building-new-ggml-backends-for-novel-accelerators-how-challenge-and-oppertunities-fosdem-2025-draft.gmi#:~:text=GGML%20stores%20dimension%20and%20strides%20in%20REVERSE%20order

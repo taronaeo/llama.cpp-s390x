@@ -1,41 +1,38 @@
 if (GGML_ZDNN)
-    file(GLOB   GGML_SOURCES_ZDNN "*.cpp")
-    list(APPEND GGML_HEADERS_ZDNN "../../include/ggml-zdnn.h")
-
-    ggml_add_backend_library(ggml-zdnn ${GGML_HEADERS_ZDNN} ${GGML_SOURCES_ZDNN})
-    add_compile_definitions(GGML_USE_ZDNN) # Double check if required, may already be done by ggml-cpu
-
     if (DEFINED ZDNN_ROOT)
-        message(STATUS "Using ZDNN_ROOT override: ${ZDNN_ROOT}")
-        set(ZDNN_HINT "${ZDNN_ROOT}/include")
+        message(STATUS "zdnn: using ZDNN_ROOT override: ${ZDNN_ROOT}")
+        set(ZDNN_HINT "${ZDNN_ROOT}")
     else()
         set(ZDNN_HINT "")
     endif()
 
-    find_path(ZDNN_INCLUDE_DIR
-                NAMES zdnn.h
-                HINTS ${ZDNN_HINT} /usr/include /usr/local/include
-    )
-    if (ZDNN_INCLUDE_DIR)
-        message(STATUS "zDNN found, Includes: ${ZDNN_INCLUDE_DIR}")
+    find_path(
+        ZDNN_INCLUDE_DIRS
+        NAMES zdnn.h
+        HINTS "${ZDNN_HINT}/include" /usr/include /usr/local/include)
+    if (ZDNN_INCLUDE_DIRS)
+        message(STATUS "zdnn: includes found: ${ZDNN_INCLUDE_DIRS}")
     else()
-        message(FATAL_ERROR "zDNN not found, please set ZDNN_ROOT to the proper location if necessary.")
+        message(FATAL_ERROR "zdnn: includes not found, please set ZDNN_ROOT to the proper location if necessary")
     endif()
 
-    find_library(ZDNN_LIBRARY_DIR
-                    NAMES zdnn
-                    HINTS ${ZDNN_HINT} /usr/lib /usr/lib64 /usr/local/lib
-    )
-    if (ZDNN_LIBRARY_DIR)
-        message(STATUS "zDNN found, Library: ${ZDNN_LIBRARY_DIR}")
+    find_library(
+        ZDNN_LIBRARIES
+        NAMES zdnn
+        HINTS "${ZDNN_HINT}/lib" /usr/lib /usr/lib64 /usr/local/lib)
+    if(ZDNN_LIBRARIES)
+        message(STATUS "zdnn: libraries found: ${ZDNN_LIBRARIES}")
     else()
-        message(FATAL_ERROR "zDNN not found, please set ZDNN_ROOT to the proper location if necessary.")
+        message(FATAL_ERROR "zdnn: libraries not found, please set ZDNN_ROOT to the proper location if necessary")
     endif()
 
-    target_link_libraries(ggml-zdnn PRIVATE ${ZDNN_LIBRARY_DIR})
-    target_include_directories(ggml-zdnn PRIVATE ${ZDNN_INCLUDE_DIR})
+    file(GLOB GGML_SOURCES_ZDNN "*.c" "*.cpp")
+    file(GLOB GGML_HEADERS_ZDNN "*.h")
 
-    set(ZDNN_FLAGS -lzdnn)
-    target_compile_options(ggml-zdnn PRIVATE ${ZDNN_FLAGS})
+    ggml_add_backend_library(ggml-zdnn ${GGML_HEADERS_ZDNN} ${GGML_SOURCES_ZDNN})
+    target_link_libraries(ggml-zdnn PRIVATE ${ZDNN_LIBRARIES})
+    target_include_directories(ggml-zdnn PRIVATE ${ZDNN_INCLUDE_DIRS})
+    target_link_directories(ggml-zdnn PRIVATE ${ZDNN_LIBRARIES})
+
+    target_compile_definitions(ggml-zdnn PRIVATE "-DGGML_USE_ZDNN")
 endif()
-

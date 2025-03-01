@@ -3218,6 +3218,45 @@ void ggml_vec_dot_q5_0_q8_0(int n, float * GGML_RESTRICT s, size_t bs, const voi
     }
 
     sumf = hsum_float_8(acc);
+#elif defined(__VXE__) || defined(__VXE2__)
+    float32x4_t sumv0 = vec_splats(0.0f);
+
+    uint32_t qh0;
+    uint64_t tmp0[4];
+
+    for (; ib < nb; ++ib) {
+        const block_q5_0 * restrict x0 = &x[ib];
+        const block_q8_0 * restrict y0 = &y[ib];
+
+        const uint8x16_t m4b = vec_splat_u8(0x0F);
+
+        memcpy(&qh0, x0->qh, sizeof(qh0));
+        tmp0[0] = table_b2b_1[(qh0 >>  0) & 0xFF];
+        tmp0[1] = table_b2b_1[(qh0 >>  8) & 0xFF];
+        tmp0[2] = table_b2b_1[(qh0 >> 16) & 0xFF];
+        tmp0[3] = table_b2b_1[(qh0 >> 24)       ];
+
+        const int8x16_t qhl0 = vec_xl(0 , (const int8_t *)tmp0);
+        const int8x16_t qhh0 = vec_xl(16, (const int8_t *)tmp0);
+
+        const uint8x16_t v0_0 = vec_xl(0, x0->qs);
+
+        int8x16_t v0_0l = (int8x16_t)vec_and(v0_0, m4b);
+        int8x16_t v0_0h = (int8x16_t)vec_sr(v0_0, 4);
+
+        const int8x16_t v0_0lf = vec_sub(v0_0l, qhl0);
+        const int8x16_t v0_0hf = vec_sub(v0_0h, qhh0);
+
+        const int8x16_t v1_0l = vec_xl(0 , y0->qs);
+        const int8x16_t v1_0h = vec_xl(16, y0->qs);
+
+        sumv0 = vec_madd(vec_float(vec_add(
+            ggml_vec_dot(vec_splat_s32(0), v0_0lf, v1_0l),
+            ggml_vec_dot(vec_splat_s32(0), v0_0hf, v1_0h)
+        )), GGML_FP16_TO_FP32(x0->d) * GGML_FP16_TO_FP32(y0->d), sumv0);
+
+        sumf = (sumv0[0] + sumv0[1] + sumv0[2] + sumv0[3]);
+    }
 #endif
     for (; ib < nb; ++ib) {
         uint32_t qh;

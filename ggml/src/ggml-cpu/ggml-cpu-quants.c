@@ -276,7 +276,7 @@ static inline float hsum_float_4x4(const __m128 a, const __m128 b, const __m128 
 #endif // __AVX__ || __AVX2__ || __AVX512F__
 #endif // defined(__AVX__) || defined(__AVX2__) || defined(__AVX512F__) || defined(__SSSE3__)
 
-#if defined(__ARM_NEON) || defined(__wasm_simd128__) || defined(__POWER9_VECTOR__)
+#if defined(__ARM_NEON) || defined(__wasm_simd128__) || defined(__POWER9_VECTOR__) || defined(__VXE__) || defined(__VXE2__)
 #define B1(c,s,n)  0x ## n ## c ,  0x ## n ## s
 #define B2(c,s,n) B1(c,s,n ## c), B1(c,s,n ## s)
 #define B3(c,s,n) B2(c,s,n ## c), B2(c,s,n ## s)

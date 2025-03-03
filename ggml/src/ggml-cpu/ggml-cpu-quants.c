@@ -3296,9 +3296,9 @@ void ggml_vec_dot_q5_0_q8_0(int n, float * restrict s, size_t bs, const void * r
             ggml_vec_dot(vec_splat_s32(0), v0_0lf, v1_0l),
             ggml_vec_dot(vec_splat_s32(0), v0_0hf, v1_0h)
         )), GGML_FP16_TO_FP32(x0->d) * GGML_FP16_TO_FP32(y0->d), sumv0);
-    }
 
-    sumf = (sumv0[0] + sumv0[1] + sumv0[2] + sumv0[3]);
+        sumf = (sumv0[0] + sumv0[1] + sumv0[2] + sumv0[3]);
+    }
 #endif
     for (; ib < nb; ++ib) {
         uint32_t qh;

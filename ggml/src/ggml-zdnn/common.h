@@ -20,7 +20,7 @@
                                                    bcast_##src0##_nb,   \
                                                    bcast_##src1##_nb);
 
-#define BCAST_PARAM(tensor) bcast_##tensor##_ne, bcast_##tensor##_nb, bcast_dims;
+#define BCAST_PARAM(tensor) bcast_##tensor##_ne, bcast_##tensor##_nb, bcast_dims
 
 struct ggml_backend_zdnn_context {
   std::unique_ptr<char[]> work_data;

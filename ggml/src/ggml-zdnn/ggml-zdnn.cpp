@@ -113,7 +113,7 @@ void ggml_zdnn_create_tensor(const ggml_tensor      * tensor,
 
     // Note: GGML stores dimension and strides in reverse order!
     // Read more: https://github.com/ggml-org/ggml/issues/500#issuecomment-1704322898
-    zdnn_init_pre_transformed_desc(ZDNN_NCHW
+    zdnn_init_pre_transformed_desc(ZDNN_NCHW,
                                    ggml_zdnn_type_mapping(tensor->type),
                                    &pre_tfm_desc,
                                    tensor->ne[3], tensor->ne[2],

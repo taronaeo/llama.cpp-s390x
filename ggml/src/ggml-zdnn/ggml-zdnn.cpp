@@ -124,6 +124,18 @@ void ggml_zdnn_create_tensor(const ggml_tensor      * tensor,
 
     status = zdnn_init_ztensor_with_malloc(&pre_tfm_desc, &tfm_desc, &ztensor);
     assert(status == ZDNN_OK);
+
+    GGML_UNUSED(status);
+}
+
+void ggml_zdnn_load_tensor(const ggml_tensor  * tensor,
+                                 zdnn_ztensor & ztensor) {
+    zdnn_status status;
+
+    status = zdnn_transform_ztensor(&ztensor, tensor->data);
+    assert(status == ZDNN_OK);
+
+    GGML_UNUSED(status);
 }
 
 void ggml_zdnn_op_add(ggml_backend_zdnn_context & ctx, ggml_tensor * tensor) {
@@ -156,11 +168,8 @@ void ggml_zdnn_op_add(ggml_backend_zdnn_context & ctx, ggml_tensor * tensor) {
         ggml_zdnn_create_tensor(dst , pre_tfm_desc_dst , tfm_desc_dst , ztensor_dst , nullptr, nullptr, GGML_MAX_DIMS);
     }
 
-    status = zdnn_transform_ztensor(&ztensor_src0, src0->data);
-    assert(status == ZDNN_OK);
-
-    status = zdnn_transform_ztensor(&ztensor_src1, src1->data);
-    assert(status == ZDNN_OK);
+    ggml_zdnn_load_tensor(src0, ztensor_src0);
+    ggml_zdnn_load_tensor(src1, ztensor_src1);
 
     status = zdnn_add(&ztensor_src0, &ztensor_src1, &ztensor_dst);
     assert(status == ZDNN_OK);

@@ -47,6 +47,9 @@ void ggml_zdnn_create_tensor(const ggml_tensor      * tensor,
                                    size_t           * nb,
                                    int64_t            dims);
 
+void ggml_zdnn_load_tensor(const ggml_tensor  * tensor,
+                                 zdnn_ztensor & ztensor);
+
 void ggml_zdnn_op_add(ggml_backend_zdnn_context & ctx, ggml_tensor * tensor);
 
 #endif /* ZDNN_COMMON_H */

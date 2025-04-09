@@ -851,12 +851,16 @@ static inline __vector float __lzs_f16cx4_load(const ggml_fp16_t * x) {
         tmp[i] = GGML_FP16_TO_FP32(x[i]);
     }
 
+    // TODO: change to const pointer instead (see #12846)
+    // this is only a workaround to the compile error but its unreadable
     return vec_xl(0, &(tmp[0]));
 }
 
 static inline void __lzs_f16cx4_store(ggml_fp16_t * x, __vector float y) {
     float arr[4];
 
+    // TODO: change to const pointer instead (see #12846)
+    // this is only a workaround to the compile error but its unreadable
     vec_xst(y, 0, &(arr[0]));
 
     for (int i = 0; i < 4; i++) {

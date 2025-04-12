@@ -365,7 +365,7 @@ if has_llava_projector:
 
         # byteswaps v.head.ffn_up.bias for big-endian systems
         # see: https://github.com/ggml-org/llama.cpp/issues/12863
-        if name == "v.head.ffn_up.bias" and arg.bigendian:
+        if name == "v.head.ffn_up.bias" and args.bigendian:
             data = data.byteswap(inplace=True)
 
         fout.add_tensor(name, data)

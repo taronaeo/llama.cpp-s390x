@@ -6,14 +6,7 @@ FROM --platform=linux/s390x ubuntu:$UBUNTU_VERSION AS base
 RUN apt update -y \
     && apt upgrade -y \
     && apt install -y curl libgomp1 \
-    && apt install -y libcurl4-openssl-dev libopenblas-openmp-dev \
-    && apt autoremove -y \
-    && apt clean -y \
-    && rm -rf /tmp/* /var/tmp/* \
-    && find /var/lib/apt/lists \
-            /var/cache/apt/archives \
-            -not -name lock -type f -delete \
-    && find /var/cache -type f -delete
+    && apt install -y libcurl4-openssl-dev libopenblas-openmp-dev
 
 FROM --platform=linux/s390x base AS build
 RUN apt install -y git cmake pkg-config build-essential
@@ -45,4 +38,3 @@ WORKDIR /app
 HEALTHCHECK CMD curl --fail http://localhost:8080/health
 
 ENTRYPOINT ["/app/llama-server"]
-

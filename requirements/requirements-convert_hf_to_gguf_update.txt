@@ -1,3 +1,5 @@
 -r ./requirements-convert_legacy_llama.txt
 --extra-index-url https://download.pytorch.org/whl/cpu
+# torch s390x packages can only be found from nightly builds
+--extra-index-url https://download.pytorch.org/whl/nightly
 torch~=2.2.1

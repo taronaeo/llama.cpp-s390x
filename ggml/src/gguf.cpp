@@ -348,7 +348,7 @@ struct gguf_context * gguf_init_from_file_impl(FILE * file, struct gguf_init_par
 
     if (ok && gr.read(ctx->version)) {
         if ((ctx->version & 0xFFFF) == 0x0000) {
-            GGML_LOG_ERROR("%s: host and model endian mismatch, please use a model compiled with the same endian as your host system\n", __func__);
+            GGML_LOG_ERROR("%s: failed to load model: host and model endian mismatch, please use a model compiled with the same endian as your host system\n", __func__);
             gguf_free(ctx);
             return nullptr;
         }

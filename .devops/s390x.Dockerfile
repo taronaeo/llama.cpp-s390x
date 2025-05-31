@@ -15,8 +15,7 @@ WORKDIR /app
 
 COPY . .
 
-RUN cmake -S .                  \
-    -B build                    \
+RUN cmake -S . -B build         \
     -DCMAKE_BUILD_TYPE=Release  \
     -DLLAMA_BUILD_TESTS=OFF     \
     -DGGML_BLAS=ON              \

@@ -351,11 +351,11 @@ struct gguf_context * gguf_init_from_file_impl(FILE * file, struct gguf_init_par
          * bit layout is different when reading non-native endian models.
          * assuming that the GGUF version is 3, the non-native endian model
          * would read it as 0x30000000. we can use the AND operation against
-         * the last 4 hexadecimal digit to check if the model is the same
+         * the last 4 hexadecimal digits to check if the model is the same
          * endianness as the host system.
         */
         if ((ctx->version & 0x0000FFFF) == 0x00000000) {
-            GGML_LOG_ERROR("%s: failed to load model: host and model endian mismatch, please use a model compiled with the same endian as your host system\n", __func__);
+            GGML_LOG_ERROR("%s: failed to load model: this GGUF file version %" PRIu32 " is extremely large, is there a mismatch between the host and model endianness?\n", __func__, ctx->version);
             gguf_free(ctx);
             return nullptr;
         }

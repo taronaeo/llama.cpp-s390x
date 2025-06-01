@@ -347,7 +347,15 @@ struct gguf_context * gguf_init_from_file_impl(FILE * file, struct gguf_init_par
     int64_t n_tensors = 0;
 
     if (ok && gr.read(ctx->version)) {
-        if ((ctx->version & 0xFFFF) == 0x0000) {
+        /*
+         * bit layout is different when reading non-native endian models.
+         * assuming that the GGUF version is 3, the non-native endian model
+         * would read it as 0x30000000. we can use the AND operation against
+         * the last 4 hexadecimal digit to check if the model is the same
+         * endianness as the host system.
+        */
+        GGML_ASSERT(ctx->version > 0 && ctx->version <= 65535);
+        if ((ctx->version & 0x0000FFFF) == 0x00000000) {
             GGML_LOG_ERROR("%s: failed to load model: host and model endian mismatch, please use a model compiled with the same endian as your host system\n", __func__);
             gguf_free(ctx);
             return nullptr;

@@ -23,6 +23,7 @@ env:
 
 jobs:
   macOS-arm64:
+    if: false  # DISABLE FOR NOW
     runs-on: macos-14
 
     steps:
@@ -75,6 +76,7 @@ jobs:
           name: llama-bin-macos-arm64.zip
 
   macOS-x64:
+    if: false  # DISABLE FOR NOW
     runs-on: macos-13
 
     steps:
@@ -127,6 +129,7 @@ jobs:
           name: llama-bin-macos-x64.zip
 
   ubuntu-22-cpu:
+    if: false  # DISABLE FOR NOW
     strategy:
       matrix:
         include:
@@ -229,6 +232,7 @@ jobs:
           name: llama-bin-ubuntu-s390x.zip
 
   ubuntu-22-vulkan:
+    if: false  # DISABLE FOR NOW
     runs-on: ubuntu-22.04
 
     steps:
@@ -277,6 +281,7 @@ jobs:
           name: llama-bin-ubuntu-vulkan-x64.zip
 
   windows-cpu:
+    if: false  # DISABLE FOR NOW
     runs-on: windows-latest
 
     strategy:
@@ -340,6 +345,7 @@ jobs:
           name: llama-bin-win-cpu-${{ matrix.arch }}.zip
 
   windows:
+    if: false  # DISABLE FOR NOW
     runs-on: windows-latest
 
     env:
@@ -422,6 +428,7 @@ jobs:
           name: llama-bin-win-${{ matrix.backend }}-${{ matrix.arch }}.zip
 
   windows-cuda:
+    if: false  # DISABLE FOR NOW
     runs-on: windows-2019
 
     strategy:
@@ -490,6 +497,7 @@ jobs:
           name: cudart-llama-bin-win-cuda-${{ matrix.cuda }}-x64.zip
 
   windows-sycl:
+    if: false  # DISABLE FOR NOW
     runs-on: windows-latest
 
     defaults:
@@ -562,6 +570,7 @@ jobs:
           name: llama-bin-win-sycl-x64.zip
 
   windows-hip:
+    if: false  # DISABLE FOR NOW
     runs-on: windows-latest
 
     strategy:
@@ -636,6 +645,7 @@ jobs:
           name: llama-bin-win-hip-${{ matrix.name }}-x64.zip
 
   ios-xcode-build:
+    if: false  # DISABLE FOR NOW
     runs-on: macos-latest
 
     steps:

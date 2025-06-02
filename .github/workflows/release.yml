@@ -10,6 +10,7 @@ on:
   push:
     branches:
       - master
+      - feat/s390x-ci
     paths: ['.github/workflows/release.yml', '**/CMakeLists.txt', '**/.cmake', '**/*.h', '**/*.hpp', '**/*.c', '**/*.cpp', '**/*.cu', '**/*.cuh', '**/*.swift', '**/*.m', '**/*.metal', '**/*.comp']
 
 concurrency:
@@ -178,6 +179,54 @@ jobs:
         with:
           path: llama-${{ steps.tag.outputs.name }}-bin-ubuntu-${{ matrix.build }}.zip
           name: llama-bin-ubuntu-${{ matrix.build }}.zip
+
+  ubuntu-22-s390x:
+    runs-on: ubuntu-22.04-s390x
+
+    steps:
+      - name: Clone
+        id: checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: ccache
+        uses: hendrikmuhs/ccache-action@v1.2.16
+        with:
+          key: ubuntu-s390x-cmake
+          evict-old-files: 1d
+
+      - name: Dependencies
+        id: depends
+        run: |
+          sudo apt-get update
+          sudo apt-get install build-essential libcurl4-openssl-dev
+
+      - name: Build
+        id: cmake_build
+        run: |
+          cmake -B build \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DGGML_BLAS=ON \
+            -DGGML_BLAS_VENDOR=OpenBLAS \
+            ${{ env.CMAKE_ARGS }}
+          cmake --build build --config Release -j $(nproc)
+
+      - name: Determine tag name
+        id: tag
+        uses: ./.github/actions/get-tag-name
+
+      - name: Pack artifacts
+        id: pack_artifacts
+        run: |
+          cp LICENSE ./build/bin
+          zip -r llama-${{ steps.tag.outputs.name }}-bin-ubuntu-s390x.zip ./build/bin/*
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          path: llama-${{ steps.tag.outputs.name }}-bin-ubuntu-s390x.zip
+          name: llama-bin-ubuntu-s390x.zip
 
   ubuntu-22-vulkan:
     runs-on: ubuntu-22.04
@@ -652,6 +701,7 @@ jobs:
       - windows-sycl
       - windows-hip
       - ubuntu-22-cpu
+      - ubuntu-22-s390x
       - ubuntu-22-vulkan
       - macOS-arm64
       - macOS-x64

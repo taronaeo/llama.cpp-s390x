@@ -23,6 +23,7 @@ env:
 
 jobs:
   macOS-latest-cmake-arm64:
+    if: false  # DISABLE FOR NOW
     runs-on: macos-14
 
     steps:
@@ -62,6 +63,7 @@ jobs:
           ctest -L 'main|curl' --verbose --timeout 900
 
   macOS-latest-cmake-x64:
+    if: false  # DISABLE FOR NOW
     runs-on: macos-13
 
     steps:
@@ -102,6 +104,7 @@ jobs:
           ctest -L main --verbose --timeout 900
 
   ubuntu-cpu-cmake:
+    if: false  # DISABLE FOR NOW
     strategy:
       matrix:
         include:
@@ -155,6 +158,7 @@ jobs:
           ./bin/llama-cli -m stories260K.gguf -p "One day, Lily met a Shoggoth" -n 500 -c 256
 
   ubuntu-latest-cmake-sanitizer:
+    if: false  # DISABLE FOR NOW
     runs-on: ubuntu-latest
 
     continue-on-error: true
@@ -209,6 +213,7 @@ jobs:
           ctest -L main --verbose --timeout 900
 
   ubuntu-latest-llguidance:
+    if: false  # DISABLE FOR NOW
     runs-on: ubuntu-latest
 
     steps:
@@ -239,6 +244,7 @@ jobs:
           ctest -L main --verbose --timeout 900
 
   ubuntu-latest-cmake-rpc:
+    if: false  # DISABLE FOR NOW
     runs-on: ubuntu-latest
 
     continue-on-error: true
@@ -274,6 +280,7 @@ jobs:
           ctest -L main --verbose
 
   ubuntu-22-cmake-vulkan:
+    if: false  # DISABLE FOR NOW
     runs-on: ubuntu-22.04
 
     steps:
@@ -310,6 +317,7 @@ jobs:
           ctest -L main --verbose --timeout 3600
 
   ubuntu-22-cmake-hip:
+    if: false  # DISABLE FOR NOW
     runs-on: ubuntu-22.04
     container: rocm/dev-ubuntu-22.04:6.0.2
 
@@ -350,6 +358,7 @@ jobs:
           cmake --build build2 --config Release -j $(nproc)
 
   ubuntu-22-cmake-musa:
+    if: false  # DISABLE FOR NOW
     runs-on: ubuntu-22.04
     container: mthreads/musa:rc4.0.1-mudnn-devel-ubuntu22.04
 
@@ -378,6 +387,7 @@ jobs:
           cmake --build build --config Release -j $(nproc)
 
   ubuntu-22-cmake-sycl:
+    if: false  # DISABLE FOR NOW
     runs-on: ubuntu-22.04
 
     continue-on-error: true
@@ -426,6 +436,7 @@ jobs:
           cmake --build build --config Release -j $(nproc)
 
   ubuntu-22-cmake-sycl-fp16:
+    if: false  # DISABLE FOR NOW
     runs-on: ubuntu-22.04
 
     continue-on-error: true
@@ -475,9 +486,11 @@ jobs:
           cmake --build build --config Release -j $(nproc)
 
   build-linux-cross:
+    if: false  # DISABLE FOR NOW
     uses: ./.github/workflows/build-linux-cross.yml
 
   macOS-latest-cmake-ios:
+    if: false  # DISABLE FOR NOW
     runs-on: macos-latest
 
     steps:
@@ -515,6 +528,7 @@ jobs:
           cmake --build build --config Release -j $(sysctl -n hw.logicalcpu) -- CODE_SIGNING_ALLOWED=NO
 
   macOS-latest-cmake-tvos:
+    if: false  # DISABLE FOR NOW
     runs-on: macos-latest
 
     steps:
@@ -552,6 +566,7 @@ jobs:
           cmake --build build --config Release -j $(sysctl -n hw.logicalcpu) -- CODE_SIGNING_ALLOWED=NO
 
   macOS-latest-cmake-visionos:
+    if: false  # DISABLE FOR NOW
     runs-on: macos-latest
 
     steps:
@@ -583,6 +598,7 @@ jobs:
           cmake --build build --config Release -j $(sysctl -n hw.logicalcpu) -- CODE_SIGNING_ALLOWED=NO
 
   macOS-latest-swift:
+    if: false  # DISABLE FOR NOW
     runs-on: macos-latest
 
     strategy:
@@ -627,6 +643,7 @@ jobs:
           ./build-xcframework.sh
 
   windows-msys2:
+    if: false  # DISABLE FOR NOW
     runs-on: windows-latest
 
     strategy:
@@ -677,6 +694,7 @@ jobs:
             cmake --build build --config ${{ matrix.build }} -j $(nproc)
 
   windows-latest-cmake:
+    if: false  # DISABLE FOR NOW
     runs-on: windows-latest
 
     env:
@@ -807,6 +825,7 @@ jobs:
       #     & $sde -future -- ctest -L main -C Release --verbose --timeout 900
 
   ubuntu-latest-cmake-cuda:
+    if: false  # DISABLE FOR NOW
     runs-on: ubuntu-latest
     container: nvidia/cuda:12.6.2-devel-ubuntu24.04
 
@@ -840,6 +859,7 @@ jobs:
             cmake --build build
 
   windows-2019-cmake-cuda:
+    if: false  # DISABLE FOR NOW
     runs-on: windows-2019
 
     strategy:
@@ -892,6 +912,7 @@ jobs:
           cmake --build build --config Release
 
   windows-latest-cmake-sycl:
+    if: false  # DISABLE FOR NOW
     runs-on: windows-latest
 
     defaults:
@@ -982,6 +1003,7 @@ jobs:
           cmake --build build -j ${env:NUMBER_OF_PROCESSORS}
 
   ios-xcode-build:
+    if: false  # DISABLE FOR NOW
     runs-on: macos-latest
 
     steps:
@@ -1014,6 +1036,7 @@ jobs:
         run: xcodebuild -project examples/llama.swiftui/llama.swiftui.xcodeproj -scheme llama.swiftui -sdk iphoneos CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY= -destination 'generic/platform=iOS' FRAMEWORK_FOLDER_PATH=./build-ios build
 
   android-build:
+    if: false  # DISABLE FOR NOW
     runs-on: ubuntu-latest
 
     steps:

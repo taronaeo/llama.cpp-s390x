@@ -486,7 +486,6 @@ jobs:
           cmake --build build --config Release -j $(nproc)
 
   build-linux-cross:
-    if: false  # DISABLE FOR NOW
     uses: ./.github/workflows/build-linux-cross.yml
 
   macOS-latest-cmake-ios:

@@ -140,7 +140,6 @@ void ggml_zdnn_load_tensor(const ggml_tensor  * tensor,
 
 void ggml_zdnn_op_add(ggml_backend_zdnn_context & ctx, ggml_tensor * tensor) {
     GGML_UNUSED(ctx);
-    GGML_LOG_INFO("%s: is being fired\n", __func__);
 
     ggml_tensor * src0 = tensor->src[0];
     ggml_tensor * src1 = tensor->src[1];
@@ -188,7 +187,6 @@ void ggml_zdnn_op_add(ggml_backend_zdnn_context & ctx, ggml_tensor * tensor) {
 
 void ggml_zdnn_op_sub(ggml_backend_zdnn_context & ctx, ggml_tensor * tensor) {
     GGML_UNUSED(ctx);
-    GGML_LOG_INFO("%s: is being fired\n", __func__);
 
     ggml_tensor * src0 = tensor->src[0];
     ggml_tensor * src1 = tensor->src[1];

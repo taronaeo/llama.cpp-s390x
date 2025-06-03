@@ -34,5 +34,5 @@ if (GGML_ZDNN)
     target_include_directories(ggml-zdnn PRIVATE ${ZDNN_INCLUDE_DIRS})
     target_link_directories(ggml-zdnn PRIVATE ${ZDNN_LIBRARIES})
 
-    target_compile_definitions(ggml-zdnn PRIVATE "-DGGML_USE_ZDNN")
+    target_compile_definitions(ggml-zdnn PRIVATE GGML_USE_ZDNN)
 endif()

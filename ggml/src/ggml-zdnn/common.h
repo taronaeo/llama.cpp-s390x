@@ -51,5 +51,38 @@ void ggml_zdnn_load_tensor(const ggml_tensor  * tensor,
                                  zdnn_ztensor & ztensor);
 
 void ggml_zdnn_op_add(ggml_backend_zdnn_context & ctx, ggml_tensor * tensor);
+void ggml_zdnn_op_sub(ggml_backend_zdnn_context & ctx, ggml_tensor * tensor);
+void ggml_zdnn_op_mul(ggml_backend_zdnn_context & ctx, ggml_tensor * tensor);
+void ggml_zdnn_op_div(ggml_backend_zdnn_context & ctx, ggml_tensor * tensor);
+
+void ggml_zdnn_op_min                   (ggml_backend_zdnn_context & ctx, ggml_tensor * tensor);
+void ggml_zdnn_op_max                   (ggml_backend_zdnn_context & ctx, ggml_tensor * tensor);
+void ggml_zdnn_op_log                   (ggml_backend_zdnn_context & ctx, ggml_tensor * tensor);
+void ggml_zdnn_op_exp                   (ggml_backend_zdnn_context & ctx, ggml_tensor * tensor);
+void ggml_zdnn_op_sqrt                  (ggml_backend_zdnn_context & ctx, ggml_tensor * tensor);
+void ggml_zdnn_op_invsqrt               (ggml_backend_zdnn_context & ctx, ggml_tensor * tensor);
+void ggml_zdnn_op_relu                  (ggml_backend_zdnn_context & ctx, ggml_tensor * tensor);
+void ggml_zdnn_op_leaky_relu            (ggml_backend_zdnn_context & ctx, ggml_tensor * tensor);
+void ggml_zdnn_op_tanh                  (ggml_backend_zdnn_context & ctx, ggml_tensor * tensor);
+void ggml_zdnn_op_sigmoid               (ggml_backend_zdnn_context & ctx, ggml_tensor * tensor);
+void ggml_zdnn_op_softmax               (ggml_backend_zdnn_context & ctx, ggml_tensor * tensor);
+void ggml_zdnn_op_softmax_mask          (ggml_backend_zdnn_context & ctx, ggml_tensor * tensor);
+void ggml_zdnn_op_gelu                  (ggml_backend_zdnn_context & ctx, ggml_tensor * tensor);
+void ggml_zdnn_op_meanreduce2d          (ggml_backend_zdnn_context & ctx, ggml_tensor * tensor);
+void ggml_zdnn_op_batchnorm             (ggml_backend_zdnn_context & ctx, ggml_tensor * tensor);
+void ggml_zdnn_op_norm                  (ggml_backend_zdnn_context & ctx, ggml_tensor * tensor);
+void ggml_zdnn_op_moments               (ggml_backend_zdnn_context & ctx, ggml_tensor * tensor);
+void ggml_zdnn_op_layernorm             (ggml_backend_zdnn_context & ctx, ggml_tensor * tensor);
+void ggml_zdnn_op_reduce                (ggml_backend_zdnn_context & ctx, ggml_tensor * tensor);
+void ggml_zdnn_op_matmul                (ggml_backend_zdnn_context & ctx, ggml_tensor * tensor);
+void ggml_zdnn_op_matmul_bcast          (ggml_backend_zdnn_context & ctx, ggml_tensor * tensor);
+void ggml_zdnn_op_matmul_transpose      (ggml_backend_zdnn_context & ctx, ggml_tensor * tensor);
+void ggml_zdnn_op_matmul_quantized      (ggml_backend_zdnn_context & ctx, ggml_tensor * tensor);
+
+void ggml_zdnn_op_lstm          (ggml_backend_zdnn_context & ctx, ggml_tensor * tensor);
+void ggml_zdnn_op_gru           (ggml_backend_zdnn_context & ctx, ggml_tensor * tensor);
+void ggml_zdnn_op_avgpool2d     (ggml_backend_zdnn_context & ctx, ggml_tensor * tensor);
+void ggml_zdnn_op_maxpool2d     (ggml_backend_zdnn_context & ctx, ggml_tensor * tensor);
+void ggml_zdnn_op_conv2d        (ggml_backend_zdnn_context & ctx, ggml_tensor * tensor);
 
 #endif /* ZDNN_COMMON_H */

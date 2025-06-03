@@ -227,7 +227,7 @@ void ggml_zdnn_op_sub(ggml_backend_zdnn_context & ctx, ggml_tensor * tensor) {
     status = zdnn_free_ztensor_buffer(&ztensor_src1);
     GGML_ASSERT(status == ZDNN_OK);
     status = zdnn_free_ztensor_buffer(&ztensor_dst);
-    GGML_ASSERTtatus == ZDNN_OK);
+    GGML_ASSERT(status == ZDNN_OK);
 }
 
 static bool ggml_zdnn_compute_forward(ggml_backend_zdnn_context & ctx,

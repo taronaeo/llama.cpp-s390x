@@ -581,6 +581,9 @@ static ggml_backend_feature * ggml_backend_cpu_get_features(ggml_backend_reg_t r
     #ifdef GGML_USE_CPU_AARCH64
         features.push_back({ "AARCH64_REPACK", "1" });
     #endif
+    #ifdef GGML_USE_ZDNN
+        features.push_back({ "ZDNN", "1" });
+    #endif
 
         features.push_back({ nullptr, nullptr });
 

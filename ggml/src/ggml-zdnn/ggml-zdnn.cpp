@@ -237,26 +237,24 @@ void ggml_zdnn_op_mul(ggml_backend_zdnn_context & ctx, ggml_tensor * tensor) {
     ggml_tensor * src1 = tensor->src[1];
     ggml_tensor * dst  = tensor;
     GGML_ASSERT(ggml_can_repeat(src1, src0) && ggml_are_same_shape(src0, dst));
+    GGML_ASSERT(src0->type == src1->type && src0->type == dst->type && "All tensors must have the same data type for zdnn_mul");
+    GGML_ASSERT(ggml_n_dims(src0) == ggml_n_dims(src1) && ggml_n_dims(src0) == ggml_n_dims(dst));
 
     zdnn_status status;
-    zdnn_tensor_desc pre_tfm_desc_src0, tfm_desc_src0;
-    zdnn_tensor_desc pre_tfm_desc_src1, tfm_desc_src1;
-    zdnn_tensor_desc pre_tfm_desc_dst , tfm_desc_dst;
+    zdnn_tensor_desc pre_tfm_desc_src0, pre_tfm_desc_src1, pre_tfm_desc_dst;
+    zdnn_tensor_desc tfm_desc_src0,     tfm_desc_src1,     tfm_desc_dst;
+    zdnn_ztensor     ztensor_src0,      ztensor_src1,      ztensor_dst;
 
-    zdnn_ztensor ztensor_src0;
-    zdnn_ztensor ztensor_src1;
-    zdnn_ztensor ztensor_dst;
-
-    if (!ggml_are_same_shape(src0, src1) && ggml_zdnn_need_bcast(src0, src1)) {
-        BCAST_SHAPE(src0, src1)
-        ggml_zdnn_create_tensor(src0, pre_tfm_desc_src0, tfm_desc_src0, ztensor_src0, BCAST_PARAM(src0));
-        ggml_zdnn_create_tensor(src1, pre_tfm_desc_src1, tfm_desc_src1, ztensor_src1, BCAST_PARAM(src1));
-        ggml_zdnn_create_tensor(dst , pre_tfm_desc_dst , tfm_desc_dst , ztensor_dst , BCAST_PARAM(src0));
-    } else {
-        ggml_zdnn_create_tensor(src0, pre_tfm_desc_src0, tfm_desc_src0, ztensor_src0, nullptr, nullptr, GGML_MAX_DIMS);
-        ggml_zdnn_create_tensor(src1, pre_tfm_desc_src1, tfm_desc_src1, ztensor_src1, nullptr, nullptr, GGML_MAX_DIMS);
-        ggml_zdnn_create_tensor(dst , pre_tfm_desc_dst , tfm_desc_dst , ztensor_dst , nullptr, nullptr, GGML_MAX_DIMS);
-    }
+    // if (!ggml_are_same_shape(src0, src1) && ggml_zdnn_need_bcast(src0, src1)) {
+    //     BCAST_SHAPE(src0, src1)
+    //     ggml_zdnn_create_tensor(src0, pre_tfm_desc_src0, tfm_desc_src0, ztensor_src0, BCAST_PARAM(src0));
+    //     ggml_zdnn_create_tensor(src1, pre_tfm_desc_src1, tfm_desc_src1, ztensor_src1, BCAST_PARAM(src1));
+    //     ggml_zdnn_create_tensor(dst , pre_tfm_desc_dst , tfm_desc_dst , ztensor_dst , BCAST_PARAM(src0));
+    // } else {
+    //     ggml_zdnn_create_tensor(src0, pre_tfm_desc_src0, tfm_desc_src0, ztensor_src0, nullptr, nullptr, GGML_MAX_DIMS);
+    //     ggml_zdnn_create_tensor(src1, pre_tfm_desc_src1, tfm_desc_src1, ztensor_src1, nullptr, nullptr, GGML_MAX_DIMS);
+    //     ggml_zdnn_create_tensor(dst , pre_tfm_desc_dst , tfm_desc_dst , ztensor_dst , nullptr, nullptr, GGML_MAX_DIMS);
+    // }
 
     ggml_zdnn_load_tensor(src0, ztensor_src0);
     ggml_zdnn_load_tensor(src1, ztensor_src1);

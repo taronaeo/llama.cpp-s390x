@@ -172,19 +172,17 @@ void ggml_zdnn_op_add(ggml_backend_zdnn_context & ctx, ggml_tensor * tensor) {
     ggml_zdnn_load_tensor(src1, ztensor_src1);
 
     status = zdnn_add(&ztensor_src0, &ztensor_src1, &ztensor_dst);
-    assert(status == ZDNN_OK);
+    GGML_ASSERT(status == ZDNN_OK);
 
     status = zdnn_transform_origtensor(&ztensor_dst, tensor->data);
-    assert(status == ZDNN_OK);
+    GGML_ASSERT(status == ZDNN_OK);
 
     status = zdnn_free_ztensor_buffer(&ztensor_src0);
-    assert(status == ZDNN_OK);
-
+    GGML_ASSERT(status == ZDNN_OK);
     status = zdnn_free_ztensor_buffer(&ztensor_src1);
-    assert(status == ZDNN_OK);
-
+    GGML_ASSERT(status == ZDNN_OK);
     status = zdnn_free_ztensor_buffer(&ztensor_dst);
-    assert(status == ZDNN_OK);
+    GGML_ASSERT(status == ZDNN_OK);
 }
 
 void ggml_zdnn_op_sub(ggml_backend_zdnn_context & ctx, ggml_tensor * tensor) {
@@ -219,17 +217,17 @@ void ggml_zdnn_op_sub(ggml_backend_zdnn_context & ctx, ggml_tensor * tensor) {
     ggml_zdnn_load_tensor(src1, ztensor_src1);
 
     status = zdnn_sub(&ztensor_src0, &ztensor_src1, &ztensor_dst);
-    assert(status == ZDNN_OK);
+    GGML_ASSERT(status == ZDNN_OK);
 
     status = zdnn_transform_origtensor(&ztensor_dst, tensor->data);
-    assert(status == ZDNN_OK);
+    GGML_ASSERT(status == ZDNN_OK);
 
     status = zdnn_free_ztensor_buffer(&ztensor_src0);
-    assert(status == ZDNN_OK);
+    GGML_ASSERT(status == ZDNN_OK);
     status = zdnn_free_ztensor_buffer(&ztensor_src1);
-    assert(status == ZDNN_OK);
+    GGML_ASSERT(status == ZDNN_OK);
     status = zdnn_free_ztensor_buffer(&ztensor_dst);
-    assert(status == ZDNN_OK);
+    GGML_ASSERTtatus == ZDNN_OK);
 }
 
 static bool ggml_zdnn_compute_forward(ggml_backend_zdnn_context & ctx,

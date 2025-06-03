@@ -337,7 +337,11 @@ static bool ggml_zdnn_compute_forward(ggml_backend_zdnn_context & ctx,
             ggml_zdnn_op_sub(ctx, dst);
             break;
         case GGML_OP_MUL:
+            ggml_zdnn_op_mul(ctx, dst);
+            break;
         case GGML_OP_DIV:
+            ggml_zdnn_op_div(ctx, dst);
+            break;
         case GGML_OP_SQR:
         case GGML_OP_SQRT:
         case GGML_OP_LOG:
@@ -530,7 +534,9 @@ static bool ggml_backend_zdnn_device_supports_op(ggml_backend_dev_t dev, const s
         case GGML_OP_SUB:
             return true;
         case GGML_OP_MUL:
+            return true;
         case GGML_OP_DIV:
+            return true;
         case GGML_OP_SQR:
         case GGML_OP_SQRT:
         case GGML_OP_LOG:

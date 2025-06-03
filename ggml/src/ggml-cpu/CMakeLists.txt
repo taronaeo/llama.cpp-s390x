@@ -74,10 +74,6 @@ function(ggml_add_cpu_backend_variant_impl tag_name)
 
     if (GGML_ZDNN)
         target_compile_definitions(${GGML_CPU_NAME} PRIVATE GGML_USE_ZDNN)
-
-        list(APPEND GGML_CPU_SOURCES
-            ggml-zdnn/zdnn.cpp
-            ggml-zdnn/common.h)
     endif()
 
     if (CMAKE_OSX_ARCHITECTURES      STREQUAL "arm64" OR

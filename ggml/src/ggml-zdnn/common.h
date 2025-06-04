@@ -23,8 +23,8 @@
 #define BCAST_PARAM(tensor) bcast_##tensor##_ne, bcast_##tensor##_nb, bcast_dims
 
 struct ggml_backend_zdnn_context {
-  std::unique_ptr<char[]> work_data;
-  size_t work_size = 0;
+  // std::unique_ptr<char[]> work_data;
+  // size_t work_size = 0;
 };
 
 static bool ggml_zdnn_need_bcast(const ggml_tensor * t0,

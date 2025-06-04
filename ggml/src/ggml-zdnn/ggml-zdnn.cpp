@@ -131,11 +131,10 @@ void ggml_zdnn_create_tensor(const ggml_tensor      * tensor,
     uint32_t zdnn_c = (current_dims >= 3) ? (uint32_t)current_ne[2] : 1;
     uint32_t zdnn_n = (current_dims >= 4) ? (uint32_t)current_ne[3] : 1;
 
-    status = zdnn_init_pre_transformed_desc(ZDNN_NCHW,
-                                            ggml_zdnn_type_mapping(tensor->type),
-                                            &pre_tfm_desc,
-                                            zdnn_n, zdnn_c, zdnn_h, zdnn_w);
-    assert(status == ZDNN_OK);
+    zdnn_init_pre_transformed_desc(ZDNN_NCHW,
+                                   ggml_zdnn_type_mapping(tensor->type),
+                                   &pre_tfm_desc,
+                                   zdnn_n, zdnn_c, zdnn_h, zdnn_w);
 
     status = zdnn_generate_transformed_desc(&pre_tfm_desc, &tfm_desc);
     assert(status == ZDNN_OK);

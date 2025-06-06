@@ -63,14 +63,10 @@
 #define NOINLINE __attribute__((__noinline__))
 #endif
 
-#if defined(__ARM_NEON) || defined(__AVX512F__)
+#if defined(__ARM_NEON) || defined(__AVX512F__) || defined(__VXE__) || defined(__VXE2__)
 #define VECTOR_REGISTERS 32
 #else
 #define VECTOR_REGISTERS 16
-#endif
-
-#if defined(__VXE__) || defined(__VXE2__)
-#define VECTOR_REGISTERS 32
 #endif
 
 #define MM256_SET_M128I(a, b) _mm256_insertf128_si256(_mm256_castsi128_si256(b), (a), 1)

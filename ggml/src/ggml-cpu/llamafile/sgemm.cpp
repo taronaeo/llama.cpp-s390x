@@ -3353,6 +3353,14 @@ bool llamafile_sgemm(const struct ggml_compute_params * params, int64_t m, int64
             (const float *)B, ldb,
             (float *)C, ldc};
         return tb.matmul(m, n);
+#elif defined(__VXE__) || defined(__VXE2__)
+        if (n < 4)
+            return false;
+        tinyBLAS<4, float32x4_t, float32x4_t, float, float, float> tb{ params,
+            k, (const float *)A, lda,
+            (const float *)B, ldb,
+            (float *)C, ldc};
+        return tb.matmul(m, n);
 #elif defined(__MMA__)
         if (k % 8)
             return false;

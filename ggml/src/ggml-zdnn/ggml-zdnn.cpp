@@ -163,7 +163,7 @@ void ggml_zdnn_load_tensor(const ggml_tensor  * tensor,
     GGML_UNUSED(status);
 }
 
-template<zdnn_status (*zdnn_op)(const zdnn_input1_tensor *, const zdnn_input2_tensor *, zdnn_output_tensor *)>
+template<zdnn_status (*zdnn_op)(const zdnn_ztensor *, const zdnn_ztensor *, zdnn_ztensor *)>
 void ggml_zdnn_op_bin(ggml_backend_zdnn_context & ctx, ggml_tensor * tensor) {
     GGML_UNUSED(ctx);
 

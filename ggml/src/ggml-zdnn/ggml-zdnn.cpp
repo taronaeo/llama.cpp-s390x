@@ -266,6 +266,8 @@ static bool ggml_zdnn_compute_forward(ggml_backend_zdnn_context & ctx,
         case GGML_OP_MUL_MAT:
         case GGML_OP_MUL_MAT_ID:
         case GGML_OP_SOFT_MAX:
+            // ggml_zdnn_op_activation<zdnn_softmax>(ctx, dst);
+            break;
         case GGML_OP_LEAKY_RELU:
             // ggml_zdnn_op_activation<zdnn_leaky_relu>(ctx, dst);
             return false;
@@ -287,6 +289,8 @@ static bool ggml_zdnn_compute_forward(ggml_backend_zdnn_context & ctx,
                     ggml_zdnn_op_unary<zdnn_sigmoid>(ctx, dst);
                     break;
                 case GGML_UNARY_OP_GELU:
+                    ggml_zdnn_op_unary<zdnn_gelu>(ctx, dst);
+                    break;
                 case GGML_UNARY_OP_GELU_QUICK:
                 case GGML_UNARY_OP_SILU:
                 case GGML_UNARY_OP_HARDSWISH:
@@ -523,8 +527,8 @@ static bool ggml_backend_zdnn_device_supports_op(ggml_backend_dev_t dev, const s
                 case GGML_UNARY_OP_RELU:
                     return false;
                 case GGML_UNARY_OP_SIGMOID:
-                    return true;
                 case GGML_UNARY_OP_GELU:
+                    return true;
                 case GGML_UNARY_OP_GELU_QUICK:
                 case GGML_UNARY_OP_SILU:
                 case GGML_UNARY_OP_HARDSWISH:

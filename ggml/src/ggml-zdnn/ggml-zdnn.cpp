@@ -276,12 +276,16 @@ static bool ggml_zdnn_compute_forward(ggml_backend_zdnn_context & ctx,
                 case GGML_UNARY_OP_NEG:
                 case GGML_UNARY_OP_STEP:
                 case GGML_UNARY_OP_TANH:
+                    ggml_zdnn_op_unary<zdnn_tanh>(ctx, dst);
+                    break;
                 case GGML_UNARY_OP_ELU:
                     return false;
                 case GGML_UNARY_OP_RELU:
                     // ggml_zdnn_op_activation<zdnn_relu>(ctx, dst);
                     return false;
                 case GGML_UNARY_OP_SIGMOID:
+                    ggml_zdnn_op_unary<zdnn_sigmoid>(ctx, dst);
+                    break;
                 case GGML_UNARY_OP_GELU:
                 case GGML_UNARY_OP_GELU_QUICK:
                 case GGML_UNARY_OP_SILU:
@@ -290,7 +294,9 @@ static bool ggml_zdnn_compute_forward(ggml_backend_zdnn_context & ctx,
                     return false;
                 case GGML_UNARY_OP_EXP:
                     ggml_zdnn_op_unary<zdnn_exp>(ctx, dst);
-                    return true;
+                    break;
+                default:
+                    return false;
             }
         default:
             return false;
@@ -506,10 +512,19 @@ static bool ggml_backend_zdnn_device_supports_op(ggml_backend_dev_t dev, const s
             return false; // TODO: disable all support first to showcase device reg
         case GGML_OP_UNARY:
             switch (ggml_get_unary_op(op)) {
+                case GGML_UNARY_OP_ABS:
+                case GGML_UNARY_OP_SGN:
+                case GGML_UNARY_OP_NEG:
+                case GGML_UNARY_OP_STEP:
                 case GGML_UNARY_OP_TANH:
+                case GGML_UNARY_OP_ELU:
                 case GGML_UNARY_OP_RELU:
                 case GGML_UNARY_OP_SIGMOID:
                 case GGML_UNARY_OP_GELU:
+                case GGML_UNARY_OP_GELU_QUICK:
+                case GGML_UNARY_OP_SILU:
+                case GGML_UNARY_OP_HARDSWISH:
+                case GGML_UNARY_OP_HARDSIGMOID:
                 case GGML_UNARY_OP_EXP:
                     return ggml_is_contiguous(src0);
                 default:

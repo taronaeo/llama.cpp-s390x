@@ -267,7 +267,31 @@ static bool ggml_zdnn_compute_forward(ggml_backend_zdnn_context & ctx,
         case GGML_OP_MUL_MAT_ID:
         case GGML_OP_SOFT_MAX:
         case GGML_OP_LEAKY_RELU:
+            // ggml_zdnn_op_activation<zdnn_leaky_relu>(ctx, dst);
             return false;
+        case GGML_OP_UNARY:
+            switch (ggml_get_unary_op(dst)) {
+                case GGML_UNARY_OP_ABS:
+                case GGML_UNARY_OP_SGN:
+                case GGML_UNARY_OP_NEG:
+                case GGML_UNARY_OP_STEP:
+                case GGML_UNARY_OP_TANH:
+                case GGML_UNARY_OP_ELU:
+                    return false;
+                case GGML_UNARY_OP_RELU:
+                    // ggml_zdnn_op_activation<zdnn_relu>(ctx, dst);
+                    return false;
+                case GGML_UNARY_OP_SIGMOID:
+                case GGML_UNARY_OP_GELU:
+                case GGML_UNARY_OP_GELU_QUICK:
+                case GGML_UNARY_OP_SILU:
+                case GGML_UNARY_OP_HARDSWISH:
+                case GGML_UNARY_OP_HARDSIGMOID:
+                    return false;
+                case GGML_UNARY_OP_EXP:
+                    ggml_zdnn_op_unary<zdnn_exp>(ctx, dst);
+                    return true;
+            }
         default:
             return false;
     }

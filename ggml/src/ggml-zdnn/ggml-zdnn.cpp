@@ -469,9 +469,6 @@ static bool ggml_backend_zdnn_device_supports_op(ggml_backend_dev_t dev, const s
             if (!ggml_are_same_shape(src0, src1)) return false;
             return true;
         case GGML_OP_SQRT:
-            // zDNN only supports same-shape for element-wise ops
-            // TODO: support manual broadcasting
-            if (!ggml_are_same_shape(src0, src1)) return false;
             return true;
         case GGML_OP_LOG:
         case GGML_OP_NORM:

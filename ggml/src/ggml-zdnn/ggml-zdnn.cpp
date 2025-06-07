@@ -541,16 +541,21 @@ static bool ggml_backend_zdnn_device_supports_op(ggml_backend_dev_t dev, const s
 
         // zDNN ops
         case GGML_OP_ADD:
+            // zDNN only supports same-shape for element-wise ops
+            if (!ggml_are_same_shape(src0, src1)) return false;
             return true;
         case GGML_OP_ADD1:
         case GGML_OP_SUB:
+            // zDNN only supports same-shape for element-wise ops
+            if (!ggml_are_same_shape(src0, src1)) return false;
             return true;
         case GGML_OP_MUL:
-            if (!ggml_are_same_shape(src0, src1)) {
-                return false;
-            }
+            // zDNN only supports same-shape for element-wise ops
+            if (!ggml_are_same_shape(src0, src1)) return false;
             return true;
         case GGML_OP_DIV:
+            // zDNN only supports same-shape for element-wise ops
+            if (!ggml_are_same_shape(src0, src1)) return false;
             return true;
         case GGML_OP_SQR:
         case GGML_OP_SQRT:

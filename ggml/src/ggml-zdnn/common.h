@@ -55,8 +55,6 @@ void ggml_zdnn_op_sub(ggml_backend_zdnn_context & ctx, ggml_tensor * tensor);
 void ggml_zdnn_op_mul(ggml_backend_zdnn_context & ctx, ggml_tensor * tensor);
 void ggml_zdnn_op_div(ggml_backend_zdnn_context & ctx, ggml_tensor * tensor);
 
-void ggml_zdnn_op_min                   (ggml_backend_zdnn_context & ctx, ggml_tensor * tensor);
-void ggml_zdnn_op_max                   (ggml_backend_zdnn_context & ctx, ggml_tensor * tensor);
 void ggml_zdnn_op_log                   (ggml_backend_zdnn_context & ctx, ggml_tensor * tensor);
 void ggml_zdnn_op_exp                   (ggml_backend_zdnn_context & ctx, ggml_tensor * tensor);
 void ggml_zdnn_op_sqrt                  (ggml_backend_zdnn_context & ctx, ggml_tensor * tensor);

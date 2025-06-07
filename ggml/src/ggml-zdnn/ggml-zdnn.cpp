@@ -202,7 +202,8 @@ void ggml_zdnn_op_bin(ggml_backend_zdnn_context & ctx, ggml_tensor * tensor) {
     GGML_ASSERT(status == ZDNN_OK);
 }
 
-void ggml_zdnn_op_sqrt(ggml_backend_zdnn_context & ctx, ggml_tensor * tensor) {
+template<zdnn_status (*zdnn_op)(const zdnn_ztensor *, zdnn_ztensor *)>
+void ggml_zdnn_op_unary(ggml_backend_zdnn_context & ctx, ggml_tensor * tensor) {
     GGML_UNUSED(ctx);
 
     ggml_tensor * src0 = tensor->src[0];
@@ -220,7 +221,7 @@ void ggml_zdnn_op_sqrt(ggml_backend_zdnn_context & ctx, ggml_tensor * tensor) {
 
     ggml_zdnn_load_tensor(src0, ztensor_src0);
 
-    status = zdnn_sqrt(&ztensor_src0, &ztensor_dst);
+    status = zdnn_op(&ztensor_src0, &ztensor_dst);
     GGML_ASSERT(status == ZDNN_OK);
 
     status = zdnn_transform_origtensor(&ztensor_dst, tensor->data);
@@ -256,9 +257,11 @@ static bool ggml_zdnn_compute_forward(ggml_backend_zdnn_context & ctx,
             ggml_zdnn_op_bin<zdnn_div>(ctx, dst);
             break;
         case GGML_OP_SQRT:
-            ggml_zdnn_op_sqrt(ctx, dst);
+            ggml_zdnn_op_unary<zdnn_sqrt>(ctx, dst);
             break;
         case GGML_OP_LOG:
+            ggml_zdnn_op_unary<zdnn_log>(ctx, dst);
+            break;
         case GGML_OP_NORM:
         case GGML_OP_MUL_MAT:
         case GGML_OP_MUL_MAT_ID:

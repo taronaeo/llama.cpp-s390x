@@ -516,17 +516,22 @@ static bool ggml_backend_zdnn_device_supports_op(ggml_backend_dev_t dev, const s
                 case GGML_UNARY_OP_SGN:
                 case GGML_UNARY_OP_NEG:
                 case GGML_UNARY_OP_STEP:
+                    return false;
                 case GGML_UNARY_OP_TANH:
+                    return true;
                 case GGML_UNARY_OP_ELU:
                 case GGML_UNARY_OP_RELU:
+                    return false;
                 case GGML_UNARY_OP_SIGMOID:
+                    return true;
                 case GGML_UNARY_OP_GELU:
                 case GGML_UNARY_OP_GELU_QUICK:
                 case GGML_UNARY_OP_SILU:
                 case GGML_UNARY_OP_HARDSWISH:
                 case GGML_UNARY_OP_HARDSIGMOID:
+                    return false;
                 case GGML_UNARY_OP_EXP:
-                    return ggml_is_contiguous(src0);
+                    return true;
                 default:
                     return false;
             }

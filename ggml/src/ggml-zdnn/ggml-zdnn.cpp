@@ -546,7 +546,9 @@ static bool ggml_backend_zdnn_device_supports_op(ggml_backend_dev_t dev, const s
         case GGML_OP_SUB:
             return true;
         case GGML_OP_MUL:
-            // Disable mul support for now due to illegal instructions
+            if (!ggml_are_same_shape(src0, src1)) {
+                return false;
+            }
             return true;
         case GGML_OP_DIV:
             return true;

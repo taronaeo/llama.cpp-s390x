@@ -245,33 +245,37 @@ static bool ggml_zdnn_compute_forward(ggml_backend_zdnn_context & ctx,
         case GGML_OP_TRANSPOSE:
             break;
         case GGML_OP_ADD:
+            //! NOTE: Tested OK
             ggml_zdnn_op_bin<zdnn_add>(ctx, dst);
             break;
         case GGML_OP_ADD1:
         case GGML_OP_SUB:
-            std::raise(SIGINT);
+            //! NOTE: Tested did not hit this
             ggml_zdnn_op_bin<zdnn_sub>(ctx, dst);
             break;
         case GGML_OP_MUL:
+            //! NOTE: Tested OK
             ggml_zdnn_op_bin<zdnn_mul>(ctx, dst);
             break;
         case GGML_OP_DIV:
-            std::raise(SIGINT);
+            //! NOTE: Tested did not hit this
             ggml_zdnn_op_bin<zdnn_div>(ctx, dst);
             break;
         case GGML_OP_SQRT:
-            std::raise(SIGINT);
+            //! NOTE: Tested did not hit this
             ggml_zdnn_op_unary<zdnn_sqrt>(ctx, dst);
             break;
         case GGML_OP_LOG:
-            std::raise(SIGINT);
+            //! NOTE: Tested did not hit this
             ggml_zdnn_op_unary<zdnn_log>(ctx, dst);
             break;
         case GGML_OP_NORM:
-            std::raise(SIGINT);
+            //! NOTE: Tested did not hit this
             ggml_zdnn_op_bin<zdnn_norm>(ctx, dst);
             break;
         case GGML_OP_MUL_MAT:
+            std::signal(SIGINT);
+            break;
         case GGML_OP_MUL_MAT_ID:
         case GGML_OP_SOFT_MAX:
             // ggml_zdnn_op_activation<zdnn_softmax>(ctx, dst);
@@ -285,8 +289,9 @@ static bool ggml_zdnn_compute_forward(ggml_backend_zdnn_context & ctx,
                 case GGML_UNARY_OP_SGN:
                 case GGML_UNARY_OP_NEG:
                 case GGML_UNARY_OP_STEP:
+                    return false;
                 case GGML_UNARY_OP_TANH:
-                    std::raise(SIGINT);
+                    //! NOTE: Tested did not hit this
                     ggml_zdnn_op_unary<zdnn_tanh>(ctx, dst);
                     break;
                 case GGML_UNARY_OP_ELU:
@@ -295,11 +300,11 @@ static bool ggml_zdnn_compute_forward(ggml_backend_zdnn_context & ctx,
                     // ggml_zdnn_op_activation<zdnn_relu>(ctx, dst);
                     return false;
                 case GGML_UNARY_OP_SIGMOID:
-                    std::raise(SIGINT);
+                    //! NOTE: Tested did not hit this
                     ggml_zdnn_op_unary<zdnn_sigmoid>(ctx, dst);
                     break;
                 case GGML_UNARY_OP_GELU:
-                    std::raise(SIGINT);
+                    //! NOTE: Tested did not hit this
                     ggml_zdnn_op_unary<zdnn_gelu>(ctx, dst);
                     break;
                 case GGML_UNARY_OP_GELU_QUICK:
@@ -308,7 +313,7 @@ static bool ggml_zdnn_compute_forward(ggml_backend_zdnn_context & ctx,
                 case GGML_UNARY_OP_HARDSIGMOID:
                     return false;
                 case GGML_UNARY_OP_EXP:
-                    std::raise(SIGINT);
+                    //! NOTE: Tested did not hit this
                     ggml_zdnn_op_unary<zdnn_exp>(ctx, dst);
                     break;
                 default:
@@ -524,6 +529,8 @@ static bool ggml_backend_zdnn_device_supports_op(ggml_backend_dev_t dev, const s
         case GGML_OP_NORM:
             return true;
         case GGML_OP_MUL_MAT:
+            // TODO: Disable this one debugging is complete
+            return true;
         case GGML_OP_MUL_MAT_ID:
         case GGML_OP_SOFT_MAX:
         case GGML_OP_LEAKY_RELU:

@@ -9,6 +9,12 @@
 
 #include <memory>
 
+#define ZDNN_CHECK(status, stmt)        \
+    do {                                \
+        status = (stmt);                \
+        GGML_ASSERT(status == ZDNN_OK); \
+    } while (0);
+
 #define BCAST_SHAPE(src0, src1)                                         \
     int64_t bcast_##src0##_ne[GGML_MAX_DIMS * 2];                       \
     int64_t bcast_##src1##_ne[GGML_MAX_DIMS * 2];                       \

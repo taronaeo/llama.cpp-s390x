@@ -145,12 +145,8 @@ void ggml_zdnn_create_tensor(const ggml_tensor      * tensor,
                                    &pre_tfm_desc,
                                    zdnn_n, zdnn_c, zdnn_h, zdnn_w);
 
-    status = zdnn_generate_transformed_desc(&pre_tfm_desc, &tfm_desc);
-    assert(status == ZDNN_OK);
-
-    status = zdnn_init_ztensor_with_malloc(&pre_tfm_desc, &tfm_desc, &ztensor);
-    assert(status == ZDNN_OK);
-
+    ZDNN_CHECK(status, zdnn_generate_transformed_desc(&pre_tfm_desc, &tfm_desc));
+    ZDNN_CHECK(status, zdnn_init_ztensor_with_malloc(&pre_tfm_desc, &tfm_desc, &ztensor));
     GGML_UNUSED(status);
 }
 
@@ -158,9 +154,7 @@ void ggml_zdnn_load_tensor(const ggml_tensor  * tensor,
                                  zdnn_ztensor & ztensor) {
     zdnn_status status;
 
-    status = zdnn_transform_ztensor(&ztensor, tensor->data);
-    assert(status == ZDNN_OK);
-
+    ZDNN_CHECK(status, zdnn_transform_ztensor(&ztensor, tensor->data));
     GGML_UNUSED(status);
 }
 
@@ -189,18 +183,11 @@ void ggml_zdnn_op_bin(ggml_backend_zdnn_context & ctx, ggml_tensor * tensor) {
     ggml_zdnn_load_tensor(src0, ztensor_src0);
     ggml_zdnn_load_tensor(src1, ztensor_src1);
 
-    status = zdnn_op(&ztensor_src0, &ztensor_src1, &ztensor_dst);
-    GGML_ASSERT(status == ZDNN_OK);
-
-    status = zdnn_transform_origtensor(&ztensor_dst, tensor->data);
-    GGML_ASSERT(status == ZDNN_OK);
-
-    status = zdnn_free_ztensor_buffer(&ztensor_src0);
-    GGML_ASSERT(status == ZDNN_OK);
-    status = zdnn_free_ztensor_buffer(&ztensor_src1);
-    GGML_ASSERT(status == ZDNN_OK);
-    status = zdnn_free_ztensor_buffer(&ztensor_dst);
-    GGML_ASSERT(status == ZDNN_OK);
+    ZDNN_CHECK(status, zdnn_op(&ztensor_src0, &ztensor_src1, &ztensor_dst));
+    ZDNN_CHECK(status, zdnn_transform_origtensor(&ztensor_dst, tensor->data));
+    ZDNN_CHECK(status, zdnn_free_ztensor_buffer(&ztensor_src0));
+    ZDNN_CHECK(status, zdnn_free_ztensor_buffer(&ztensor_src1));
+    ZDNN_CHECK(status, zdnn_free_ztensor_buffer(&ztensor_dst));
 }
 
 template<zdnn_status (*zdnn_op)(const zdnn_ztensor *, zdnn_ztensor *)>
@@ -222,17 +209,10 @@ void ggml_zdnn_op_unary(ggml_backend_zdnn_context & ctx, ggml_tensor * tensor) {
 
     ggml_zdnn_load_tensor(src0, ztensor_src0);
 
-    status = zdnn_op(&ztensor_src0, &ztensor_dst);
-    GGML_ASSERT(status == ZDNN_OK);
-
-    status = zdnn_transform_origtensor(&ztensor_dst, tensor->data);
-    GGML_ASSERT(status == ZDNN_OK);
-
-    status = zdnn_free_ztensor_buffer(&ztensor_src0);
-    GGML_ASSERT(status == ZDNN_OK);
-
-    status = zdnn_free_ztensor_buffer(&ztensor_dst);
-    GGML_ASSERT(status == ZDNN_OK);
+    ZDNN_CHECK(status, zdnn_op(&ztensor_src0, &ztensor_dst));
+    ZDNN_CHECK(status, zdnn_transform_origtensor(&ztensor_dst, tensor->data));
+    ZDNN_CHECK(status, zdnn_free_ztensor_buffer(&ztensor_src0));
+    ZDNN_CHECK(status, zdnn_free_ztensor_buffer(&ztensor_dst));
 }
 
 static bool ggml_zdnn_compute_forward(ggml_backend_zdnn_context & ctx,

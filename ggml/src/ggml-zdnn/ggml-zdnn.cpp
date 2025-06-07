@@ -274,7 +274,7 @@ static bool ggml_zdnn_compute_forward(ggml_backend_zdnn_context & ctx,
             ggml_zdnn_op_bin<zdnn_norm>(ctx, dst);
             break;
         case GGML_OP_MUL_MAT:
-            std::signal(SIGINT);
+            std::raise(SIGINT);
             break;
         case GGML_OP_MUL_MAT_ID:
         case GGML_OP_SOFT_MAX:

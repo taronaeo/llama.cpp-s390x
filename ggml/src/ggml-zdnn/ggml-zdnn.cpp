@@ -163,7 +163,7 @@ void ggml_zdnn_load_tensor(const ggml_tensor  * tensor,
     GGML_UNUSED(status);
 }
 
-template<zdnn_status (*zdnn_op)(const zdnn_ztensor *, const zdnn_ztensor *, zdnn_ztensor *)>
+template<zdnn_status (*zdnn_op)(const zdnn_input1_tensor *, const zdnn_input2_tensor *, zdnn_output_tensor *)>
 void ggml_zdnn_op_bin(ggml_backend_zdnn_context & ctx, ggml_tensor * tensor) {
     GGML_UNUSED(ctx);
 
@@ -202,6 +202,37 @@ void ggml_zdnn_op_bin(ggml_backend_zdnn_context & ctx, ggml_tensor * tensor) {
     GGML_ASSERT(status == ZDNN_OK);
 }
 
+void ggml_zdnn_op_sqrt(ggml_backend_zdnn_context & ctx, ggml_tensor * tensor) {
+    GGML_UNUSED(ctx);
+
+    ggml_tensor * src0 = tensor->src[0];
+    ggml_tensor * dst  = tensor;
+
+    zdnn_status status;
+    zdnn_tensor_desc pre_tfm_desc_src0, tfm_desc_src0;
+    zdnn_tensor_desc pre_tfm_desc_dst,  tfm_desc_dst;
+
+    zdnn_ztensor ztensor_src0;
+    zdnn_ztensor ztensor_dst;
+
+    ggml_zdnn_create_tensor(src0, pre_tfm_desc_src0, tfm_desc_src0, ztensor_src0, nullptr, nullptr, ggml_n_dims(src0));
+    ggml_zdnn_create_tensor(dst , pre_tfm_desc_dst , tfm_desc_dst , ztensor_dst , nullptr, nullptr, ggml_n_dims(dst));
+
+    ggml_zdnn_load_tensor(src0, ztensor_src0);
+
+    status = zdnn_sqrt(&ztensor_src0, &ztensor_dst);
+    GGML_ASSERT(status == ZDNN_OK);
+
+    status = zdnn_transform_origtensor(&ztensor_dst, tensor->data);
+    GGML_ASSERT(status == ZDNN_OK);
+
+    status = zdnn_free_ztensor_buffer(&ztensor_src0);
+    GGML_ASSERT(status == ZDNN_OK);
+
+    status = zdnn_free_ztensor_buffer(&ztensor_dst);
+    GGML_ASSERT(status == ZDNN_OK);
+}
+
 static bool ggml_zdnn_compute_forward(ggml_backend_zdnn_context & ctx,
                                       struct ggml_tensor * dst) {
     switch (dst->op) {
@@ -225,7 +256,7 @@ static bool ggml_zdnn_compute_forward(ggml_backend_zdnn_context & ctx,
             ggml_zdnn_op_bin<zdnn_div>(ctx, dst);
             break;
         case GGML_OP_SQRT:
-            ggml_zdnn_op_bin<zdnn_sqrt>(ctx, dst);
+            ggml_zdnn_op_sqrt(ctx, dst);
             break;
         case GGML_OP_LOG:
         case GGML_OP_NORM:

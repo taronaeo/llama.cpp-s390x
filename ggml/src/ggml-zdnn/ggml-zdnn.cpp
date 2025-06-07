@@ -157,7 +157,8 @@ void ggml_zdnn_load_tensor(const ggml_tensor  * tensor,
     GGML_UNUSED(status);
 }
 
-void ggml_zdnn_op_add(ggml_backend_zdnn_context & ctx, ggml_tensor * tensor) {
+template<zdnn_status (*zdnn_op)(const zdnn_ztensor *, const zdnn_ztensor *, zdnn_ztensor *)>
+void ggml_zdnn_op_bin(ggml_backend_zdnn_context & ctx, ggml_tensor * tensor) {
     GGML_UNUSED(ctx);
 
     ggml_tensor * src0 = tensor->src[0];
@@ -165,7 +166,43 @@ void ggml_zdnn_op_add(ggml_backend_zdnn_context & ctx, ggml_tensor * tensor) {
     ggml_tensor * dst  = tensor;
     GGML_ASSERT(ggml_can_repeat(src1, src0) && ggml_are_same_shape(src0, dst));
 
-    // TODO: Check for broadcast and follow
+    zdnn_status status;
+    zdnn_tensor_desc pre_tfm_desc_src0, tfm_desc_src0;
+    zdnn_tensor_desc pre_tfm_desc_src1, tfm_desc_src1;
+    zdnn_tensor_desc pre_tfm_desc_dst , tfm_desc_dst;
+
+    zdnn_ztensor ztensor_src0;
+    zdnn_ztensor ztensor_src1;
+    zdnn_ztensor ztensor_dst;
+
+    ggml_zdnn_create_tensor(src0, pre_tfm_desc_src0, tfm_desc_src0, ztensor_src0, nullptr, nullptr, ggml_n_dims(src0));
+    ggml_zdnn_create_tensor(src1, pre_tfm_desc_src1, tfm_desc_src1, ztensor_src1, nullptr, nullptr, ggml_n_dims(src1));
+    ggml_zdnn_create_tensor(dst , pre_tfm_desc_dst , tfm_desc_dst , ztensor_dst , nullptr, nullptr, ggml_n_dims(dst));
+
+    ggml_zdnn_load_tensor(src0, ztensor_src0);
+    ggml_zdnn_load_tensor(src1, ztensor_src1);
+
+    status = zdnn_op(&ztensor_src0, &ztensor_src1, &ztensor_dst);
+    GGML_ASSERT(status == ZDNN_OK);
+
+    status = zdnn_transform_origtensor(&ztensor_dst, tensor->data);
+    GGML_ASSERT(status == ZDNN_OK);
+
+    status = zdnn_free_ztensor_buffer(&ztensor_src0);
+    GGML_ASSERT(status == ZDNN_OK);
+    status = zdnn_free_ztensor_buffer(&ztensor_src1);
+    GGML_ASSERT(status == ZDNN_OK);
+    status = zdnn_free_ztensor_buffer(&ztensor_dst);
+    GGML_ASSERT(status == ZDNN_OK);
+}
+
+void ggml_zdnn_op_add(ggml_backend_zdnn_context & ctx, ggml_tensor * tensor) {
+    GGML_UNUSED(ctx);
+
+    ggml_tensor * src0 = tensor->src[0];
+    ggml_tensor * src1 = tensor->src[1];
+    ggml_tensor * dst  = tensor;
+    GGML_ASSERT(ggml_can_repeat(src1, src0) && ggml_are_same_shape(src0, dst));
 
     zdnn_status status;
     zdnn_tensor_desc pre_tfm_desc_src0, tfm_desc_src0;
@@ -309,17 +346,17 @@ static bool ggml_zdnn_compute_forward(ggml_backend_zdnn_context & ctx,
         case GGML_OP_TRANSPOSE:
             break;
         case GGML_OP_ADD:
-            ggml_zdnn_op_add(ctx, dst);
+            ggml_zdnn_op_bin<zdnn_add>(ctx, dst);
             break;
         case GGML_OP_ADD1:
         case GGML_OP_SUB:
-            ggml_zdnn_op_sub(ctx, dst);
+            ggml_zdnn_op_bin<zdnn_sub>(ctx, dst);
             break;
         case GGML_OP_MUL:
-            ggml_zdnn_op_mul(ctx, dst);
+            ggml_zdnn_op_bin<zdnn_mul>(ctx, dst);
             break;
         case GGML_OP_DIV:
-            ggml_zdnn_op_div(ctx, dst);
+            ggml_zdnn_op_bin<zdnn_div>(ctx, dst);
             break;
         case GGML_OP_SQR:
         case GGML_OP_SQRT:

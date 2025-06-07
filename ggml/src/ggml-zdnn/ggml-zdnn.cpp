@@ -263,6 +263,8 @@ static bool ggml_zdnn_compute_forward(ggml_backend_zdnn_context & ctx,
             ggml_zdnn_op_unary<zdnn_log>(ctx, dst);
             break;
         case GGML_OP_NORM:
+            ggml_zdnn_op_bin<zdnn_norm>(ctx, dst);
+            break;
         case GGML_OP_MUL_MAT:
         case GGML_OP_MUL_MAT_ID:
         case GGML_OP_SOFT_MAX:
@@ -508,7 +510,9 @@ static bool ggml_backend_zdnn_device_supports_op(ggml_backend_dev_t dev, const s
         case GGML_OP_SQRT:
             return true;
         case GGML_OP_LOG:
+            return false;
         case GGML_OP_NORM:
+            return true;
         case GGML_OP_MUL_MAT:
         case GGML_OP_MUL_MAT_ID:
         case GGML_OP_SOFT_MAX:

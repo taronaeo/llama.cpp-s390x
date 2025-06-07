@@ -8,6 +8,7 @@
 #include <string>
 #include <memory>
 #include <stdint.h>
+#include <csignal>
 
 // --------------------------------------------------------------------------
 // zDNN Internal Helper Functions
@@ -167,6 +168,8 @@ template<zdnn_status (*zdnn_op)(const zdnn_ztensor *, const zdnn_ztensor *, zdnn
 void ggml_zdnn_op_bin(ggml_backend_zdnn_context & ctx, ggml_tensor * tensor) {
     GGML_UNUSED(ctx);
 
+    std::raise(SIGINT);
+
     ggml_tensor * src0 = tensor->src[0];
     ggml_tensor * src1 = tensor->src[1];
     ggml_tensor * dst  = tensor;
@@ -205,6 +208,8 @@ void ggml_zdnn_op_bin(ggml_backend_zdnn_context & ctx, ggml_tensor * tensor) {
 template<zdnn_status (*zdnn_op)(const zdnn_ztensor *, zdnn_ztensor *)>
 void ggml_zdnn_op_unary(ggml_backend_zdnn_context & ctx, ggml_tensor * tensor) {
     GGML_UNUSED(ctx);
+
+    std::raise(SIGINT);
 
     ggml_tensor * src0 = tensor->src[0];
     ggml_tensor * dst  = tensor;

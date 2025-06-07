@@ -168,8 +168,6 @@ template<zdnn_status (*zdnn_op)(const zdnn_ztensor *, const zdnn_ztensor *, zdnn
 void ggml_zdnn_op_bin(ggml_backend_zdnn_context & ctx, ggml_tensor * tensor) {
     GGML_UNUSED(ctx);
 
-    std::raise(SIGINT);
-
     ggml_tensor * src0 = tensor->src[0];
     ggml_tensor * src1 = tensor->src[1];
     ggml_tensor * dst  = tensor;
@@ -208,8 +206,6 @@ void ggml_zdnn_op_bin(ggml_backend_zdnn_context & ctx, ggml_tensor * tensor) {
 template<zdnn_status (*zdnn_op)(const zdnn_ztensor *, zdnn_ztensor *)>
 void ggml_zdnn_op_unary(ggml_backend_zdnn_context & ctx, ggml_tensor * tensor) {
     GGML_UNUSED(ctx);
-
-    std::raise(SIGINT);
 
     ggml_tensor * src0 = tensor->src[0];
     ggml_tensor * dst  = tensor;
@@ -253,21 +249,26 @@ static bool ggml_zdnn_compute_forward(ggml_backend_zdnn_context & ctx,
             break;
         case GGML_OP_ADD1:
         case GGML_OP_SUB:
+            std::raise(SIGINT);
             ggml_zdnn_op_bin<zdnn_sub>(ctx, dst);
             break;
         case GGML_OP_MUL:
             ggml_zdnn_op_bin<zdnn_mul>(ctx, dst);
             break;
         case GGML_OP_DIV:
+            std::raise(SIGINT);
             ggml_zdnn_op_bin<zdnn_div>(ctx, dst);
             break;
         case GGML_OP_SQRT:
+            std::raise(SIGINT);
             ggml_zdnn_op_unary<zdnn_sqrt>(ctx, dst);
             break;
         case GGML_OP_LOG:
+            std::raise(SIGINT);
             ggml_zdnn_op_unary<zdnn_log>(ctx, dst);
             break;
         case GGML_OP_NORM:
+            std::raise(SIGINT);
             ggml_zdnn_op_bin<zdnn_norm>(ctx, dst);
             break;
         case GGML_OP_MUL_MAT:
@@ -285,6 +286,7 @@ static bool ggml_zdnn_compute_forward(ggml_backend_zdnn_context & ctx,
                 case GGML_UNARY_OP_NEG:
                 case GGML_UNARY_OP_STEP:
                 case GGML_UNARY_OP_TANH:
+                    std::raise(SIGINT);
                     ggml_zdnn_op_unary<zdnn_tanh>(ctx, dst);
                     break;
                 case GGML_UNARY_OP_ELU:
@@ -293,9 +295,11 @@ static bool ggml_zdnn_compute_forward(ggml_backend_zdnn_context & ctx,
                     // ggml_zdnn_op_activation<zdnn_relu>(ctx, dst);
                     return false;
                 case GGML_UNARY_OP_SIGMOID:
+                    std::raise(SIGINT);
                     ggml_zdnn_op_unary<zdnn_sigmoid>(ctx, dst);
                     break;
                 case GGML_UNARY_OP_GELU:
+                    std::raise(SIGINT);
                     ggml_zdnn_op_unary<zdnn_gelu>(ctx, dst);
                     break;
                 case GGML_UNARY_OP_GELU_QUICK:
@@ -304,6 +308,7 @@ static bool ggml_zdnn_compute_forward(ggml_backend_zdnn_context & ctx,
                 case GGML_UNARY_OP_HARDSIGMOID:
                     return false;
                 case GGML_UNARY_OP_EXP:
+                    std::raise(SIGINT);
                     ggml_zdnn_op_unary<zdnn_exp>(ctx, dst);
                     break;
                 default:

@@ -9,9 +9,9 @@
 
 #include <memory>
 
-#define ZDNN_CHECK(status, stmt)        \
+#define ZDNN_CHECK(stmt)                \
     do {                                \
-        status = (stmt);                \
+        zdnn_status status = (stmt);    \
         GGML_ASSERT(status == ZDNN_OK); \
     } while (0);
 

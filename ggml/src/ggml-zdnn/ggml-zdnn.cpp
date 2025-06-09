@@ -103,8 +103,6 @@ void ggml_zdnn_create_tensor(const ggml_tensor      * tensor,
                                    int64_t          * ne,
                                    size_t           * nb,
                                    int64_t            dims) {
-    zdnn_status status;
-
     int64_t current_ne[GGML_MAX_DIMS];
     // size_t  current_nb[GGML_MAX_DIMS];
     int current_dims;
@@ -145,17 +143,13 @@ void ggml_zdnn_create_tensor(const ggml_tensor      * tensor,
                                    &pre_tfm_desc,
                                    zdnn_n, zdnn_c, zdnn_h, zdnn_w);
 
-    ZDNN_CHECK(status, zdnn_generate_transformed_desc(&pre_tfm_desc, &tfm_desc));
-    ZDNN_CHECK(status, zdnn_init_ztensor_with_malloc(&pre_tfm_desc, &tfm_desc, &ztensor));
-    GGML_UNUSED(status);
+    ZDNN_CHECK(zdnn_generate_transformed_desc(&pre_tfm_desc, &tfm_desc));
+    ZDNN_CHECK(zdnn_init_ztensor_with_malloc(&pre_tfm_desc, &tfm_desc, &ztensor));
 }
 
 void ggml_zdnn_load_tensor(const ggml_tensor  * tensor,
                                  zdnn_ztensor & ztensor) {
-    zdnn_status status;
-
-    ZDNN_CHECK(status, zdnn_transform_ztensor(&ztensor, tensor->data));
-    GGML_UNUSED(status);
+    ZDNN_CHECK(zdnn_transform_ztensor(&ztensor, tensor->data));
 }
 
 template<zdnn_status (*zdnn_op)(const zdnn_ztensor *, const zdnn_ztensor *, zdnn_ztensor *)>
@@ -167,7 +161,6 @@ void ggml_zdnn_op_bin(ggml_backend_zdnn_context & ctx, ggml_tensor * tensor) {
     ggml_tensor * dst  = tensor;
     GGML_ASSERT(ggml_can_repeat(src1, src0) && ggml_are_same_shape(src0, dst));
 
-    zdnn_status status;
     zdnn_tensor_desc pre_tfm_desc_src0, tfm_desc_src0;
     zdnn_tensor_desc pre_tfm_desc_src1, tfm_desc_src1;
     zdnn_tensor_desc pre_tfm_desc_dst , tfm_desc_dst;
@@ -183,11 +176,11 @@ void ggml_zdnn_op_bin(ggml_backend_zdnn_context & ctx, ggml_tensor * tensor) {
     ggml_zdnn_load_tensor(src0, ztensor_src0);
     ggml_zdnn_load_tensor(src1, ztensor_src1);
 
-    ZDNN_CHECK(status, zdnn_op(&ztensor_src0, &ztensor_src1, &ztensor_dst));
-    ZDNN_CHECK(status, zdnn_transform_origtensor(&ztensor_dst, tensor->data));
-    ZDNN_CHECK(status, zdnn_free_ztensor_buffer(&ztensor_src0));
-    ZDNN_CHECK(status, zdnn_free_ztensor_buffer(&ztensor_src1));
-    ZDNN_CHECK(status, zdnn_free_ztensor_buffer(&ztensor_dst));
+    ZDNN_CHECK(zdnn_op(&ztensor_src0, &ztensor_src1, &ztensor_dst));
+    ZDNN_CHECK(zdnn_transform_origtensor(&ztensor_dst, tensor->data));
+    ZDNN_CHECK(zdnn_free_ztensor_buffer(&ztensor_src0));
+    ZDNN_CHECK(zdnn_free_ztensor_buffer(&ztensor_src1));
+    ZDNN_CHECK(zdnn_free_ztensor_buffer(&ztensor_dst));
 }
 
 template<zdnn_status (*zdnn_op)(const zdnn_ztensor *, zdnn_ztensor *)>
@@ -197,7 +190,6 @@ void ggml_zdnn_op_unary(ggml_backend_zdnn_context & ctx, ggml_tensor * tensor) {
     ggml_tensor * src0 = tensor->src[0];
     ggml_tensor * dst  = tensor;
 
-    zdnn_status status;
     zdnn_tensor_desc pre_tfm_desc_src0, tfm_desc_src0;
     zdnn_tensor_desc pre_tfm_desc_dst,  tfm_desc_dst;
 
@@ -209,10 +201,10 @@ void ggml_zdnn_op_unary(ggml_backend_zdnn_context & ctx, ggml_tensor * tensor) {
 
     ggml_zdnn_load_tensor(src0, ztensor_src0);
 
-    ZDNN_CHECK(status, zdnn_op(&ztensor_src0, &ztensor_dst));
-    ZDNN_CHECK(status, zdnn_transform_origtensor(&ztensor_dst, tensor->data));
-    ZDNN_CHECK(status, zdnn_free_ztensor_buffer(&ztensor_src0));
-    ZDNN_CHECK(status, zdnn_free_ztensor_buffer(&ztensor_dst));
+    ZDNN_CHECK(zdnn_op(&ztensor_src0, &ztensor_dst));
+    ZDNN_CHECK(zdnn_transform_origtensor(&ztensor_dst, tensor->data));
+    ZDNN_CHECK(zdnn_free_ztensor_buffer(&ztensor_src0));
+    ZDNN_CHECK(zdnn_free_ztensor_buffer(&ztensor_dst));
 }
 
 static bool ggml_zdnn_compute_forward(ggml_backend_zdnn_context & ctx,

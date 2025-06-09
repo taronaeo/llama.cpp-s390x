@@ -13,58 +13,7 @@
 // --------------------------------------------------------------------------
 // zDNN Internal Helper Functions
 // --------------------------------------------------------------------------
-//static uint32_t ggml_backend_zdnn_get_tensor_rank() {
-//    uint32_t rank = 0;
-//    for (int i = 0; i < GGML_MAX_DIMS; i++) {
-//        if ((0 != tensor->ne[i]) && (1 != tensor->ne[i])) {
-//            rank++;
-//        }
-//    }
-//
-//    return rank;
-//}
-static bool ggml_zdnn_need_bcast(const ggml_tensor * t0,
-                                 const ggml_tensor * t1) {
-    for (int i = 0; i < GGML_MAX_DIMS; i++) {
-        if (t1->ne[i] != t0->ne[i] && t1->ne[i] != 1) {
-            return true;
-        }
-    }
 
-    return false;
-}
-
-int ggml_zdnn_get_bcast_shape(const ggml_tensor * src0,
-                              const ggml_tensor * src1,
-                                    int64_t     * bcast_src0_ne,
-                                    int64_t     * bcast_src1_ne,
-                                    size_t      * bcast_src0_nb,
-                                    size_t      * bcast_src1_nb) {
-    GGML_ASSERT(ggml_can_repeat(src1, src0));
-
-    int bcast_dim_cnt = 0;
-    for (int i = 0; i < GGML_MAX_DIMS; i++) {
-        int64_t nr = src0->ne[i] / src1->ne[i];
-
-        bcast_src0_ne[bcast_dim_cnt] = src0->ne[i] / nr;
-        bcast_src1_ne[bcast_dim_cnt] = src1->ne[i];
-        bcast_src0_nb[bcast_dim_cnt] = src0->nb[i];
-        bcast_src1_nb[bcast_dim_cnt] = src1->nb[i];
-        bcast_dim_cnt++;
-
-        if (nr != 1) {
-            bcast_src0_ne[bcast_dim_cnt] = nr;
-            bcast_src1_ne[bcast_dim_cnt] = 1;
-            bcast_src0_nb[bcast_dim_cnt] = bcast_src0_nb[bcast_dim_cnt - 1] *
-                                           bcast_src0_ne[bcast_dim_cnt - 1];
-            bcast_src1_nb[bcast_dim_cnt] = bcast_src1_nb[bcast_dim_cnt - 1] *
-                                           bcast_src1_ne[bcast_dim_cnt - 1];
-            bcast_dim_cnt++;
-        }
-    }
-
-    return bcast_dim_cnt;
-}
 
 // --------------------------------------------------------------------------
 // zDNN Interfacing API
@@ -99,49 +48,17 @@ static zdnn_data_types ggml_zdnn_type_mapping(ggml_type type) {
 void ggml_zdnn_create_tensor(const ggml_tensor      * tensor,
                                    zdnn_tensor_desc & pre_tfm_desc,
                                    zdnn_tensor_desc & tfm_desc,
-                                   zdnn_ztensor     & ztensor,
-                                   int64_t          * ne,
-                                   size_t           * nb,
-                                   int64_t            dims) {
-    int64_t current_ne[GGML_MAX_DIMS];
-    // size_t  current_nb[GGML_MAX_DIMS];
-    int current_dims;
+                                   zdnn_ztensor     & ztensor) {
 
-    if (ne == nullptr) {
-        current_dims = ggml_n_dims(tensor);
-        for (int i = 0; i < current_dims; ++i) {
-            current_ne[i] = tensor->ne[i];
-            // current_nb[i] = tensor->nb[i];
-        }
-
-        for (int i = current_dims; i < GGML_MAX_DIMS; ++i) {
-            current_ne[i] = 1;
-            // current_nb[i] = (i > 0 && current_ne[i-1] > 0) ? current_nb[i - 1] * current_ne[i - 1] : 0;
-        }
-    } else {
-        current_dims = dims;
-        for (int i = 0; i < current_dims; ++i) {
-            current_ne[i] = ne[i];
-            // current_nb[i] = nb[i];
-        }
-
-        for (int i = current_dims; i < GGML_MAX_DIMS; ++i) {
-            current_ne[i] = 1;
-            // current_nb[i] = (i > 0 && current_ne[i-1] > 0) ? current_nb[i - 1] * current_ne[i - 1] : 0;
-        }
-    }
-
-    if (current_dims == 0) current_dims = 1;
-
-    uint32_t zdnn_w = (current_dims >= 1) ? (uint32_t)current_ne[0] : 1;
-    uint32_t zdnn_h = (current_dims >= 2) ? (uint32_t)current_ne[1] : 1;
-    uint32_t zdnn_c = (current_dims >= 3) ? (uint32_t)current_ne[2] : 1;
-    uint32_t zdnn_n = (current_dims >= 4) ? (uint32_t)current_ne[3] : 1;
-
-    zdnn_init_pre_transformed_desc(ZDNN_NCHW,
-                                   ggml_zdnn_type_mapping(tensor->type),
-                                   &pre_tfm_desc,
-                                   zdnn_n, zdnn_c, zdnn_h, zdnn_w);
+    zdnn_init_pre_transformed_desc(
+        ZDNN_NCHW,
+        ggml_zdnn_type_mapping(tensor->type),
+        &pre_tfm_desc,
+        tensor->ne[3],
+        tensor->ne[2],
+        tensor->ne[1],
+        tensor->ne[0]
+    );
 
     ZDNN_CHECK(zdnn_generate_transformed_desc(&pre_tfm_desc, &tfm_desc));
     ZDNN_CHECK(zdnn_init_ztensor_with_malloc(&pre_tfm_desc, &tfm_desc, &ztensor));
@@ -156,9 +73,9 @@ template<zdnn_status (*zdnn_op)(const zdnn_ztensor *, const zdnn_ztensor *, zdnn
 void ggml_zdnn_op_bin(ggml_backend_zdnn_context & ctx, ggml_tensor * tensor) {
     GGML_UNUSED(ctx);
 
-    ggml_tensor * src0 = tensor->src[0];
-    ggml_tensor * src1 = tensor->src[1];
-    ggml_tensor * dst  = tensor;
+    const struct ggml_tensor * src0 = tensor->src[0];
+    const struct ggml_tensor * src1 = tensor->src[1];
+    const struct ggml_tensor * dst  = tensor;
     GGML_ASSERT(ggml_can_repeat(src1, src0) && ggml_are_same_shape(src0, dst));
 
     zdnn_tensor_desc pre_tfm_desc_src0, tfm_desc_src0;
@@ -169,9 +86,9 @@ void ggml_zdnn_op_bin(ggml_backend_zdnn_context & ctx, ggml_tensor * tensor) {
     zdnn_ztensor ztensor_src1;
     zdnn_ztensor ztensor_dst;
 
-    ggml_zdnn_create_tensor(src0, pre_tfm_desc_src0, tfm_desc_src0, ztensor_src0, nullptr, nullptr, ggml_n_dims(src0));
-    ggml_zdnn_create_tensor(src1, pre_tfm_desc_src1, tfm_desc_src1, ztensor_src1, nullptr, nullptr, ggml_n_dims(src1));
-    ggml_zdnn_create_tensor(dst , pre_tfm_desc_dst , tfm_desc_dst , ztensor_dst , nullptr, nullptr, ggml_n_dims(dst));
+    ggml_zdnn_create_tensor(src0, pre_tfm_desc_src0, tfm_desc_src0, ztensor_src0);
+    ggml_zdnn_create_tensor(src1, pre_tfm_desc_src1, tfm_desc_src1, ztensor_src1);
+    ggml_zdnn_create_tensor(dst , pre_tfm_desc_dst , tfm_desc_dst , ztensor_dst );
 
     ggml_zdnn_load_tensor(src0, ztensor_src0);
     ggml_zdnn_load_tensor(src1, ztensor_src1);

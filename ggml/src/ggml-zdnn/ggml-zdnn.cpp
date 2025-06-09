@@ -94,16 +94,14 @@ static zdnn_data_types ggml_zdnn_type_mapping(ggml_type type) {
 void ggml_zdnn_create_tensor(const ggml_tensor      * tensor,
                                    zdnn_tensor_desc & pre_tfm_desc,
                                    zdnn_tensor_desc & tfm_desc,
-                                   zdnn_ztensor     & ztensor) {
+                                   zdnn_ztensor     & ztensor,
+                                   int64_t          * ne) {
 
     zdnn_init_pre_transformed_desc(
         ZDNN_NCHW,
         ggml_zdnn_type_mapping(tensor->type),
         &pre_tfm_desc,
-        tensor->ne[3],
-        tensor->ne[2],
-        tensor->ne[1],
-        tensor->ne[0]
+        ne[3], ne[2], ne[1], ne[0]
     );
 
     ZDNN_CHECK(zdnn_generate_transformed_desc(&pre_tfm_desc, &tfm_desc));
@@ -153,9 +151,9 @@ void ggml_zdnn_op_bin(ggml_backend_zdnn_context & ctx, ggml_tensor * tensor) {
     zdnn_ztensor ztensor_src1;
     zdnn_ztensor ztensor_dst;
 
-    ggml_zdnn_create_tensor(src0, pre_tfm_desc_src0, tfm_desc_src0, ztensor_src0);
-    ggml_zdnn_create_tensor(src1, pre_tfm_desc_src1, tfm_desc_src1, ztensor_src1);
-    ggml_zdnn_create_tensor(dst , pre_tfm_desc_dst , tfm_desc_dst , ztensor_dst );
+    ggml_zdnn_create_tensor(src0, pre_tfm_desc_src0, tfm_desc_src0, ztensor_src0, dst->ne);
+    ggml_zdnn_create_tensor(src1, pre_tfm_desc_src1, tfm_desc_src1, ztensor_src1, dst->ne);
+    ggml_zdnn_create_tensor(dst , pre_tfm_desc_dst , tfm_desc_dst , ztensor_dst , dst->ne);
 
     ZDNN_CHECK(zdnn_transform_ztensor(&ztensor_src0, src0_contiguous));
     ZDNN_CHECK(zdnn_transform_ztensor(&ztensor_src1, src1_contiguous));
@@ -183,8 +181,8 @@ void ggml_zdnn_op_unary(ggml_backend_zdnn_context & ctx, ggml_tensor * tensor) {
     zdnn_ztensor ztensor_src0;
     zdnn_ztensor ztensor_dst;
 
-    ggml_zdnn_create_tensor(src0, pre_tfm_desc_src0, tfm_desc_src0, ztensor_src0);
-    ggml_zdnn_create_tensor(dst , pre_tfm_desc_dst , tfm_desc_dst , ztensor_dst );
+    ggml_zdnn_create_tensor(src0, pre_tfm_desc_src0, tfm_desc_src0, ztensor_src0, dst->ne);
+    ggml_zdnn_create_tensor(dst , pre_tfm_desc_dst , tfm_desc_dst , ztensor_dst , dst->ne);
 
     ggml_zdnn_load_tensor(src0, ztensor_src0);
 

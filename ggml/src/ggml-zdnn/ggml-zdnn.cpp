@@ -95,7 +95,7 @@ void ggml_zdnn_create_tensor(const ggml_tensor      * tensor,
                                    zdnn_tensor_desc & pre_tfm_desc,
                                    zdnn_tensor_desc & tfm_desc,
                                    zdnn_ztensor     & ztensor,
-                             const ggml_tensor      * dst) {
+                                   ggml_tensor      * dst) {
 
     zdnn_init_pre_transformed_desc(
         ZDNN_NCHW,

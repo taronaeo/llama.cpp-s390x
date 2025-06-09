@@ -157,8 +157,8 @@ void ggml_zdnn_op_bin(ggml_backend_zdnn_context & ctx, ggml_tensor * tensor) {
     ggml_zdnn_create_tensor(src1, pre_tfm_desc_src1, tfm_desc_src1, ztensor_src1);
     ggml_zdnn_create_tensor(dst , pre_tfm_desc_dst , tfm_desc_dst , ztensor_dst );
 
-    ZDNN_CHECK(zdnn_transform_ztensor(ztensor_src0, src0_contiguous));
-    ZDNN_CHECK(zdnn_transform_ztensor(ztensor_src1, src1_contiguous));
+    ZDNN_CHECK(zdnn_transform_ztensor(&ztensor_src0, src0_contiguous));
+    ZDNN_CHECK(zdnn_transform_ztensor(&ztensor_src1, src1_contiguous));
 
     ZDNN_CHECK(zdnn_op(&ztensor_src0, &ztensor_src1, &ztensor_dst));
     ZDNN_CHECK(zdnn_transform_origtensor(&ztensor_dst, tensor->data));
@@ -462,24 +462,24 @@ static bool ggml_backend_zdnn_device_supports_op(ggml_backend_dev_t dev, const s
         case GGML_OP_ADD:
             // zDNN only supports same-shape for element-wise ops
             // TODO: support manual broadcasting
-            if (!ggml_are_same_shape(src0, src1)) return false;
+            // if (!ggml_are_same_shape(src0, src1)) return false;
             break;
         case GGML_OP_ADD1:
             return false;
         case GGML_OP_SUB:
             // zDNN only supports same-shape for element-wise ops
             // TODO: support manual broadcasting
-            if (!ggml_are_same_shape(src0, src1)) return false;
+            // if (!ggml_are_same_shape(src0, src1)) return false;
             break;
         case GGML_OP_MUL:
             // zDNN only supports same-shape for element-wise ops
             // TODO: support manual broadcasting
-            if (!ggml_are_same_shape(src0, src1)) return false;
+            // if (!ggml_are_same_shape(src0, src1)) return false;
             break;
         case GGML_OP_DIV:
             // zDNN only supports same-shape for element-wise ops
             // TODO: support manual broadcasting
-            if (!ggml_are_same_shape(src0, src1)) return false;
+            // if (!ggml_are_same_shape(src0, src1)) return false;
             break;
         case GGML_OP_SQRT:
             break;

@@ -113,8 +113,8 @@ void ggml_zdnn_op_unary(ggml_backend_zdnn_context & ctx, ggml_tensor * tensor) {
     zdnn_ztensor ztensor_src0;
     zdnn_ztensor ztensor_dst;
 
-    ggml_zdnn_create_tensor(src0, pre_tfm_desc_src0, tfm_desc_src0, ztensor_src0, nullptr, nullptr, ggml_n_dims(src0));
-    ggml_zdnn_create_tensor(dst , pre_tfm_desc_dst , tfm_desc_dst , ztensor_dst , nullptr, nullptr, ggml_n_dims(dst));
+    ggml_zdnn_create_tensor(src0, pre_tfm_desc_src0, tfm_desc_src0, ztensor_src0);
+    ggml_zdnn_create_tensor(dst , pre_tfm_desc_dst , tfm_desc_dst , ztensor_dst );
 
     ggml_zdnn_load_tensor(src0, ztensor_src0);
 

@@ -229,6 +229,7 @@ static bool ggml_zdnn_compute_forward(ggml_backend_zdnn_context & ctx,
             ggml_zdnn_op_bin<zdnn_add>(ctx, dst);
             break;
         case GGML_OP_ADD1:
+            return false;
         case GGML_OP_SUB:
             //! NOTE: Tested did not hit this
             ggml_zdnn_op_bin<zdnn_sub>(ctx, dst);
@@ -257,7 +258,7 @@ static bool ggml_zdnn_compute_forward(ggml_backend_zdnn_context & ctx,
         case GGML_OP_MUL_MAT_ID:
         case GGML_OP_SOFT_MAX:
             // ggml_zdnn_op_activation<zdnn_softmax>(ctx, dst);
-            break;
+            return false;
         case GGML_OP_LEAKY_RELU:
             // ggml_zdnn_op_activation<zdnn_leaky_relu>(ctx, dst);
             return false;
@@ -476,36 +477,37 @@ static bool ggml_backend_zdnn_device_supports_op(ggml_backend_dev_t dev, const s
         case GGML_OP_VIEW:
         case GGML_OP_PERMUTE:
         case GGML_OP_TRANSPOSE:
-            return true;
+            break;
 
         // zDNN ops
         case GGML_OP_ADD:
             // zDNN only supports same-shape for element-wise ops
             // TODO: support manual broadcasting
             if (!ggml_are_same_shape(src0, src1)) return false;
-            return true;
+            break;
         case GGML_OP_ADD1:
+            return false;
         case GGML_OP_SUB:
             // zDNN only supports same-shape for element-wise ops
             // TODO: support manual broadcasting
             if (!ggml_are_same_shape(src0, src1)) return false;
-            return true;
+            break;
         case GGML_OP_MUL:
             // zDNN only supports same-shape for element-wise ops
             // TODO: support manual broadcasting
             if (!ggml_are_same_shape(src0, src1)) return false;
-            return true;
+            break;
         case GGML_OP_DIV:
             // zDNN only supports same-shape for element-wise ops
             // TODO: support manual broadcasting
             if (!ggml_are_same_shape(src0, src1)) return false;
-            return true;
+            break;
         case GGML_OP_SQRT:
-            return true;
+            break;
         case GGML_OP_LOG:
             return false;
         case GGML_OP_NORM:
-            return true;
+            break;
         case GGML_OP_MUL_MAT:
         case GGML_OP_MUL_MAT_ID:
         case GGML_OP_SOFT_MAX:
@@ -519,26 +521,28 @@ static bool ggml_backend_zdnn_device_supports_op(ggml_backend_dev_t dev, const s
                 case GGML_UNARY_OP_STEP:
                     return false;
                 case GGML_UNARY_OP_TANH:
-                    return true;
+                    break;
                 case GGML_UNARY_OP_ELU:
                 case GGML_UNARY_OP_RELU:
                     return false;
                 case GGML_UNARY_OP_SIGMOID:
                 case GGML_UNARY_OP_GELU:
-                    return true;
+                    break;
                 case GGML_UNARY_OP_GELU_QUICK:
                 case GGML_UNARY_OP_SILU:
                 case GGML_UNARY_OP_HARDSWISH:
                 case GGML_UNARY_OP_HARDSIGMOID:
                     return false;
                 case GGML_UNARY_OP_EXP:
-                    return true;
+                    break;
                 default:
                     return false;
             }
         default:
             return false;
     }
+
+    return true;
 
     GGML_UNUSED(dev);
 }

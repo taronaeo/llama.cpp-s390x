@@ -132,14 +132,14 @@ void ggml_zdnn_op_bin(ggml_backend_zdnn_context & ctx, ggml_tensor * tensor) {
     if (ggml_are_same_shape(src0, dst)) {
         src0_contiguous = (void *)src0->data;
     } else {
-        src0_contiguous = malloc(dst_buffer_size);
+        src0_contiguous = ggml_aligned_malloc(dst_buffer_size);
         zdnn_tensor_bcast(src0, dst, src0_contiguous, element_size);
     }
 
     if (ggml_are_same_shape(src1, dst)) {
         src1_contiguous = (void *)src1->data;
     } else {
-        src1_contiguous = malloc(dst_buffer_size);
+        src1_contiguous = ggml_aligned_malloc(dst_buffer_size);
         zdnn_tensor_bcast(src1, dst, src1_contiguous, element_size);
     }
 

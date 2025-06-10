@@ -111,17 +111,6 @@ void ggml_zdnn_op_bin(ggml_backend_zdnn_context & ctx, ggml_tensor * tensor) {
     const struct ggml_tensor * src1 = tensor->src[1];
     const struct ggml_tensor * dst  = tensor;
 
-    if (!ggml_are_same_shape(src0, dst) || !ggml_are_same_shape(src1, dst)) {
-        size_t element_size = ggml_element_size(dst);
-        size_t dst_buffer_size = ggml_nelements(dst) * element_size;
-
-        void * src0_contiguous = malloc(dst_buffer_size);
-        void * src1_contiguous = malloc(dst_buffer_size);
-
-        zdnn_tensor_bcast(src0, dst, src0_contiguous, element_size);
-        zdnn_tensor_bcast(src1, dst, src1_contiguous, element_size);
-    }
-
     zdnn_tensor_desc pre_tfm_desc_src0, tfm_desc_src0;
     zdnn_tensor_desc pre_tfm_desc_src1, tfm_desc_src1;
     zdnn_tensor_desc pre_tfm_desc_dst , tfm_desc_dst;
@@ -134,6 +123,26 @@ void ggml_zdnn_op_bin(ggml_backend_zdnn_context & ctx, ggml_tensor * tensor) {
     ggml_zdnn_create_tensor(src1, pre_tfm_desc_src1, tfm_desc_src1, ztensor_src1, dst);
     ggml_zdnn_create_tensor(dst , pre_tfm_desc_dst , tfm_desc_dst , ztensor_dst , dst);
 
+    void * src0_contiguous = nullptr;
+    void * src1_contiguous = nullptr;
+
+    size_t element_size = ggml_element_size(dst);
+    size_t dst_buffer_size = ggml_nelements(dst) * element_size;
+
+    if (ggml_are_same_shape(src0, dst)) {
+        src0_contiguous = (void *)src0->data;
+    } else {
+        src0_contiguous = malloc(dst_buffer_size);
+        zdnn_tensor_bcast(src0, dst, src0_contiguous, element_size);
+    }
+
+    if (ggml_are_same_shape(src1, dst)) {
+        src1_contiguous = (void *)src1->data;
+    } else {
+        src1_contiguous = malloc(dst_buffer_size);
+        zdnn_tensor_bcast(src1, dst, src1_contiguous, element_size);
+    }
+
     ZDNN_CHECK(zdnn_transform_ztensor(&ztensor_src0, src0_contiguous));
     ZDNN_CHECK(zdnn_transform_ztensor(&ztensor_src1, src1_contiguous));
 
@@ -143,8 +152,11 @@ void ggml_zdnn_op_bin(ggml_backend_zdnn_context & ctx, ggml_tensor * tensor) {
     ZDNN_CHECK(zdnn_free_ztensor_buffer(&ztensor_src1));
     ZDNN_CHECK(zdnn_free_ztensor_buffer(&ztensor_dst));
 
-    if (!ggml_are_same_shape(src0, dst) || !ggml_are_same_shape(src1, dst)) {
+    if (!ggml_are_same_shape(src0, dst)) {
         free(src0_contiguous);
+    }
+
+    if (!ggml_are_same_shape(src1, dst)) {
         free(src1_contiguous);
     }
 }

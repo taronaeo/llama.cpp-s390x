@@ -38,7 +38,8 @@ void zdnn_tensor_bcast(const struct ggml_tensor * src0,
 
     const char * src0_ptr = (const char *)src0->data;
     const char * src1_ptr = (const char *)src1->data;
-          char *  dst_ptr = (      char *)dst_data;
+          char * dst0_ptr = (      char *)dst0_data;
+          char * dst1_ptr = (      char *)dst1_data;
 
     for (int64_t i = 0; i < total_elements; i++) {
         int64_t src0_w = i % dst_w;
@@ -73,11 +74,11 @@ void zdnn_tensor_bcast(const struct ggml_tensor * src0,
 
         size_t dst_offset = i * element_size;
 
-        memcpy( dst_ptr + dst_offset,
+        memcpy(dst0_ptr + dst_offset,
                src0_ptr + src0_offset,
                element_size);
 
-        memcpy( dst_ptr + dst_offset,
+        memcpy(dst1_ptr + dst_offset,
                src1_ptr + src1_offset,
                element_size);
     }

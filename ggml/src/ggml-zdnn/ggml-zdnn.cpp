@@ -119,9 +119,9 @@ void ggml_zdnn_op_bin(ggml_backend_zdnn_context & ctx, ggml_tensor * tensor) {
     zdnn_ztensor ztensor_src1;
     zdnn_ztensor ztensor_dst;
 
-    ggml_zdnn_create_tensor(src0, pre_tfm_desc_src0, tfm_desc_src0, ztensor_src0, dst);
-    ggml_zdnn_create_tensor(src1, pre_tfm_desc_src1, tfm_desc_src1, ztensor_src1, dst);
-    ggml_zdnn_create_tensor(dst , pre_tfm_desc_dst , tfm_desc_dst , ztensor_dst , dst);
+    ggml_zdnn_create_tensor(src0, dst->ne, pre_tfm_desc_src0, tfm_desc_src0, ztensor_src0);
+    ggml_zdnn_create_tensor(src1, dst->ne, pre_tfm_desc_src1, tfm_desc_src1, ztensor_src1);
+    ggml_zdnn_create_tensor(dst , dst->ne, pre_tfm_desc_dst , tfm_desc_dst , ztensor_dst );
 
     void * src0_contiguous = nullptr;
     void * src1_contiguous = nullptr;

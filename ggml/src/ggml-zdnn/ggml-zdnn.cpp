@@ -19,46 +19,91 @@ void zdnn_tensor_bcast(const    void * src_data,
                                 void * dst_data,
                        const int64_t * dst_ne,
                               size_t   element_size) {
-    const int64_t dst_w = dst_ne[0];
-    const int64_t dst_h = dst_ne[1];
-    const int64_t dst_c = dst_ne[2];
-    const int64_t dst_n = dst_ne[3];
-
     const int64_t src_w = src_ne[0];
     const int64_t src_h = src_ne[1];
     const int64_t src_c = src_ne[2];
     const int64_t src_n = src_ne[3];
 
-          char * dst_ptr = (      char *)dst_data;
+    const int64_t dst_w = dst_ne[0];
+    const int64_t dst_h = dst_ne[1];
+    const int64_t dst_c = dst_ne[2];
+    const int64_t dst_n = dst_ne[3];
+
+    const int64_t total_elements = dst_n * dst_c * dst_h * dst_w;
+
     const char * src_ptr = (const char *)src_data;
+          char * dst_ptr = (      char *)dst_data;
 
-    for (int64_t n = 0; n < dst_n; n++) {
-        for (int64_t c = 0; c < dst_c; c++) {
-            for (int64_t h = 0; h < dst_h; h++) {
-                for (int64_t w = 0; w < dst_w; w++) {
-                    int64_t src_n_idx = (src_n == 1) ? 0 : n;
-                    int64_t src_c_idx = (src_c == 1) ? 0 : c;
-                    int64_t src_h_idx = (src_h == 1) ? 0 : (h % src_h);
-                    int64_t src_w_idx = (src_w == 1) ? 0 : (w % src_w);
+    for (int64_t i = 0; i < total_elements; i++) {
+        int64_t w = i % dst_w;
+        int64_t h = (i / dst_w) % dst_h;
+        int64_t c = (i / (dst_w * dst_h)) % dst_c;
+        int64_t n = i / (dst_w * dst_h * dst_c);
 
-                    size_t src_offset = src_w_idx * src_nb[0]
-                                      + src_h_idx * src_nb[1]
-                                      + src_c_idx * src_nb[2]
-                                      + src_n_idx * src_nb[3];
+        int64_t src_w_idx = (src_w == 1) ? 0 : (w % src_w);
+        int64_t src_h_idx = (src_h == 1) ? 0 : (h % src_h);
+        int64_t src_c_idx = (src_c == 1) ? 0 : c;
+        int64_t src_n_idx = (src_n == 1) ? 0 : n;
 
-                    size_t dst_offset = (n * dst_c * dst_h * dst_w +
-                                         c * dst_h * dst_w +
-                                         h * dst_w +
-                                         w) * element_size;
+        size_t src_offset = src_w_idx * src_nb[0]
+                          + src_h_idx * src_nb[1]
+                          + src_c_idx * src_nb[2]
+                          + src_n_idx * src_nb[3];
 
-                    memcpy(dst_ptr + dst_offset,
-                           src_ptr + src_offset,
-                           element_size);
-                }
-            }
-        }
+        size_t dst_offset = i * element_size;
+
+        memcpy(dst_ptr + dst_offset,
+               src_ptr + src_offset,
+               element_size);
     }
 }
+
+// void zdnn_tensor_bcast(const    void * src_data,
+//                        const int64_t * src_ne,
+//                        const  size_t * src_nb,
+//                                 void * dst_data,
+//                        const int64_t * dst_ne,
+//                               size_t   element_size) {
+//     const int64_t dst_w = dst_ne[0];
+//     const int64_t dst_h = dst_ne[1];
+//     const int64_t dst_c = dst_ne[2];
+//     const int64_t dst_n = dst_ne[3];
+
+//     const int64_t src_w = src_ne[0];
+//     const int64_t src_h = src_ne[1];
+//     const int64_t src_c = src_ne[2];
+//     const int64_t src_n = src_ne[3];
+
+//           char * dst_ptr = (      char *)dst_data;
+//     const char * src_ptr = (const char *)src_data;
+
+//     for (int64_t n = 0; n < dst_n; n++) {
+//         for (int64_t c = 0; c < dst_c; c++) {
+//             for (int64_t h = 0; h < dst_h; h++) {
+//                 for (int64_t w = 0; w < dst_w; w++) {
+//                     int64_t src_n_idx = (src_n == 1) ? 0 : n;
+//                     int64_t src_c_idx = (src_c == 1) ? 0 : c;
+//                     int64_t src_h_idx = (src_h == 1) ? 0 : (h % src_h);
+//                     int64_t src_w_idx = (src_w == 1) ? 0 : (w % src_w);
+
+//                     size_t src_offset = src_w_idx * src_nb[0]
+//                                       + src_h_idx * src_nb[1]
+//                                       + src_c_idx * src_nb[2]
+//                                       + src_n_idx * src_nb[3];
+
+//                     size_t dst_offset = (n * dst_c * dst_h * dst_w +
+//                                          c * dst_h * dst_w +
+//                                          h * dst_w +
+//                                          w) * element_size;
+
+//                     memcpy(dst_ptr + dst_offset,
+//                            src_ptr + src_offset,
+//                            element_size);
+//                 }
+//             }
+//         }
+//     }
+// }
 
 
 // --------------------------------------------------------------------------

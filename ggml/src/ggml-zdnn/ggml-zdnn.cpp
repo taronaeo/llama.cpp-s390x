@@ -2,8 +2,8 @@
 #include "ggml-zdnn.h"
 #include "ggml-backend-impl.h"
 
-#include "zdnn.h"
-#include "ggml-zdnn/common.h"
+#include "ggml-zdnn/zdnn.h"
+#include "ggml-zdnn/ggml-zdnn-impl.h"
 
 #include <string>
 #include <memory>
@@ -81,12 +81,6 @@ static zdnn_data_types ggml_zdnn_type_mapping(ggml_type type) {
     }
 }
 
-/*
- * TODO: rework tensor creation to support bcast
- * currently it may be bcasting but it still retains the
- * original tensor shape. we need to update it inaccordance
- * to the bcast shape.
-*/
 void ggml_zdnn_create_tensor(const ggml_tensor      * tensor,
                                    zdnn_tensor_desc & pre_tfm_desc,
                                    zdnn_tensor_desc & tfm_desc,
@@ -175,8 +169,8 @@ void ggml_zdnn_op_unary(ggml_backend_zdnn_context & ctx, ggml_tensor * tensor) {
     ZDNN_CHECK(zdnn_free_ztensor_buffer(&ztensor_dst));
 }
 
-static bool ggml_zdnn_compute_forward(ggml_backend_zdnn_context & ctx,
-                                      struct ggml_tensor * dst) {
+static bool ggml_zdnn_compute_forward(struct ggml_backend_zdnn_context & ctx,
+                                      struct               ggml_tensor * dst) {
     switch (dst->op) {
         case GGML_OP_NONE:
         case GGML_OP_RESHAPE:

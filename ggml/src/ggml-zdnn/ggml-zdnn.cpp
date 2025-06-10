@@ -13,102 +13,52 @@
 // --------------------------------------------------------------------------
 // zDNN Internal Helper Functions
 // --------------------------------------------------------------------------
-void zdnn_tensor_bcast(const ggml_tensor * src0,
-                       const ggml_tensor * src1,
-                       const ggml_tensor *  dst,
-                                    void * src0_buffer,
-                                    void * src1_buffer) {
-    GGML_TENSOR_BINARY_OP_LOCALS;
+void zdnn_tensor_bcast(const    void * src_data,
+                       const int64_t * src_ne,
+                       const  size_t * src_nb,
+                                void * dst_data,
+                       const int64_t * dst_ne,
+                              size_t   element_size) {
+    const int64_t dst_w = dst_ne[0];
+    const int64_t dst_h = dst_ne[1];
+    const int64_t dst_c = dst_ne[2];
+    const int64_t dst_n = dst_ne[3];
 
-    const char * src0_data_ptr = (const char *)src0->data;
-    const char * src1_data_ptr = (const char *)src1->data;
+    const int64_t src_w = src_ne[0];
+    const int64_t src_h = src_ne[1];
+    const int64_t src_c = src_ne[2];
+    const int64_t src_n = src_ne[3];
 
-    char * src0_buffer_ptr = (char *)src0_buffer;
-    char * src1_buffer_ptr = (char *)src1_buffer;
+          char * dst_ptr = (      char *)dst_data;
+    const char * src_ptr = (const char *)src_data;
 
-    const int64_t dst_elements = ne0 * ne1 * ne2 * ne3;
+    for (int64_t n = 0; n < dst_n; n++) {
+        for (int64_t c = 0; c < dst_c; c++) {
+            for (int64_t h = 0; h < dst_h; h++) {
+                for (int64_t w = 0; w < dst_w; w++) {
+                    int64_t src_n_idx = (src_n == 1) ? 0 : n;
+                    int64_t src_c_idx = (src_c == 1) ? 0 : c;
+                    int64_t src_h_idx = (src_h == 1) ? 0 : (h % src_h);
+                    int64_t src_w_idx = (src_w == 1) ? 0 : (w % src_w);
 
-    for (int64_t i = 0; i < dst_elements; i++) {
-        const int64_t n = i / (ne0 * ne1 * ne2);
-        const int64_t c = (i / (ne0 * ne2)) % ne1;
-        const int64_t h = (i / ne0) % ne2;
-        const int64_t w = i % ne0;
+                    size_t src_offset = src_w_idx * src_nb[0]
+                                      + src_h_idx * src_nb[1]
+                                      + src_c_idx * src_nb[2]
+                                      + src_n_idx * src_nb[3];
 
-        const int64_t src0_n_idx = (ne03 == 1) ? 0 : n;
-        const int64_t src0_c_idx = (ne02 == 1) ? 0 : c;
-        const int64_t src0_h_idx = (ne01 == 1) ? 0 : (h % ne01);
-        const int64_t src0_w_idx = (ne00 == 1) ? 0 : (w % ne00);
+                    size_t dst_offset = (n * dst_c * dst_h * dst_w +
+                                         c * dst_h * dst_w +
+                                         h * dst_w +
+                                         w) * element_size;
 
-        const int64_t src1_n_idx = (ne13 == 1) ? 0 : n;
-        const int64_t src1_c_idx = (ne12 == 1) ? 0 : c;
-        const int64_t src1_h_idx = (ne11 == 1) ? 0 : (h % ne11);
-        const int64_t src1_w_idx = (ne10 == 1) ? 0 : (w % ne10);
-
-        const size_t src0_offset = src0_w_idx * nb00 + src0_h_idx + nb01
-                                 + src0_c_idx * nb02 + src0_n_idx * nb03;
-
-        const size_t src1_offset = src1_w_idx * nb10 + src1_h_idx + nb11
-                                 + src1_c_idx * nb12 + src1_n_idx * nb13;
-
-        const size_t src0_buffer_offset = i * sizeof(ggml_element_size(dst));
-        const size_t src1_buffer_offset = i * sizeof(ggml_element_size(dst));
-
-        memcpy(src0_buffer_ptr + src0_buffer_offset,
-               src0_data_ptr + src0_offset,
-               ggml_element_size(dst));
-
-        memcpy(src1_buffer_ptr + src1_buffer_offset,
-               src1_data_ptr + src1_offset,
-               ggml_element_size(dst));
+                    memcpy(dst_ptr + dst_offset,
+                           src_ptr + src_offset,
+                           element_size);
+                }
+            }
+        }
     }
 }
-
-// void zdnn_tensor_bcast(const    void * src_data,
-//                        const int64_t * src_ne,
-//                        const  size_t * src_nb,
-//                                 void * dst_data,
-//                        const int64_t * dst_ne,
-//                               size_t   element_size) {
-//     const int64_t dst_w = dst_ne[0];
-//     const int64_t dst_h = dst_ne[1];
-//     const int64_t dst_c = dst_ne[2];
-//     const int64_t dst_n = dst_ne[3];
-
-//     const int64_t src_w = src_ne[0];
-//     const int64_t src_h = src_ne[1];
-//     const int64_t src_c = src_ne[2];
-//     const int64_t src_n = src_ne[3];
-
-//           char * dst_ptr = (      char *)dst_data;
-//     const char * src_ptr = (const char *)src_data;
-
-//     for (int64_t n = 0; n < dst_n; n++) {
-//         for (int64_t c = 0; c < dst_c; c++) {
-//             for (int64_t h = 0; h < dst_h; h++) {
-//                 for (int64_t w = 0; w < dst_w; w++) {
-//                     int64_t src_n_idx = (src_n == 1) ? 0 : n;
-//                     int64_t src_c_idx = (src_c == 1) ? 0 : c;
-//                     int64_t src_h_idx = (src_h == 1) ? 0 : (h % src_h);
-//                     int64_t src_w_idx = (src_w == 1) ? 0 : (w % src_w);
-
-//                     size_t src_offset = src_w_idx * src_nb[0]
-//                                       + src_h_idx * src_nb[1]
-//                                       + src_c_idx * src_nb[2]
-//                                       + src_n_idx * src_nb[3];
-
-//                     size_t dst_offset = (n * dst_c * dst_h * dst_w +
-//                                          c * dst_h * dst_w +
-//                                          h * dst_w +
-//                                          w) * element_size;
-
-//                     memcpy(dst_ptr + dst_offset,
-//                            src_ptr + src_offset,
-//                            element_size);
-//                 }
-//             }
-//         }
-//     }
-// }
 
 
 // --------------------------------------------------------------------------
@@ -180,22 +130,18 @@ void ggml_zdnn_op_bin(ggml_backend_zdnn_context & ctx, ggml_tensor * tensor) {
     void * src0_contiguous = malloc(dst_buffer_size);
     void * src1_contiguous = malloc(dst_buffer_size);
 
-    // int64_t src0_ne[GGML_MAX_DIMS] = { ne00, ne01, ne02, ne03 };
-    // size_t  src0_nb[GGML_MAX_DIMS] = { nb00, nb01, nb02, nb03 };
-    // int64_t  dst_ne[GGML_MAX_DIMS] = { ne0,  ne1,  ne2,  ne3 };
+    int64_t src0_ne[GGML_MAX_DIMS] = { ne00, ne01, ne02, ne03 };
+    size_t  src0_nb[GGML_MAX_DIMS] = { nb00, nb01, nb02, nb03 };
+    int64_t  dst_ne[GGML_MAX_DIMS] = { ne0,  ne1,  ne2,  ne3 };
 
-    // zdnn_tensor_bcast(src0->data, src0_ne, src0_nb,
-    //                   src0_contiguous, dst_ne, element_size);
+    zdnn_tensor_bcast(src0->data, src0_ne, src0_nb,
+                      src0_contiguous, dst_ne, element_size);
 
-    zdnn_tensor_bcast(src0, src1, dst, src0_contiguous, src1_contiguous);
+    int64_t src1_ne[GGML_MAX_DIMS] = { ne10, ne11, ne12, ne13 };
+    size_t  src1_nb[GGML_MAX_DIMS] = { nb10, nb11, nb12, nb13 };
 
-    // int64_t src1_ne[GGML_MAX_DIMS] = { ne10, ne11, ne12, ne13 };
-    // size_t  src1_nb[GGML_MAX_DIMS] = { nb10, nb11, nb12, nb13 };
-
-    // zdnn_tensor_bcast(src1->data, src1_ne, src1_nb,
-    //                   src1_contiguous, dst_ne, element_size);
-
-    zdnn_tensor_bcast(src0, src1, dst, src0_contiguous, src1_contiguous);
+    zdnn_tensor_bcast(src1->data, src1_ne, src1_nb,
+                      src1_contiguous, dst_ne, element_size);
 
     zdnn_tensor_desc pre_tfm_desc_src0, tfm_desc_src0;
     zdnn_tensor_desc pre_tfm_desc_src1, tfm_desc_src1;

@@ -14,7 +14,7 @@
 // zDNN Internal Helper Functions
 // --------------------------------------------------------------------------
 void zdnn_tensor_bcast(const struct ggml_tensor * src,
-                             struct ggml_tensor * dst,
+                       const struct ggml_tensor * dst,
                                            void * dst_data,
                                          size_t   element_size) {
     const int64_t src_w = src->ne[0];

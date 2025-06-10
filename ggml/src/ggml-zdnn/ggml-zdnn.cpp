@@ -50,16 +50,16 @@ void zdnn_tensor_bcast(const ggml_tensor * src0,
         const size_t src1_offset = src1_w_idx * nb10 + src1_h_idx + nb11
                                  + src1_c_idx * nb12 + src1_n_idx * nb13;
 
-        const size_t src0_buffer_offset = i * sizeof(ggml_element_size(src0));
-        const size_t src1_buffer_offset = i * sizeof(ggml_element_size(src1));
+        const size_t src0_buffer_offset = i * sizeof(ggml_element_size(dst));
+        const size_t src1_buffer_offset = i * sizeof(ggml_element_size(dst));
 
         memcpy(src0_buffer_ptr + src0_buffer_offset,
                src0_data_ptr + src0_offset,
-               ggml_element_size(src0));
+               ggml_element_size(dst));
 
         memcpy(src1_buffer_ptr + src1_buffer_offset,
                src1_data_ptr + src1_offset,
-               ggml_element_size(src1));
+               ggml_element_size(dst));
     }
 }
 

@@ -28,21 +28,20 @@ void zdnn_tensor_pack(const struct ggml_tensor * src,
     const char * src_ptr = (const char *)src_data;
           char * dst_ptr = (      char *)dst_data;
 
-    for (int64_t n = 0; n < src_n; ++n) {
-        for (int64_t c = 0; c < src_c; ++c) {
-            for (int64_t h = 0; h < src_h; ++h) {
-                for (int64_t w = 0; w < src_w; ++w) {
-                    const size_t src_offset = w * src->nb[0]
-                                            + h * src->nb[1]
-                                            + c * src->nb[2]
-                                            + n * src->nb[3];
+    for (int64_t i = 0; i < total_elements; i++) {
+        int64_t w = i % src_w;
+        int64_t h = (i / src_w) % src_h;
+        int64_t c = (i / (src_w * src_h)) % src_c;
+        int64_t n = i / (src_w * src_h * src_c);
 
-                    const char * src_element = (const char *)(src_ptr + src_offset);
-                    memcpy(dst_ptr, src_element, element_size);
-                    dst_ptr += element_size;
-                }
-            }
-        }
+        size_t src_offset = w * src->nb[0]
+                          + h * src->nb[1]
+                          + c * src->nb[2]
+                          + n * src->nb[3];
+
+        const char * src_element = (const char *)(src_ptr + src_offset);
+        memcpy(dst_ptr, src_element, element_size);
+        dst_ptr += element_size;
     }
 }
 

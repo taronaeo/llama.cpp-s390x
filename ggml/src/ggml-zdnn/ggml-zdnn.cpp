@@ -161,8 +161,8 @@ void ggml_zdnn_op_bin(ggml_backend_zdnn_context & ctx, ggml_tensor * tensor) {
     size_t element_size = ggml_element_size(dst);
     size_t dst_buffer_size = ggml_nelements(dst) * element_size;
 
-    void * src0_packed = ggml_aligned_malloc(dst_buffer_size);
-    void * src1_packed = ggml_aligned_malloc(dst_buffer_size);
+    // void * src0_packed = ggml_aligned_malloc(dst_buffer_size);
+    // void * src1_packed = ggml_aligned_malloc(dst_buffer_size);
 
     if (ggml_are_same_shape(src0, dst)) {
         src0_contiguous = (void *)src0->data;
@@ -171,7 +171,7 @@ void ggml_zdnn_op_bin(ggml_backend_zdnn_context & ctx, ggml_tensor * tensor) {
         zdnn_tensor_bcast(src0, dst, src0_contiguous, element_size);
     }
 
-    zdnn_tensor_pack(src0_packed, src0_contiguous, dst->ne, dst->nb, element_size);
+    // zdnn_tensor_pack(src0_packed, src0_contiguous, dst->ne, dst->nb, element_size);
 
     if (ggml_are_same_shape(src1, dst)) {
         src1_contiguous = (void *)src1->data;
@@ -180,10 +180,10 @@ void ggml_zdnn_op_bin(ggml_backend_zdnn_context & ctx, ggml_tensor * tensor) {
         zdnn_tensor_bcast(src1, dst, src1_contiguous, element_size);
     }
 
-    zdnn_tensor_pack(src1_packed, src1_contiguous, dst->ne, dst->nb, element_size);
+    // zdnn_tensor_pack(src1_packed, src1_contiguous, dst->ne, dst->nb, element_size);
 
-    ZDNN_CHECK(zdnn_transform_ztensor(&ztensor_src0, src0_packed));
-    ZDNN_CHECK(zdnn_transform_ztensor(&ztensor_src1, src1_packed));
+    ZDNN_CHECK(zdnn_transform_ztensor(&ztensor_src0, src0_contiguous));
+    ZDNN_CHECK(zdnn_transform_ztensor(&ztensor_src1, src1_contiguous));
 
     ZDNN_CHECK(zdnn_op(&ztensor_src0, &ztensor_src1, &ztensor_dst));
     ZDNN_CHECK(zdnn_transform_origtensor(&ztensor_dst, tensor->data));
@@ -199,8 +199,8 @@ void ggml_zdnn_op_bin(ggml_backend_zdnn_context & ctx, ggml_tensor * tensor) {
         ggml_aligned_free(src1_contiguous, dst_buffer_size);
     }
 
-    ggml_aligned_free(src0_packed, dst_buffer_size);
-    ggml_aligned_free(src1_packed, dst_buffer_size);
+    // ggml_aligned_free(src0_packed, dst_buffer_size);
+    // ggml_aligned_free(src1_packed, dst_buffer_size);
 }
 
 template<zdnn_status (*zdnn_op)(const zdnn_ztensor *, zdnn_ztensor *)>

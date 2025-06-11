@@ -23,6 +23,12 @@ struct ggml_backend_zdnn_context {
 // --------------------------------------------------------------------------
 // zDNN Internal Helper Functions
 // --------------------------------------------------------------------------
+void zdnn_tensor_pack(         void * dst_buffer,
+                      const    void * src_buffer,
+                      const int64_t * ne,
+                      const  size_t * nb,
+                             size_t   element_size);
+
 void zdnn_tensor_bcast(const struct ggml_tensor * src,
                        const struct ggml_tensor * dst,
                                            void * dst_data,

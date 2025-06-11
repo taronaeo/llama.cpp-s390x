@@ -247,12 +247,12 @@ void ggml_zdnn_op_matmul(ggml_backend_zdnn_context & ctx, ggml_tensor * tensor) 
     zdnn_init_pre_transformed_desc(ZDNN_2D,
                                    ggml_zdnn_type_mapping(src0->type),
                                    &pre_tfm_desc_src0,
-                                   src0->ne[1], src0->ne[0]);
+                                   dst->ne[1], dst->ne[0]);
 
     zdnn_init_pre_transformed_desc(ZDNN_2D,
                                    ggml_zdnn_type_mapping(src1->type),
                                    &pre_tfm_desc_src1,
-                                   src1->ne[1], src1->ne[0]);
+                                   dst->ne[1], dst->ne[0]);
 
     zdnn_init_pre_transformed_desc(ZDNN_2D,
                                    ggml_zdnn_type_mapping(dst->type),
@@ -274,8 +274,28 @@ void ggml_zdnn_op_matmul(ggml_backend_zdnn_context & ctx, ggml_tensor * tensor) 
     ZDNN_CHECK(zdnn_init_ztensor_with_malloc(&pre_tfm_desc_src2, &tfm_desc_src2, &ztensor_src2));
     ZDNN_CHECK(zdnn_init_ztensor_with_malloc(&pre_tfm_desc_dst , &tfm_desc_dst , &ztensor_dst ));
 
-    ZDNN_CHECK(zdnn_transform_ztensor(&ztensor_src0, src0->data));
-    ZDNN_CHECK(zdnn_transform_ztensor(&ztensor_src1, src1->data));
+    void * src0_contiguous = nullptr;
+    void * src1_contiguous = nullptr;
+
+    size_t element_size = ggml_element_size(dst);
+    size_t dst_buffer_size = ggml_nelements(dst) * element_size;
+
+    if (ggml_are_same_shape(src0, dst)) {
+        src0_contiguous = (void *)src0->data;
+    } else {
+        src0_contiguous = ggml_aligned_malloc(dst_buffer_size);
+        zdnn_tensor_bcast(src0, dst, src0_contiguous, element_size);
+    }
+
+    if (ggml_are_same_shape(src1, dst)) {
+        src1_contiguous = (void *)src1->data;
+    } else {
+        src1_contiguous = ggml_aligned_malloc(dst_buffer_size);
+        zdnn_tensor_bcast(src1, dst, src1_contiguous, element_size);
+    }
+
+    ZDNN_CHECK(zdnn_transform_ztensor(&ztensor_src0, src0_contiguous));
+    ZDNN_CHECK(zdnn_transform_ztensor(&ztensor_src1, src1_contiguous));
     ZDNN_CHECK(zdnn_allochelper_ztensor(&ztensor_src2));
     memset(ztensor_src2.buffer, 0, ztensor_src2.buffer_size);
 

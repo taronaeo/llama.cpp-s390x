@@ -45,9 +45,22 @@ void zdnn_tensor_pack(         void * dst_buffer,
     }
 }
 
+/**
+ * @brief Broadcasts the contents of a source tensor to a destination tensor buffer, supporting broadcasting semantics.
+ *
+ * This function copies data from the source tensor (`src`) to the destination tensor (`dst_data`),
+ * following broadcasting rules for each dimension. If a dimension in the source tensor is 1, its value
+ * is broadcast (repeated) along that dimension in the destination tensor. The function assumes both
+ * tensors are 4-dimensional and uses the provided element size for memory copying.
+ *
+ * @param src           Pointer to the source tensor structure.
+ * @param dst           Pointer to the destination tensor structure (used for shape/stride info only).
+ * @param dst_buffer    Pointer to the destination data buffer where the broadcasted tensor will be written.
+ * @param element_size  Size in bytes of each tensor element.
+ */
 void zdnn_tensor_bcast(const struct ggml_tensor * src,
                        const struct ggml_tensor * dst,
-                                           void * dst_data,
+                                           void * dst_buffer,
                                          size_t   element_size) {
     const int64_t src_w = src->ne[0];
     const int64_t src_h = src->ne[1];
@@ -62,7 +75,7 @@ void zdnn_tensor_bcast(const struct ggml_tensor * src,
     const int64_t total_elements = dst_w * dst_h * dst_c * dst_n;
 
     const char * src_ptr = (const char *)src->data;
-          char * dst_ptr = (      char *)dst_data;
+          char * dst_ptr = (      char *)dst_buffer;
 
     for (int64_t i = 0; i < total_elements; i++) {
         int64_t w = i % dst_w;

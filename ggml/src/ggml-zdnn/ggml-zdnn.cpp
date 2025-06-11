@@ -236,9 +236,15 @@ void ggml_zdnn_op_matmul(ggml_backend_zdnn_context & ctx, ggml_tensor * tensor) 
 
     const int64_t m = src0->ne[1];
     const int64_t n = src0->ne[0];
+    const int64_t k = src1->ne[1];
     const int64_t p = src1->ne[0];
 
-    assert(src1->ne[1] == n);
+    GGML_LOG_INFO("%s: src0 dims: [%ld, %ld], src1 dims: [%ld, %ld]\n",
+                  __func__, src0->ne[0], src0->ne[1], src1->ne[0], src1->ne[1]);
+    GGML_LOG_INFO("%s: expected: A(%ld,%ld) @ B(%ld,%ld) = C(%ld,%ld)\n",
+                  __func__, m, n, k, p, dst->ne[1], dst->ne[0]);
+
+    assert(k == n);
     assert(dst->ne[1] == m && dst->ne[0] == p);
 
     zdnn_tensor_desc pre_tfm_desc_a, tfm_desc_a;

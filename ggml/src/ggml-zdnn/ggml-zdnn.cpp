@@ -14,6 +14,7 @@
 // zDNN Internal Helper Functions
 // --------------------------------------------------------------------------
 void zdnn_tensor_pack(const struct ggml_tensor * src,
+                                          void * src_data,
                                           void * dst_data,
                                         size_t   element_size) {
     const int64_t src_w = src->ne[0];
@@ -24,7 +25,7 @@ void zdnn_tensor_pack(const struct ggml_tensor * src,
     const int64_t total_elements = src_w * src_h * src_c * src_n;
     const size_t packed_size_bytes = total_elements * element_size;
 
-    const char * src_ptr = (const char *)src->data;
+    const char * src_ptr = (const char *)src_data;
           char * dst_ptr = (      char *)dst_data;
 
     for (int64_t n = 0; n < src_n; ++n) {
@@ -36,7 +37,7 @@ void zdnn_tensor_pack(const struct ggml_tensor * src,
                                             + c * src->nb[2]
                                             + n * src->nb[3];
 
-                    const void * src_ptr = src_ptr + src_offset;
+                    const char * src_ptr = src_ptr + src_offset;
                     memcpy(dst_ptr, src_ptr, element_size);
                     dst_ptr++;
                 }
@@ -171,7 +172,7 @@ void ggml_zdnn_op_bin(ggml_backend_zdnn_context & ctx, ggml_tensor * tensor) {
         zdnn_tensor_bcast(src0, dst, src0_contiguous, element_size);
     }
 
-    zdnn_tensor_pack(src0_contiguous, src0_packed, element_size);
+    zdnn_tensor_pack(src0, src0_contiguous, src0_packed, element_size);
 
     if (ggml_are_same_shape(src1, dst)) {
         src1_contiguous = (void *)src1->data;
@@ -180,7 +181,7 @@ void ggml_zdnn_op_bin(ggml_backend_zdnn_context & ctx, ggml_tensor * tensor) {
         zdnn_tensor_bcast(src1, dst, src1_contiguous, element_size);
     }
 
-    zdnn_tensor_pack(src1_contiguous, src1_packed, element_size);
+    zdnn_tensor_pack(src1, src1_contiguous src1_packed, element_size);
 
     ZDNN_CHECK(zdnn_transform_ztensor(&ztensor_src0, src0_packed));
     ZDNN_CHECK(zdnn_transform_ztensor(&ztensor_src1, src1_packed));

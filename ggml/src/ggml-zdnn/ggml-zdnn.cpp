@@ -234,82 +234,72 @@ void ggml_zdnn_op_matmul(ggml_backend_zdnn_context & ctx, ggml_tensor * tensor) 
     const struct ggml_tensor * src1 = tensor->src[1];
     const struct ggml_tensor * dst  = tensor;
 
-    zdnn_tensor_desc pre_tfm_desc_src0, tfm_desc_src0;
-    zdnn_tensor_desc pre_tfm_desc_src1, tfm_desc_src1;
-    zdnn_tensor_desc pre_tfm_desc_src2, tfm_desc_src2;
-    zdnn_tensor_desc pre_tfm_desc_dst , tfm_desc_dst ;
+    int64_t M = src0->ne[1];
+    int64_t K = src0->ne[0];
+    int64_t N = src1->ne[1];
 
-    zdnn_ztensor ztensor_src0;
-    zdnn_ztensor ztensor_src1;
-    zdnn_ztensor ztensor_src2;
-    zdnn_ztensor ztensor_dst;
+    zdnn_tensor_desc pre_tfm_desc_a, tfm_desc_a;
+    zdnn_tensor_desc pre_tfm_desc_b, tfm_desc_b;
+    zdnn_tensor_desc pre_tfm_desc_c, tfm_desc_c;
+
+    zdnn_ztensor ztensor_a, ztensor_b, ztensor_c;
 
     zdnn_init_pre_transformed_desc(ZDNN_2D,
                                    ggml_zdnn_type_mapping(src0->type),
-                                   &pre_tfm_desc_src0,
-                                   dst->ne[1], dst->ne[0]);
+                                   &pre_tfm_desc_a,
+                                   M, K);
 
     zdnn_init_pre_transformed_desc(ZDNN_2D,
                                    ggml_zdnn_type_mapping(src1->type),
-                                   &pre_tfm_desc_src1,
-                                   dst->ne[1], dst->ne[0]);
+                                   &pre_tfm_desc_b,
+                                   K, N);
 
     zdnn_init_pre_transformed_desc(ZDNN_2D,
                                    ggml_zdnn_type_mapping(dst->type),
-                                   &pre_tfm_desc_src2,
-                                   dst->ne[1], dst->ne[0]);
+                                   &pre_tfm_desc_c,
+                                   M, N);
 
-    zdnn_init_pre_transformed_desc(ZDNN_2D,
-                                   ggml_zdnn_type_mapping(dst->type),
-                                   &pre_tfm_desc_dst,
-                                   dst->ne[1], dst->ne[0]);
+    ZDNN_CHECK(zdnn_generate_transformed_desc(&pre_tfm_desc_a, &tfm_desc_a));
+    ZDNN_CHECK(zdnn_generate_transformed_desc(&pre_tfm_desc_b, &tfm_desc_b));
+    ZDNN_CHECK(zdnn_generate_transformed_desc(&pre_tfm_desc_c, &tfm_desc_c));
 
-    ZDNN_CHECK(zdnn_generate_transformed_desc(&pre_tfm_desc_src0, &tfm_desc_src0));
-    ZDNN_CHECK(zdnn_generate_transformed_desc(&pre_tfm_desc_src1, &tfm_desc_src1));
-    ZDNN_CHECK(zdnn_generate_transformed_desc(&pre_tfm_desc_src2, &tfm_desc_src2));
-    ZDNN_CHECK(zdnn_generate_transformed_desc(&pre_tfm_desc_dst , &tfm_desc_dst ));
+    ZDNN_CHECK(zdnn_init_ztensor_with_malloc(&pre_tfm_desc_a, &tfm_desc_a, &ztensor_a));
+    ZDNN_CHECK(zdnn_init_ztensor_with_malloc(&pre_tfm_desc_b, &tfm_desc_b, &ztensor_b));
+    ZDNN_CHECK(zdnn_init_ztensor_with_malloc(&pre_tfm_desc_c, &tfm_desc_c, &ztensor_c));
 
-    ZDNN_CHECK(zdnn_init_ztensor_with_malloc(&pre_tfm_desc_src0, &tfm_desc_src0, &ztensor_src0));
-    ZDNN_CHECK(zdnn_init_ztensor_with_malloc(&pre_tfm_desc_src1, &tfm_desc_src1, &ztensor_src1));
-    ZDNN_CHECK(zdnn_init_ztensor_with_malloc(&pre_tfm_desc_src2, &tfm_desc_src2, &ztensor_src2));
-    ZDNN_CHECK(zdnn_init_ztensor_with_malloc(&pre_tfm_desc_dst , &tfm_desc_dst , &ztensor_dst ));
+    // void * src0_contiguous = nullptr;
+    // void * src1_contiguous = nullptr;
 
-    void * src0_contiguous = nullptr;
-    void * src1_contiguous = nullptr;
+    // size_t element_size = ggml_element_size(dst);
+    // size_t dst_buffer_size = ggml_nelements(dst) * element_size;
 
-    size_t element_size = ggml_element_size(dst);
-    size_t dst_buffer_size = ggml_nelements(dst) * element_size;
+    // if (ggml_are_same_shape(src0, dst)) {
+    //     src0_contiguous = (void *)src0->data;
+    // } else {
+    //     src0_contiguous = ggml_aligned_malloc(dst_buffer_size);
+    //     zdnn_tensor_bcast(src0, dst, src0_contiguous, element_size);
+    // }
 
-    if (ggml_are_same_shape(src0, dst)) {
-        src0_contiguous = (void *)src0->data;
-    } else {
-        src0_contiguous = ggml_aligned_malloc(dst_buffer_size);
-        zdnn_tensor_bcast(src0, dst, src0_contiguous, element_size);
-    }
+    // if (ggml_are_same_shape(src1, dst)) {
+    //     src1_contiguous = (void *)src1->data;
+    // } else {
+    //     src1_contiguous = ggml_aligned_malloc(dst_buffer_size);
+    //     zdnn_tensor_bcast(src1, dst, src1_contiguous, element_size);
+    // }
 
-    if (ggml_are_same_shape(src1, dst)) {
-        src1_contiguous = (void *)src1->data;
-    } else {
-        src1_contiguous = ggml_aligned_malloc(dst_buffer_size);
-        zdnn_tensor_bcast(src1, dst, src1_contiguous, element_size);
-    }
+    ZDNN_CHECK(zdnn_transform_ztensor(&ztensor_a, src0->data));
+    ZDNN_CHECK(zdnn_transform_ztensor(&ztensor_b, src1->data));
 
-    ZDNN_CHECK(zdnn_transform_ztensor(&ztensor_src0, src0_contiguous));
-    ZDNN_CHECK(zdnn_transform_ztensor(&ztensor_src1, src1_contiguous));
-    ZDNN_CHECK(zdnn_allochelper_ztensor(&ztensor_src2));
-    memset(ztensor_src2.buffer, 0, ztensor_src2.buffer_size);
-
-    ZDNN_CHECK(zdnn_matmul_op(&ztensor_src0,
-                              &ztensor_src1,
-                              &ztensor_src2,
+    ZDNN_CHECK(zdnn_matmul_op(&ztensor_a,
+                              &ztensor_b,
+                              nullptr,
                               MATMUL_OP_ADDITION,
-                              &ztensor_dst));
+                              &ztensor_c));
 
-    ZDNN_CHECK(zdnn_transform_origtensor(&ztensor_dst, tensor->data));
-    ZDNN_CHECK(zdnn_free_ztensor_buffer(&ztensor_src0));
-    ZDNN_CHECK(zdnn_free_ztensor_buffer(&ztensor_src1));
-    ZDNN_CHECK(zdnn_free_ztensor_buffer(&ztensor_src2));
-    ZDNN_CHECK(zdnn_free_ztensor_buffer(&ztensor_dst));
+    ZDNN_CHECK(zdnn_transform_origtensor(&ztensor_c, dst->data));
+    ZDNN_CHECK(zdnn_free_ztensor_buffer(&ztensor_a));
+    ZDNN_CHECK(zdnn_free_ztensor_buffer(&ztensor_b));
+    ZDNN_CHECK(zdnn_free_ztensor_buffer(&ztensor_c));
 }
 
 static bool ggml_zdnn_compute_forward(struct ggml_backend_zdnn_context & ctx,

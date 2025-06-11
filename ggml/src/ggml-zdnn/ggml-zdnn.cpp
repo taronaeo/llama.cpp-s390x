@@ -236,16 +236,23 @@ void ggml_zdnn_op_matmul(ggml_backend_zdnn_context & ctx, ggml_tensor * tensor) 
 
     const int64_t m = src0->ne[1];
     const int64_t n = src0->ne[0];
-    const int64_t k = src1->ne[1];
-    const int64_t p = src1->ne[0];
+    const int64_t p = src1->ne[1];
+    const int64_t k = src1->ne[0];
 
     GGML_LOG_INFO("%s: src0 dims: [%ld, %ld], src1 dims: [%ld, %ld]\n",
                   __func__, src0->ne[0], src0->ne[1], src1->ne[0], src1->ne[1]);
-    GGML_LOG_INFO("%s: expected: A(%ld,%ld) @ B(%ld,%ld) = C(%ld,%ld)\n",
-                  __func__, m, n, k, p, dst->ne[1], dst->ne[0]);
+    GGML_LOG_INFO("%s: dst dims: [%ld, %ld]\n", __func__, dst->ne[0], dst->ne[1]);
 
-    assert(k == n);
-    assert(dst->ne[1] == m && dst->ne[0] == p);
+    bool transpose_b = (k == n && dst->ne[0] == p && dst->ne[1] == m);
+
+    if (transpose_b) {
+        GGML_LOG_INFO("%s: Using transposed B: A(%ld,%ld) @ B^T(%ld,%ld) = C(%ld,%ld)\n",
+                      __func__, m, n, k, p, m, p);
+    } else {
+        GGML_LOG_INFO("%s: Standard multiplication: A(%ld,%ld) @ B(%ld,%ld)\n",
+                      __func__, m, n, p, k);
+        assert(p == n);
+    }
 
     zdnn_tensor_desc pre_tfm_desc_a, tfm_desc_a;
     zdnn_tensor_desc pre_tfm_desc_b, tfm_desc_b;
@@ -259,20 +266,27 @@ void ggml_zdnn_op_matmul(ggml_backend_zdnn_context & ctx, ggml_tensor * tensor) 
                                    &pre_tfm_desc_a,
                                    m, n);
 
-    zdnn_init_pre_transformed_desc(ZDNN_2D,
-                                   ggml_zdnn_type_mapping(src1->type),
-                                   &pre_tfm_desc_b,
-                                   n, p);
+    if (transpose_b) {
+        zdnn_init_pre_transformed_desc(ZDNN_2D,
+                                       ggml_zdnn_type_mapping(src1->type),
+                                       &pre_tfm_desc_b,
+                                       p, k);
+    } else {
+        zdnn_init_pre_transformed_desc(ZDNN_2D,
+                                       ggml_zdnn_type_mapping(src1->type),
+                                       &pre_tfm_desc_b,
+                                       p, k);
+    }
 
     zdnn_init_pre_transformed_desc(ZDNN_1D,
                                    ggml_zdnn_type_mapping(dst->type),
                                    &pre_tfm_desc_bias,
-                                   p);
+                                   transpose_b ? p : k);
 
     zdnn_init_pre_transformed_desc(ZDNN_2D,
                                    ggml_zdnn_type_mapping(dst->type),
                                    &pre_tfm_desc_result,
-                                   m, p);
+                                   m, transpose_b ? p : k);
 
     ZDNN_CHECK(zdnn_generate_transformed_desc(&pre_tfm_desc_a, &tfm_desc_a));
     ZDNN_CHECK(zdnn_generate_transformed_desc(&pre_tfm_desc_b, &tfm_desc_b));

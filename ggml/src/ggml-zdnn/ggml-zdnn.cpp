@@ -172,7 +172,7 @@ void ggml_zdnn_op_bin(ggml_backend_zdnn_context & ctx, ggml_tensor * tensor) {
         zdnn_tensor_bcast(src0, dst, src0_contiguous, element_size);
     }
 
-    zdnn_tensor_pack(src0, src0_contiguous, src0_packed, element_size);
+    zdnn_tensor_pack(dst, src0_contiguous, src0_packed, element_size);
 
     if (ggml_are_same_shape(src1, dst)) {
         src1_contiguous = (void *)src1->data;
@@ -181,7 +181,7 @@ void ggml_zdnn_op_bin(ggml_backend_zdnn_context & ctx, ggml_tensor * tensor) {
         zdnn_tensor_bcast(src1, dst, src1_contiguous, element_size);
     }
 
-    zdnn_tensor_pack(src1, src1_contiguous, src1_packed, element_size);
+    zdnn_tensor_pack(dst, src1_contiguous, src1_packed, element_size);
 
     ZDNN_CHECK(zdnn_transform_ztensor(&ztensor_src0, src0_packed));
     ZDNN_CHECK(zdnn_transform_ztensor(&ztensor_src1, src1_packed));

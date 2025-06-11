@@ -45,19 +45,6 @@ void zdnn_tensor_pack(         void * dst_buffer,
     }
 }
 
-/**
- * @brief Broadcasts the contents of a source tensor to a destination tensor buffer, supporting broadcasting semantics.
- *
- * This function copies data from the source tensor (`src`) to the destination tensor (`dst_data`),
- * following broadcasting rules for each dimension. If a dimension in the source tensor is 1, its value
- * is broadcast (repeated) along that dimension in the destination tensor. The function assumes both
- * tensors are 4-dimensional and uses the provided element size for memory copying.
- *
- * @param src           Pointer to the source tensor structure.
- * @param dst           Pointer to the destination tensor structure (used for shape/stride info only).
- * @param dst_buffer    Pointer to the destination data buffer where the broadcasted tensor will be written.
- * @param element_size  Size in bytes of each tensor element.
- */
 void zdnn_tensor_bcast(const struct ggml_tensor * src,
                        const struct ggml_tensor * dst,
                                            void * dst_buffer,
@@ -143,9 +130,9 @@ void ggml_zdnn_create_tensor(const ggml_tensor      * src,
     ZDNN_CHECK(zdnn_init_ztensor_with_malloc(&pre_tfm_desc, &tfm_desc, &ztensor));
 }
 
-void ggml_zdnn_load_tensor(const ggml_tensor  * tensor,
+void ggml_zdnn_load_tensor(const void         * buffer,
                                  zdnn_ztensor & ztensor) {
-    ZDNN_CHECK(zdnn_transform_ztensor(&ztensor, tensor->data));
+    ZDNN_CHECK(zdnn_transform_ztensor(&ztensor, buffer));
 }
 
 template<zdnn_status (*zdnn_op)(const zdnn_ztensor *, const zdnn_ztensor *, zdnn_ztensor *)>
@@ -195,8 +182,8 @@ void ggml_zdnn_op_bin(ggml_backend_zdnn_context & ctx, ggml_tensor * tensor) {
 
     // zdnn_tensor_pack(src1_packed, src1_contiguous, dst->ne, dst->nb, element_size);
 
-    ZDNN_CHECK(zdnn_transform_ztensor(&ztensor_src0, src0_contiguous));
-    ZDNN_CHECK(zdnn_transform_ztensor(&ztensor_src1, src1_contiguous));
+    ggml_zdnn_load_tensor(src0_contiguous, &ztensor_src0);
+    ggml_zdnn_load_tensor(src1_contiguous, &ztensor_src1);
 
     ZDNN_CHECK(zdnn_op(&ztensor_src0, &ztensor_src1, &ztensor_dst));
     ZDNN_CHECK(zdnn_transform_origtensor(&ztensor_dst, tensor->data));
@@ -232,7 +219,7 @@ void ggml_zdnn_op_unary(ggml_backend_zdnn_context & ctx, ggml_tensor * tensor) {
     ggml_zdnn_create_tensor(src0, dst->ne, pre_tfm_desc_src0, tfm_desc_src0, ztensor_src0);
     ggml_zdnn_create_tensor(dst , dst->ne, pre_tfm_desc_dst , tfm_desc_dst , ztensor_dst );
 
-    ggml_zdnn_load_tensor(src0, ztensor_src0);
+    ggml_zdnn_load_tensor(src0->data, ztensor_src0);
 
     ZDNN_CHECK(zdnn_op(&ztensor_src0, &ztensor_dst));
     ZDNN_CHECK(zdnn_transform_origtensor(&ztensor_dst, tensor->data));

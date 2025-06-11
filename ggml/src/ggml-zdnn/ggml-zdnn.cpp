@@ -267,25 +267,25 @@ void ggml_zdnn_op_matmul(ggml_backend_zdnn_context & ctx, ggml_tensor * tensor) 
     ZDNN_CHECK(zdnn_init_ztensor_with_malloc(&pre_tfm_desc_b, &tfm_desc_b, &ztensor_b));
     ZDNN_CHECK(zdnn_init_ztensor_with_malloc(&pre_tfm_desc_c, &tfm_desc_c, &ztensor_c));
 
-    // void * src0_contiguous = nullptr;
-    // void * src1_contiguous = nullptr;
+    void * src0_contiguous = nullptr;
+    void * src1_contiguous = nullptr;
 
-    // size_t element_size = ggml_element_size(dst);
-    // size_t dst_buffer_size = ggml_nelements(dst) * element_size;
+    size_t element_size = ggml_element_size(dst);
+    size_t dst_buffer_size = ggml_nelements(dst) * element_size;
 
-    // if (ggml_are_same_shape(src0, dst)) {
-    //     src0_contiguous = (void *)src0->data;
-    // } else {
-    //     src0_contiguous = ggml_aligned_malloc(dst_buffer_size);
-    //     zdnn_tensor_bcast(src0, dst, src0_contiguous, element_size);
-    // }
+    if (ggml_are_same_shape(src0, dst)) {
+        src0_contiguous = (void *)src0->data;
+    } else {
+        src0_contiguous = ggml_aligned_malloc(dst_buffer_size);
+        zdnn_tensor_bcast(src0, dst, src0_contiguous, element_size);
+    }
 
-    // if (ggml_are_same_shape(src1, dst)) {
-    //     src1_contiguous = (void *)src1->data;
-    // } else {
-    //     src1_contiguous = ggml_aligned_malloc(dst_buffer_size);
-    //     zdnn_tensor_bcast(src1, dst, src1_contiguous, element_size);
-    // }
+    if (ggml_are_same_shape(src1, dst)) {
+        src1_contiguous = (void *)src1->data;
+    } else {
+        src1_contiguous = ggml_aligned_malloc(dst_buffer_size);
+        zdnn_tensor_bcast(src1, dst, src1_contiguous, element_size);
+    }
 
     ZDNN_CHECK(zdnn_transform_ztensor(&ztensor_a, src0->data));
     ZDNN_CHECK(zdnn_transform_ztensor(&ztensor_b, src1->data));
@@ -300,6 +300,14 @@ void ggml_zdnn_op_matmul(ggml_backend_zdnn_context & ctx, ggml_tensor * tensor) 
     ZDNN_CHECK(zdnn_free_ztensor_buffer(&ztensor_a));
     ZDNN_CHECK(zdnn_free_ztensor_buffer(&ztensor_b));
     ZDNN_CHECK(zdnn_free_ztensor_buffer(&ztensor_c));
+
+    if (!ggml_are_same_shape(src0, dst)) {
+        ggml_aligned_free(src0_contiguous, dst_buffer_size);
+    }
+
+    if (!ggml_are_same_shape(src1, dst)) {
+        ggml_aligned_free(src1_contiguous, dst_buffer_size);
+    }
 }
 
 static bool ggml_zdnn_compute_forward(struct ggml_backend_zdnn_context & ctx,

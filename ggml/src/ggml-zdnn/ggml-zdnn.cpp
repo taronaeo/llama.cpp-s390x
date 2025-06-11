@@ -234,80 +234,64 @@ void ggml_zdnn_op_matmul(ggml_backend_zdnn_context & ctx, ggml_tensor * tensor) 
     const struct ggml_tensor * src1 = tensor->src[1];
     const struct ggml_tensor * dst  = tensor;
 
-    int64_t M = src0->ne[1];
-    int64_t K = src0->ne[0];
-    int64_t N = src1->ne[1];
+    const int64_t m = src0->ne[1];
+    const int64_t n = src0->ne[0];
+    const int64_t p = src1->ne[0];
+
+    assert(src1->ne[1] == n);
+    assert(dst->ne[1] == m && dst->ne[0] == p);
 
     zdnn_tensor_desc pre_tfm_desc_a, tfm_desc_a;
     zdnn_tensor_desc pre_tfm_desc_b, tfm_desc_b;
-    zdnn_tensor_desc pre_tfm_desc_c, tfm_desc_c;
+    zdnn_tensor_desc pre_tfm_desc_bias, tfm_desc_bias;
+    zdnn_tensor_desc pre_tfm_desc_result, tfm_desc_result;
 
-    zdnn_ztensor ztensor_a, ztensor_b, ztensor_c;
+    zdnn_ztensor ztensor_a, ztensor_b, ztensor_bias, ztensor_result;
 
     zdnn_init_pre_transformed_desc(ZDNN_2D,
                                    ggml_zdnn_type_mapping(src0->type),
                                    &pre_tfm_desc_a,
-                                   M, K);
+                                   m, n);
 
     zdnn_init_pre_transformed_desc(ZDNN_2D,
                                    ggml_zdnn_type_mapping(src1->type),
                                    &pre_tfm_desc_b,
-                                   K, N);
+                                   n, p);
+
+    zdnn_init_pre_transformed_desc(ZDNN_1D,
+                                   ggml_zdnn_type_mapping(dst->type),
+                                   &pre_tfm_desc_bias,
+                                   p);
 
     zdnn_init_pre_transformed_desc(ZDNN_2D,
                                    ggml_zdnn_type_mapping(dst->type),
-                                   &pre_tfm_desc_c,
-                                   M, N);
+                                   &pre_tfm_desc_result,
+                                   m, p);
 
     ZDNN_CHECK(zdnn_generate_transformed_desc(&pre_tfm_desc_a, &tfm_desc_a));
     ZDNN_CHECK(zdnn_generate_transformed_desc(&pre_tfm_desc_b, &tfm_desc_b));
-    ZDNN_CHECK(zdnn_generate_transformed_desc(&pre_tfm_desc_c, &tfm_desc_c));
+    ZDNN_CHECK(zdnn_generate_transformed_desc(&pre_tfm_desc_bias, &tfm_desc_bias));
+    ZDNN_CHECK(zdnn_generate_transformed_desc(&pre_tfm_desc_result, &tfm_desc_result));
 
     ZDNN_CHECK(zdnn_init_ztensor_with_malloc(&pre_tfm_desc_a, &tfm_desc_a, &ztensor_a));
     ZDNN_CHECK(zdnn_init_ztensor_with_malloc(&pre_tfm_desc_b, &tfm_desc_b, &ztensor_b));
-    ZDNN_CHECK(zdnn_init_ztensor_with_malloc(&pre_tfm_desc_c, &tfm_desc_c, &ztensor_c));
-
-    void * src0_contiguous = nullptr;
-    void * src1_contiguous = nullptr;
-
-    size_t element_size = ggml_element_size(dst);
-    size_t dst_buffer_size = ggml_nelements(dst) * element_size;
-
-    if (ggml_are_same_shape(src0, dst)) {
-        src0_contiguous = (void *)src0->data;
-    } else {
-        src0_contiguous = ggml_aligned_malloc(dst_buffer_size);
-        zdnn_tensor_bcast(src0, dst, src0_contiguous, element_size);
-    }
-
-    if (ggml_are_same_shape(src1, dst)) {
-        src1_contiguous = (void *)src1->data;
-    } else {
-        src1_contiguous = ggml_aligned_malloc(dst_buffer_size);
-        zdnn_tensor_bcast(src1, dst, src1_contiguous, element_size);
-    }
+    ZDNN_CHECK(zdnn_init_ztensor_with_malloc(&pre_tfm_desc_bias, &tfm_desc_bias, &ztensor_bias));
+    ZDNN_CHECK(zdnn_init_ztensor_with_malloc(&pre_tfm_desc_result, &tfm_desc_result, &ztensor_result));
 
     ZDNN_CHECK(zdnn_transform_ztensor(&ztensor_a, src0->data));
     ZDNN_CHECK(zdnn_transform_ztensor(&ztensor_b, src1->data));
 
-    ZDNN_CHECK(zdnn_matmul_op(&ztensor_a,
-                              &ztensor_b,
-                              nullptr,
-                              MATMUL_OP_ADDITION,
-                              &ztensor_c));
+    void * zero_bias = calloc(p, ggml_element_size(dst));
+    ZDNN_CHECK(zdnn_transform_ztensor(&ztensor_bias, zero_bias));
 
-    ZDNN_CHECK(zdnn_transform_origtensor(&ztensor_c, dst->data));
+    ZDNN_CHECK(zdnn_matmul_op(&ztensor_a, &ztensor_b, &ztensor_bias, MATMUL_OP_ADDITION, &ztensor_result));
+    ZDNN_CHECK(zdnn_transform_origtensor(&ztensor_result, dst->data));
     ZDNN_CHECK(zdnn_free_ztensor_buffer(&ztensor_a));
     ZDNN_CHECK(zdnn_free_ztensor_buffer(&ztensor_b));
-    ZDNN_CHECK(zdnn_free_ztensor_buffer(&ztensor_c));
+    ZDNN_CHECK(zdnn_free_ztensor_buffer(&ztensor_bias));
+    ZDNN_CHECK(zdnn_free_ztensor_buffer(&ztensor_result));
 
-    if (!ggml_are_same_shape(src0, dst)) {
-        ggml_aligned_free(src0_contiguous, dst_buffer_size);
-    }
-
-    if (!ggml_are_same_shape(src1, dst)) {
-        ggml_aligned_free(src1_contiguous, dst_buffer_size);
-    }
+    free(zero_bias);
 }
 
 static bool ggml_zdnn_compute_forward(struct ggml_backend_zdnn_context & ctx,

@@ -227,6 +227,71 @@ void ggml_zdnn_op_unary(ggml_backend_zdnn_context & ctx, ggml_tensor * tensor) {
     ZDNN_CHECK(zdnn_free_ztensor_buffer(&ztensor_dst));
 }
 
+void ggml_zdnn_op_matmul(ggml_backend_zdnn_context & ctx, ggml_tensor * tensor) {
+    GGML_UNUSED(ctx);
+
+    const struct ggml_tensor * src0 = tensor->src[0];
+    const struct ggml_tensor * src1 = tensor->src[1];
+    const struct ggml_tensor * dst  = tensor;
+
+    zdnn_tensor_desc pre_tfm_desc_src0, tfm_desc_src0;
+    zdnn_tensor_desc pre_tfm_desc_src1, tfm_desc_src1;
+    zdnn_tensor_desc pre_tfm_desc_src2, tfm_desc_src2;
+    zdnn_tensor_desc pre_tfm_desc_dst , tfm_desc_dst ;
+
+    zdnn_ztensor ztensor_src0;
+    zdnn_ztensor ztensor_src1;
+    zdnn_ztensor ztensor_src2;
+    zdnn_ztensor ztensor_dst;
+
+    zdnn_init_pre_transformed_desc(ZDNN_2D,
+                                   ggml_zdnn_type_mapping(src0->type),
+                                   &pre_tfm_desc_src0,
+                                   src0->ne[1], src0->ne[0]);
+
+    zdnn_init_pre_transformed_desc(ZDNN_2D,
+                                   ggml_zdnn_type_mapping(src1->type),
+                                   &pre_tfm_desc_src1,
+                                   src1->ne[1], src1->ne[0]);
+
+    zdnn_init_pre_transformed_desc(ZDNN_2D,
+                                   ggml_zdnn_type_mapping(dst->type),
+                                   &pre_tfm_desc_src2,
+                                   dst->ne[1], dst->ne[0]);
+
+    zdnn_init_pre_transformed_desc(ZDNN_2D,
+                                   ggml_zdnn_type_mapping(dst->type),
+                                   &pre_tfm_desc_dst,
+                                   dst->ne[1], dst->ne[0]);
+
+    ZDNN_CHECK(zdnn_generate_transformed_desc(&pre_tfm_desc_src0, &tfm_desc_src0));
+    ZDNN_CHECK(zdnn_generate_transformed_desc(&pre_tfm_desc_src1, &tfm_desc_src1));
+    ZDNN_CHECK(zdnn_generate_transformed_desc(&pre_tfm_desc_src2, &tfm_desc_src2));
+    ZDNN_CHECK(zdnn_generate_transformed_desc(&pre_tfm_desc_dst , &tfm_desc_dst ));
+
+    ZDNN_CHECK(zdnn_init_ztensor_with_malloc(&pre_tfm_desc_src0, &tfm_desc_src0, &ztensor_src0));
+    ZDNN_CHECK(zdnn_init_ztensor_with_malloc(&pre_tfm_desc_src1, &tfm_desc_src1, &ztensor_src1));
+    ZDNN_CHECK(zdnn_init_ztensor_with_malloc(&pre_tfm_desc_src2, &tfm_desc_src2, &ztensor_src2));
+    ZDNN_CHECK(zdnn_init_ztensor_with_malloc(&pre_tfm_desc_dst , &tfm_desc_dst , &ztensor_dst ));
+
+    ZDNN_CHECK(zdnn_transform_ztensor(&ztensor_src0, src0->data));
+    ZDNN_CHECK(zdnn_transform_ztensor(&ztensor_src1, src1->data));
+    ZDNN_CHECK(zdnn_allochelper_ztensor(&ztensor_src2));
+    memset(ztensor_src2.buffer, 0, ztensor_src2.buffer_size);
+
+    ZDNN_CHECK(zdnn_matmul_op(&ztensor_src0,
+                              &ztensor_src1,
+                              &ztensor_src2,
+                              MATMUL_OP_ADDITION,
+                              &ztensor_dst));
+
+    ZDNN_CHECK(zdnn_transform_origtensor(&ztensor_dst, tensor->data));
+    ZDNN_CHECK(zdnn_free_ztensor_buffer(&ztensor_src0));
+    ZDNN_CHECK(zdnn_free_ztensor_buffer(&ztensor_src1));
+    ZDNN_CHECK(zdnn_free_ztensor_buffer(&ztensor_src2));
+    ZDNN_CHECK(zdnn_free_ztensor_buffer(&ztensor_dst));
+}
+
 static bool ggml_zdnn_compute_forward(struct ggml_backend_zdnn_context & ctx,
                                       struct               ggml_tensor * dst) {
     switch (dst->op) {
@@ -267,6 +332,8 @@ static bool ggml_zdnn_compute_forward(struct ggml_backend_zdnn_context & ctx,
             ggml_zdnn_op_bin<zdnn_norm>(ctx, dst);
             break;
         case GGML_OP_MUL_MAT:
+            ggml_zdnn_op_matmul(ctx, dst);
+            break;
         case GGML_OP_MUL_MAT_ID:
         case GGML_OP_SOFT_MAX:
             // ggml_zdnn_op_activation<zdnn_softmax>(ctx, dst);
@@ -521,6 +588,7 @@ static bool ggml_backend_zdnn_device_supports_op(ggml_backend_dev_t dev, const s
         case GGML_OP_NORM:
             break;
         case GGML_OP_MUL_MAT:
+            break;
         case GGML_OP_MUL_MAT_ID:
         case GGML_OP_SOFT_MAX:
         case GGML_OP_LEAKY_RELU:

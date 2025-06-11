@@ -13,6 +13,38 @@
 // --------------------------------------------------------------------------
 // zDNN Internal Helper Functions
 // --------------------------------------------------------------------------
+void zdnn_tensor_pack(const struct ggml_tensor * src,
+                                          void * dst_data,
+                                        size_t   element_size) {
+    const int64_t src_w = src->ne[0];
+    const int64_t src_h = src->ne[1];
+    const int64_t src_c = src->ne[2];
+    const int64_t src_n = src->ne[3];
+
+    const int64_t total_elements = src_w * src_h * src_c * src_n;
+    const size_t packed_size_bytes = total_elements * element_size;
+
+    const char * src_ptr = (const char *)src->data;
+          char * dst_ptr = (      char *)dst_data;
+
+    for (int64_t n = 0; n < src_n; ++n) {
+        for (int64_t c = 0; c < src_c; ++c) {
+            for (int64_t h = 0; h < src_h; ++h) {
+                for (int64_t w = 0; w < src_w; ++w) {
+                    const size_t src_offset = w * src->nb[0]
+                                            + h * src->nb[1]
+                                            + c * src->nb[2]
+                                            + n * src->nb[3];
+
+                    const void * src_ptr = src_ptr + src_offset;
+                    memcpy(dst_ptr, src_ptr, element_size);
+                    dst_ptr++;
+                }
+            }
+        }
+    }
+}
+
 void zdnn_tensor_bcast(const struct ggml_tensor * src,
                        const struct ggml_tensor * dst,
                                            void * dst_data,
@@ -129,12 +161,17 @@ void ggml_zdnn_op_bin(ggml_backend_zdnn_context & ctx, ggml_tensor * tensor) {
     size_t element_size = ggml_element_size(dst);
     size_t dst_buffer_size = ggml_nelements(dst) * element_size;
 
+    void * src0_packed = ggml_aligned_malloc(dst_buffer_size);
+    void * src1_packed = ggml_aligned_malloc(dst_buffer_size);
+
     if (ggml_are_same_shape(src0, dst)) {
         src0_contiguous = (void *)src0->data;
     } else {
         src0_contiguous = ggml_aligned_malloc(dst_buffer_size);
         zdnn_tensor_bcast(src0, dst, src0_contiguous, element_size);
     }
+
+    zdnn_tensor_pack(src0_contiguous, src0_packed, element_size);
 
     if (ggml_are_same_shape(src1, dst)) {
         src1_contiguous = (void *)src1->data;
@@ -143,8 +180,10 @@ void ggml_zdnn_op_bin(ggml_backend_zdnn_context & ctx, ggml_tensor * tensor) {
         zdnn_tensor_bcast(src1, dst, src1_contiguous, element_size);
     }
 
-    ZDNN_CHECK(zdnn_transform_ztensor(&ztensor_src0, src0_contiguous));
-    ZDNN_CHECK(zdnn_transform_ztensor(&ztensor_src1, src1_contiguous));
+    zdnn_tensor_pack(src1_contiguous, src1_packed, element_size);
+
+    ZDNN_CHECK(zdnn_transform_ztensor(&ztensor_src0, src0_packed));
+    ZDNN_CHECK(zdnn_transform_ztensor(&ztensor_src1, src1_packed));
 
     ZDNN_CHECK(zdnn_op(&ztensor_src0, &ztensor_src1, &ztensor_dst));
     ZDNN_CHECK(zdnn_transform_origtensor(&ztensor_dst, tensor->data));
@@ -153,12 +192,15 @@ void ggml_zdnn_op_bin(ggml_backend_zdnn_context & ctx, ggml_tensor * tensor) {
     ZDNN_CHECK(zdnn_free_ztensor_buffer(&ztensor_dst));
 
     if (!ggml_are_same_shape(src0, dst)) {
-        free(src0_contiguous);
+        ggml_aligned_free(src0_contiguous, dst_buffer_size);
     }
 
     if (!ggml_are_same_shape(src1, dst)) {
-        free(src1_contiguous);
+        ggml_aligned_free(src1_contiguous, dst_buffer_size);
     }
+
+    ggml_aligned_free(src0_packed, dst_buffer_size);
+    ggml_aligned_free(src1_packed, dst_buffer_size);
 }
 
 template<zdnn_status (*zdnn_op)(const zdnn_ztensor *, zdnn_ztensor *)>

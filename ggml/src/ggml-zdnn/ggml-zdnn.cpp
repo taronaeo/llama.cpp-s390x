@@ -182,8 +182,8 @@ void ggml_zdnn_op_bin(ggml_backend_zdnn_context & ctx, ggml_tensor * tensor) {
 
     // zdnn_tensor_pack(src1_packed, src1_contiguous, dst->ne, dst->nb, element_size);
 
-    ggml_zdnn_load_tensor(src0_contiguous, &ztensor_src0);
-    ggml_zdnn_load_tensor(src1_contiguous, &ztensor_src1);
+    ggml_zdnn_load_tensor(src0_contiguous, ztensor_src0);
+    ggml_zdnn_load_tensor(src1_contiguous, ztensor_src1);
 
     ZDNN_CHECK(zdnn_op(&ztensor_src0, &ztensor_src1, &ztensor_dst));
     ZDNN_CHECK(zdnn_transform_origtensor(&ztensor_dst, tensor->data));

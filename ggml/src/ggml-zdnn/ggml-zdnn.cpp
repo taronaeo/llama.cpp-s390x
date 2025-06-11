@@ -40,8 +40,7 @@ void zdnn_tensor_pack(         void * dst_buffer,
                           + c * nb[2]
                           + n * nb[3];
 
-        const char * src_element = (const char *)(src_ptr + src_offset);
-        memcpy(dst_ptr, src_element, element_size);
+        memcpy(dst_ptr, src_ptr + src_offset, element_size);
         dst_ptr += element_size;
     }
 }

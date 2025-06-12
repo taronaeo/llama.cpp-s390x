@@ -320,7 +320,36 @@ void ggml_zdnn_op_matmul(ggml_backend_zdnn_context & ctx, ggml_tensor * tensor) 
     status = zdnn_matmul_transpose_op(&ztensor_b, &ztensor_a, &ztensor_bias,
                                       false, true, MATMUL_OP_ADDITION,
                                       &ztensor_result);
-    GGML_ASSERT(status == ZDNN_OK && "zdnn_matmul_transpose_op failed");
+    // GGML_ASSERT(status == ZDNN_OK && "zdnn_matmul_transpose_op failed");
+    if (status == ZDNN_INVALID_SHAPE) {
+        GGML_LOG_INFO("zDNN: Invalid shape for matmul operation. "
+                        "This may be due to the input tensors not being compatible for matrix multiplication.");
+        GGML_ABORT("%s: fatal: zdnn_matmul_transpose_op failed with ZDNN_INVALID_SHAPE",
+                       __func__);
+    } else if (status == ZDNN_INVALID_TYPE) {
+        GGML_LOG_INFO("zDNN: Invalid type for matmul operation. "
+                        "This may be due to the input tensors having incompatible data types.");
+        GGML_ABORT("%s: fatal: zdnn_matmul_transpose_op failed with ZDNN_INVALID_TYPE",
+                       __func__);
+    } else if (status == ZDNN_INVALID_FORMAT) {
+        GGML_LOG_INFO("zDNN: Invalid format for matmul operation. "
+                        "This may be due to the input tensors having incompatible data formats.");
+        GGML_ABORT("%s: fatal: zdnn_matmul_transpose_op failed with ZDNN_INVALID_FORMAT",
+                       __func__);
+    } else if (status == ZDNN_UNAVAILABLE_FUNCTION) {
+        GGML_LOG_INFO("zDNN: Unavailable function for matmul operation. "
+                        "This may be due to the zDNN library not supporting the requested operation.");
+        GGML_ABORT("%s: fatal: zdnn_matmul_transpose_op failed with ZDNN_UNAVAILABLE_FUNCTION",
+                       __func__);
+    } else if (status == ZDNN_FUNC_RC_F000) {
+        GGML_LOG_INFO("zDNN: Invalid op_type");
+        GGML_ABORT("%s: fatal: zdnn_matmul_transpose_op failed with invalid op_type",
+                       __func__);
+    } else if (status == ZDNN_FUNC_RC_F001) {
+        GGML_LOG_INFO("zDNN: Invalid input/output type or format combination");
+        GGML_ABORT("%s: fatal: zdnn_matmul_transpose_op failed with invalid input/output type or format combination",
+                       __func__);
+    }
 
     status = zdnn_transform_origtensor(&ztensor_result, dst->data);
     GGML_ASSERT(status == ZDNN_OK && "zdnn_transform_origtensor failed for tensor result");

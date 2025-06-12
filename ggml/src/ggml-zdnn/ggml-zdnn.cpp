@@ -322,10 +322,10 @@ void ggml_zdnn_op_matmul(ggml_backend_zdnn_context & ctx, ggml_tensor * tensor) 
     }
 
     status = zdnn_transform_ztensor(&ztensor_b, src_b);
-    GGML_ASSERT(status == ZDNN_OK && "zdnn_transform_ztensor failed for tensor A");
+    GGML_ASSERT(status == ZDNN_OK && "zdnn_transform_ztensor failed for tensor B");
 
     status = zdnn_transform_ztensor(&ztensor_a, a_transposed);
-    GGML_ASSERT(status == ZDNN_OK && "zdnn_transform_ztensor failed for tensor B");
+    GGML_ASSERT(status == ZDNN_OK && "zdnn_transform_ztensor failed for tensor A");
 
     float * zero_bias = (float *)calloc(result_cols, sizeof(float));
     status = zdnn_transform_ztensor(&ztensor_bias, zero_bias);
@@ -628,6 +628,7 @@ static ggml_backend_buffer_t ggml_backend_zdnn_device_buffer_from_host_ptr(ggml_
 static bool ggml_backend_zdnn_device_supports_op(ggml_backend_dev_t dev, const struct ggml_tensor * op) {
     const struct ggml_tensor * src0 = op->src[0];
     const struct ggml_tensor * src1 = op->src[1];
+    const uint32_t max_dim = zdnn_get_nnpa_max_dim_idx_size();
 
     switch (op->op) {
         // GGML required ops
@@ -668,6 +669,12 @@ static bool ggml_backend_zdnn_device_supports_op(ggml_backend_dev_t dev, const s
         case GGML_OP_NORM:
             break;
         case GGML_OP_MUL_MAT:
+            if (src0->ne[0] > max_dim || src0->ne[1] > max_dim ||
+                src1->ne[0] > max_dim || src1->ne[1] > max_dim) {
+                GGML_LOG_INFO("%s: zDNN does not support large matrices A:(%ld x %ld) B:(%ld x %ld) max:%d\n",
+                               __func__, src0->ne[0], src0->ne[0], src1->ne[1], src1->ne[0], max_dim);
+                return false; // zDNN does not support large matrices
+            }
             break;
         case GGML_OP_MUL_MAT_ID:
         case GGML_OP_SOFT_MAX:

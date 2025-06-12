@@ -253,20 +253,20 @@ void ggml_zdnn_op_matmul(ggml_backend_zdnn_context & ctx, ggml_tensor * tensor) 
 
     int64_t m = src1->ne[1];
     int64_t n = src1->ne[0];
-    int64_t p = src0->ne[0];
+    int64_t p = dst->ne[0];
 
     zdnn_init_pre_transformed_desc(
         ZDNN_2D,
         ggml_zdnn_type_mapping(src0->type),
         &pre_tfm_desc_a,
-        m, n
+        src1->ne[0], src1->ne[1]
     );
 
     zdnn_init_pre_transformed_desc(
         ZDNN_2D,
         ggml_zdnn_type_mapping(src1->type),
         &pre_tfm_desc_b,
-        n, p
+        src0->ne[0], src0->ne[1]
     );
 
     zdnn_init_pre_transformed_desc(
@@ -280,7 +280,7 @@ void ggml_zdnn_op_matmul(ggml_backend_zdnn_context & ctx, ggml_tensor * tensor) 
         ZDNN_2D,
         ggml_zdnn_type_mapping(dst->type),
         &pre_tfm_desc_result,
-        m, p
+        dst->ne[0], dst->ne[1]
     );
 
     status = zdnn_generate_transformed_desc(&pre_tfm_desc_a, &tfm_desc_a);

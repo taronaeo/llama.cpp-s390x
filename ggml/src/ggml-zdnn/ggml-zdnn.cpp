@@ -241,9 +241,18 @@ void ggml_zdnn_op_matmul(ggml_backend_zdnn_context & ctx, ggml_tensor * tensor) 
 
     zdnn_ztensor ztensor_a, ztensor_b, ztensor_bias, ztensor_result;
 
-    int64_t m = src0->ne[1];
-    int64_t n = src0->ne[0];
-    int64_t p = src1->ne[1];
+    //               p  ,  n
+    // tensor A = { 2048, 2048, 1, 1 }
+    //
+    //               n  ,  m
+    // tensor B = { 2048, 2   , 1, 1 }
+    //
+    //               p  ,  m
+    // tensor C = { 2048, 2   , 1, 1 }
+
+    int64_t m = src1->ne[1];
+    int64_t n = src1->ne[0];
+    int64_t p = src0->ne[0];
 
     zdnn_init_pre_transformed_desc(
         ZDNN_2D,

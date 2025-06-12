@@ -317,9 +317,9 @@ void ggml_zdnn_op_matmul(ggml_backend_zdnn_context & ctx, ggml_tensor * tensor) 
     status = zdnn_transform_ztensor(&ztensor_bias, bias_ptr);
     GGML_ASSERT(status == ZDNN_OK && "zdnn_transform_ztensor failed for tensor bias");
 
-    status = zdnn_matmul_transpose_op(&ztensor_b, &ztensor_a, &ztensor_bias,
-                                      false, true, MATMUL_OP_ADDITION,
-                                      &ztensor_result);
+    status = zdnn_matmul_op(&ztensor_b, &ztensor_a, &ztensor_bias,
+                            MATMUL_OP_ADDITION,
+                            &ztensor_result);
     // GGML_ASSERT(status == ZDNN_OK && "zdnn_matmul_transpose_op failed");
     if (status == ZDNN_INVALID_SHAPE) {
         GGML_LOG_INFO("zDNN: Invalid shape for matmul operation. "
@@ -335,19 +335,6 @@ void ggml_zdnn_op_matmul(ggml_backend_zdnn_context & ctx, ggml_tensor * tensor) 
         GGML_LOG_INFO("zDNN: Invalid format for matmul operation. "
                         "This may be due to the input tensors having incompatible data formats.");
         GGML_ABORT("%s: fatal: zdnn_matmul_transpose_op failed with ZDNN_INVALID_FORMAT",
-                       __func__);
-    } else if (status == ZDNN_UNAVAILABLE_FUNCTION) {
-        GGML_LOG_INFO("zDNN: Unavailable function for matmul operation. "
-                        "This may be due to the zDNN library not supporting the requested operation.");
-        GGML_ABORT("%s: fatal: zdnn_matmul_transpose_op failed with ZDNN_UNAVAILABLE_FUNCTION",
-                       __func__);
-    } else if (status == ZDNN_FUNC_RC_F000) {
-        GGML_LOG_INFO("zDNN: Invalid op_type");
-        GGML_ABORT("%s: fatal: zdnn_matmul_transpose_op failed with invalid op_type",
-                       __func__);
-    } else if (status == ZDNN_FUNC_RC_F001) {
-        GGML_LOG_INFO("zDNN: Invalid input/output type or format combination");
-        GGML_ABORT("%s: fatal: zdnn_matmul_transpose_op failed with invalid input/output type or format combination",
                        __func__);
     }
 

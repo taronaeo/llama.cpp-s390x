@@ -242,45 +242,44 @@ void ggml_zdnn_op_matmul(ggml_backend_zdnn_context & ctx, ggml_tensor * tensor) 
 
     zdnn_ztensor ztensor_a, ztensor_b, ztensor_bias, ztensor_result;
 
-    //               p  ,  n
-    // tensor A = { 2048, 2048, 1, 1 }
-    //
-    //               n  ,  m
-    // tensor B = { 2048, 2   , 1, 1 }
-    //
-    //               p  ,  m
-    // tensor C = { 2048, 2   , 1, 1 }
+    const int64_t m = src0->ne[1];
+    const int64_t n = src0->ne[0];
+    const int64_t k = src1->ne[1];
+    const int64_t p = src1->ne[0];
 
-    int64_t m = src1->ne[1];
-    int64_t n = src1->ne[0];
-    int64_t p = dst->ne[0];
-
-    zdnn_init_pre_transformed_desc(
-        ZDNN_2D,
-        ggml_zdnn_type_mapping(src0->type),
-        &pre_tfm_desc_a,
-        src1->ne[0], src1->ne[1]
-    );
+    GGML_LOG_INFO("%s: GGML pattern C = B A^T:\n", __func__);
+    GGML_LOG_INFO("%s: A: (%ld,%ld), B: (%ld,%ld) -> C: (%ld,%ld)\n", __func__, m, n, k, p, dst->ne[1], dst->ne[0]);
+    GGML_LOG_INFO("%s: Computed as B^T(%ld,%ld) @ A^T(%ld,%ld) = C^T(%ld,%ld)\n",
+                  __func__, p, k, n, m, p, m);
 
     zdnn_init_pre_transformed_desc(
         ZDNN_2D,
         ggml_zdnn_type_mapping(src1->type),
         &pre_tfm_desc_b,
-        src0->ne[0], src0->ne[1]
+        p, k
+    );
+
+    assert(k == n);
+
+    zdnn_init_pre_transformed_desc(
+        ZDNN_2D,
+        ggml_zdnn_type_mapping(src0->type),
+        &pre_tfm_desc_a,
+        n, m
     );
 
     zdnn_init_pre_transformed_desc(
         ZDNN_1D,
         ggml_zdnn_type_mapping(dst->type),
         &pre_tfm_desc_bias,
-        p
+        m
     );
 
     zdnn_init_pre_transformed_desc(
         ZDNN_2D,
         ggml_zdnn_type_mapping(dst->type),
         &pre_tfm_desc_result,
-        dst->ne[0], dst->ne[1]
+        p, m
     );
 
     status = zdnn_generate_transformed_desc(&pre_tfm_desc_a, &tfm_desc_a);
@@ -295,6 +294,7 @@ void ggml_zdnn_op_matmul(ggml_backend_zdnn_context & ctx, ggml_tensor * tensor) 
     status = zdnn_generate_transformed_desc(&pre_tfm_desc_result, &tfm_desc_result);
     GGML_ASSERT(status == ZDNN_OK && "zdnn_generate_transformed_desc failed for tensor result");
 
+
     status = zdnn_init_ztensor_with_malloc(&pre_tfm_desc_a, &tfm_desc_a, &ztensor_a);
     GGML_ASSERT(status == ZDNN_OK && "zdnn_init_ztensor_with_malloc failed for tensor A");
 
@@ -307,14 +307,32 @@ void ggml_zdnn_op_matmul(ggml_backend_zdnn_context & ctx, ggml_tensor * tensor) 
     status = zdnn_init_ztensor_with_malloc(&pre_tfm_desc_result, &tfm_desc_result, &ztensor_result);
     GGML_ASSERT(status == ZDNN_OK && "zdnn_init_ztensor_with_malloc failed for tensor result");
 
-    status = zdnn_transform_ztensor(&ztensor_a, src0->data);
+    float * a_transposed = (float *)ggml_aligned_malloc(n * m * sizeof(float));
+    float * b_transposed = (float *)ggml_aligned_malloc(p * k * sizeof(float));
+
+    const float * src_a = (const float *)src0->data;
+    const float * src_b = (const float *)src1->data;
+
+    for (int i = 0; i < m; i++) {
+        for (int j = 0; j < n; j++) {
+            a_transposed[j * m + i] = src_a[i * n + j];
+        }
+    }
+
+    for (int i = 0; i < k; i++) {
+        for (int j = 0; j < p; j++) {
+            b_transposed[j * k + i] = src_b[i * p + j];
+        }
+    }
+
+    status = zdnn_transform_ztensor(&ztensor_b, b_transposed);
     GGML_ASSERT(status == ZDNN_OK && "zdnn_transform_ztensor failed for tensor A");
 
-    status = zdnn_transform_ztensor(&ztensor_b, src1->data);
+    status = zdnn_transform_ztensor(&ztensor_a, a_transposed);
     GGML_ASSERT(status == ZDNN_OK && "zdnn_transform_ztensor failed for tensor B");
 
-    void * bias_ptr = (void *)calloc(p, sizeof(ggml_element_size(dst)));
-    status = zdnn_transform_ztensor(&ztensor_bias, bias_ptr);
+    float * zero_bias = (float *)calloc(m, sizeof(float));
+    status = zdnn_transform_ztensor(&ztensor_bias, zero_bias);
     GGML_ASSERT(status == ZDNN_OK && "zdnn_transform_ztensor failed for tensor bias");
 
     status = zdnn_matmul_op(&ztensor_b, &ztensor_a, &ztensor_bias,
@@ -338,8 +356,16 @@ void ggml_zdnn_op_matmul(ggml_backend_zdnn_context & ctx, ggml_tensor * tensor) 
                        __func__);
     }
 
-    status = zdnn_transform_origtensor(&ztensor_result, dst->data);
+    float * result_transposed = (float *)ggml_aligned_malloc(p * m * sizeof(float));
+    status = zdnn_transform_origtensor(&ztensor_result, result_transposed);
     GGML_ASSERT(status == ZDNN_OK && "zdnn_transform_origtensor failed for tensor result");
+
+    float * dst_data = (float *)dst->data;
+    for (int i = 0; i < p; i++) {
+        for (int j = 0; j < m; j++) {
+            dst_data[j * p + i] = result_transposed[i * m + j];
+        }
+    }
 
     status = zdnn_free_ztensor_buffer(&ztensor_a);
     GGML_ASSERT(status == ZDNN_OK && "zdnn_free_ztensor_buffer failed for tensor A");
@@ -353,7 +379,11 @@ void ggml_zdnn_op_matmul(ggml_backend_zdnn_context & ctx, ggml_tensor * tensor) 
     status = zdnn_free_ztensor_buffer(&ztensor_result);
     GGML_ASSERT(status == ZDNN_OK && "zdnn_free_ztensor_buffer failed for tensor result");
 
-    free(bias_ptr);
+    free(dst_data);
+    free(result_transposed);
+    free(zero_bias);
+    free(b_transposed);
+    free(a_transposed);
 }
 
 static bool ggml_zdnn_compute_forward(struct ggml_backend_zdnn_context & ctx,

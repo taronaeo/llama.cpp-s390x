@@ -234,6 +234,7 @@ void ggml_zdnn_op_matmul(ggml_backend_zdnn_context & ctx, ggml_tensor * tensor) 
     const struct ggml_tensor * src1 = tensor->src[1];
     const struct ggml_tensor * dst  = tensor;
 
+    zdnn_status status;
     zdnn_tensor_desc pre_tfm_desc_a, tfm_desc_a;
     zdnn_tensor_desc pre_tfm_desc_b, tfm_desc_b;
     zdnn_tensor_desc pre_tfm_desc_bias, tfm_desc_bias;
@@ -282,31 +283,59 @@ void ggml_zdnn_op_matmul(ggml_backend_zdnn_context & ctx, ggml_tensor * tensor) 
         m, p
     );
 
-    ZDNN_CHECK(zdnn_generate_transformed_desc(&pre_tfm_desc_a, &tfm_desc_a));
-    ZDNN_CHECK(zdnn_generate_transformed_desc(&pre_tfm_desc_b, &tfm_desc_b));
-    ZDNN_CHECK(zdnn_generate_transformed_desc(&pre_tfm_desc_bias, &tfm_desc_bias));
-    ZDNN_CHECK(zdnn_generate_transformed_desc(&pre_tfm_desc_result, &tfm_desc_result));
+    status = zdnn_generate_transformed_desc(&pre_tfm_desc_a, &tfm_desc_a);
+    GGML_ASSERT(status == ZDNN_OK && "zdnn_generate_transformed_desc failed for tensor A");
 
-    ZDNN_CHECK(zdnn_init_ztensor_with_malloc(&pre_tfm_desc_a, &tfm_desc_a, &ztensor_a));
-    ZDNN_CHECK(zdnn_init_ztensor_with_malloc(&pre_tfm_desc_b, &tfm_desc_b, &ztensor_b));
-    ZDNN_CHECK(zdnn_init_ztensor_with_malloc(&pre_tfm_desc_bias, &tfm_desc_bias, &ztensor_bias));
-    ZDNN_CHECK(zdnn_init_ztensor_with_malloc(&pre_tfm_desc_result, &tfm_desc_result, &ztensor_result));
+    status = zdnn_generate_transformed_desc(&pre_tfm_desc_b, &tfm_desc_b);
+    GGML_ASSERT(status == ZDNN_OK && "zdnn_generate_transformed_desc failed for tensor B");
 
-    ZDNN_CHECK(zdnn_transform_ztensor(&ztensor_a, src0->data));
-    ZDNN_CHECK(zdnn_transform_ztensor(&ztensor_b, src1->data));
+    status = zdnn_generate_transformed_desc(&pre_tfm_desc_bias, &tfm_desc_bias);
+    GGML_ASSERT(status == ZDNN_OK && "zdnn_generate_transformed_desc failed for tensor bias");
+
+    status = zdnn_generate_transformed_desc(&pre_tfm_desc_result, &tfm_desc_result);
+    GGML_ASSERT(status == ZDNN_OK && "zdnn_generate_transformed_desc failed for tensor result");
+
+    status = zdnn_init_ztensor_with_malloc(&pre_tfm_desc_a, &tfm_desc_a, &ztensor_a);
+    GGML_ASSERT(status == ZDNN_OK && "zdnn_init_ztensor_with_malloc failed for tensor A");
+
+    status = zdnn_init_ztensor_with_malloc(&pre_tfm_desc_b, &tfm_desc_b, &ztensor_b);
+    GGML_ASSERT(status == ZDNN_OK && "zdnn_init_ztensor_with_malloc failed for tensor B");
+
+    status = zdnn_init_ztensor_with_malloc(&pre_tfm_desc_bias, &tfm_desc_bias, &ztensor_bias);
+    GGML_ASSERT(status == ZDNN_OK && "zdnn_init_ztensor_with_malloc failed for tensor bias");
+
+    status = zdnn_init_ztensor_with_malloc(&pre_tfm_desc_result, &tfm_desc_result, &ztensor_result);
+    GGML_ASSERT(status == ZDNN_OK && "zdnn_init_ztensor_with_malloc failed for tensor result");
+
+    status = zdnn_transform_ztensor(&ztensor_a, src0->data);
+    GGML_ASSERT(status == ZDNN_OK && "zdnn_transform_ztensor failed for tensor A");
+
+    status = zdnn_transform_ztensor(&ztensor_b, src1->data);
+    GGML_ASSERT(status == ZDNN_OK && "zdnn_transform_ztensor failed for tensor B");
 
     void * bias_ptr = (void *)calloc(p, sizeof(ggml_element_size(dst)));
-    ZDNN_CHECK(zdnn_transform_ztensor(&ztensor_bias, bias_ptr));
+    status = zdnn_transform_ztensor(&ztensor_bias, bias_ptr);
+    GGML_ASSERT(status == ZDNN_OK && "zdnn_transform_ztensor failed for tensor bias");
 
-    ZDNN_CHECK(zdnn_matmul_transpose_op(&ztensor_b, &ztensor_a, &ztensor_bias,
-                                        false, true, MATMUL_OP_ADDITION,
-                                        &ztensor_result));
+    status = zdnn_matmul_transpose_op(&ztensor_b, &ztensor_a, &ztensor_bias,
+                                      false, true, MATMUL_OP_ADDITION,
+                                      &ztensor_result);
+    GGML_ASSERT(status == ZDNN_OK && "zdnn_matmul_transpose_op failed");
 
-    ZDNN_CHECK(zdnn_transform_origtensor(&ztensor_result, dst->data));
-    ZDNN_CHECK(zdnn_free_ztensor_buffer(&ztensor_a));
-    ZDNN_CHECK(zdnn_free_ztensor_buffer(&ztensor_b));
-    ZDNN_CHECK(zdnn_free_ztensor_buffer(&ztensor_bias));
-    ZDNN_CHECK(zdnn_free_ztensor_buffer(&ztensor_result));
+    status = zdnn_transform_origtensor(&ztensor_result, dst->data);
+    GGML_ASSERT(status == ZDNN_OK && "zdnn_transform_origtensor failed for tensor result");
+
+    status = zdnn_free_ztensor_buffer(&ztensor_a);
+    GGML_ASSERT(status == ZDNN_OK && "zdnn_free_ztensor_buffer failed for tensor A");
+
+    status = zdnn_free_ztensor_buffer(&ztensor_b);
+    GGML_ASSERT(status == ZDNN_OK && "zdnn_free_ztensor_buffer failed for tensor B");
+
+    status = zdnn_free_ztensor_buffer(&ztensor_bias);
+    GGML_ASSERT(status == ZDNN_OK && "zdnn_free_ztensor_buffer failed for tensor bias");
+
+    status = zdnn_free_ztensor_buffer(&ztensor_result);
+    GGML_ASSERT(status == ZDNN_OK && "zdnn_free_ztensor_buffer failed for tensor result");
 
     free(bias_ptr);
 }

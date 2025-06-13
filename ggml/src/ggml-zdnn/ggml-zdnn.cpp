@@ -314,6 +314,17 @@ void ggml_zdnn_op_matmul(ggml_backend_zdnn_context & ctx, ggml_tensor * tensor) 
     const void * src_a = (const void *)src0->data;
     const void * src_b = (const void *)src1->data;
 
+    size_t b_nelements = ggml_nelements(src1);
+    float max_val = -INFINITY;
+    float min_val = INFINITY;
+
+    for (size_t i = 0; i < b_nelements; ++i) {
+        const float * b_data = (const float *)src_b;
+        if (b_data[i] > max_val) max_val = b_data[i];
+        if (b_data[i] < min_val) min_val = b_data[i];
+    }
+    GGML_LOG_INFO("%s: src_b min: %g, max: %g\n", __func__, min_val, max_val);
+
     void * a_transposed = (void *)ggml_aligned_malloc(a_cols * a_rows * sizeof(ggml_element_size(src0)));
     for (int i = 0; i < a_rows; i++) {
         for (int j = 0; j < a_cols; j++) {

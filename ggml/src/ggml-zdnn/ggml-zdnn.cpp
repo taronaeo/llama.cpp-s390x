@@ -249,8 +249,8 @@ void ggml_zdnn_op_matmul(ggml_backend_zdnn_context & ctx, ggml_tensor * tensor) 
 
     assert(b_cols == a_cols);
 
-    const int64_t result_rows = b_rows;
-    const int64_t result_cols = a_rows;
+    const int64_t result_rows = dst->ne[1];
+    const int64_t result_cols = dst->ne[0];
 
     GGML_LOG_INFO("%s: GGML pattern C = B A^T:\n", __func__);
     GGML_LOG_INFO("%s: A: (%ld,%ld), B: (%ld,%ld) -> C: (%ld,%ld)\n",

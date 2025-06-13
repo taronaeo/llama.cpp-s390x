@@ -311,13 +311,17 @@ void ggml_zdnn_op_matmul(ggml_backend_zdnn_context & ctx, ggml_tensor * tensor) 
     status = zdnn_init_ztensor_with_malloc(&pre_tfm_desc_result, &tfm_desc_result, &ztensor_result);
     GGML_ASSERT(status == ZDNN_OK && "zdnn_init_ztensor_with_malloc failed for tensor result");
 
-    const float * src_a = (const float *)src0->data;
-    const float * src_b = (const float *)src1->data;
+    const void * src_a = (const void *)src0->data;
+    const void * src_b = (const void *)src1->data;
 
-    float * a_transposed = (float *)ggml_aligned_malloc(a_cols * a_rows * sizeof(float));
+    void * a_transposed = (void *)ggml_aligned_malloc(a_cols * a_rows * sizeof(ggml_element_size(src0)));
     for (int i = 0; i < a_rows; i++) {
         for (int j = 0; j < a_cols; j++) {
-            a_transposed[j * a_rows + i] = src_a[i * a_cols + j];
+            memcpy(
+                (char *)a_transposed + (j * a_rows + i) * ggml_element_size(src0),
+                (const char *)src_a + (i * a_cols + j) * ggml_element_size(src0),
+                ggml_element_size(src0)
+            );
         }
     }
 
@@ -327,7 +331,7 @@ void ggml_zdnn_op_matmul(ggml_backend_zdnn_context & ctx, ggml_tensor * tensor) 
     status = zdnn_transform_ztensor(&ztensor_a, a_transposed);
     GGML_ASSERT(status == ZDNN_OK && "zdnn_transform_ztensor failed for tensor A");
 
-    float * zero_bias = (float *)calloc(result_cols, sizeof(float));
+    void * zero_bias = (void *)calloc(result_cols, sizeof(ggml_element_size(dst)));
     status = zdnn_transform_ztensor(&ztensor_bias, zero_bias);
     GGML_ASSERT(status == ZDNN_OK && "zdnn_transform_ztensor failed for tensor bias");
 

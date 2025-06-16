@@ -320,7 +320,7 @@ void ggml_zdnn_op_matmul(ggml_backend_zdnn_context & ctx, ggml_tensor * tensor) 
 
     for (size_t i = 0; i < b_nelements; ++i) {
         float * b_data = (float *)src_b;
-        if (!isfinite(b_data[i])) b_data[i] = -std::numeric_limits<float>::max();
+        if (!isfinite(b_data[i])) b_data[i] = 0.0f;  // TODO: DOUBLE CHECK THIS!!
         if (b_data[i] > max_val) max_val = b_data[i];
         if (b_data[i] < min_val) min_val = b_data[i];
     }

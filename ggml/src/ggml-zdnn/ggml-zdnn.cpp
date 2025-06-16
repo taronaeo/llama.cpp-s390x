@@ -227,12 +227,53 @@ void ggml_zdnn_op_unary(ggml_backend_zdnn_context & ctx, ggml_tensor * tensor) {
     ZDNN_CHECK(zdnn_free_ztensor_buffer(&ztensor_dst));
 }
 
-void ggml_zdnn_op_matmul(ggml_backend_zdnn_context & ctx, ggml_tensor * tensor) {
+void ggml_zdnn_op_matmul(ggml_backend_zdnn_context & ctx,
+                         const ggml_tensor * src0,
+                         const ggml_tensor * src1,
+                         ggml_tensor * dst) {
     GGML_UNUSED(ctx);
 
-    const struct ggml_tensor * src0 = tensor->src[0];
-    const struct ggml_tensor * src1 = tensor->src[1];
-    const struct ggml_tensor * dst  = tensor;
+    bool use_mul_mat_vec =
+        (src0->type == GGML_TYPE_F16 || src0->type == GGML_TYPE_BF16)
+        && src1->type == GGML_TYPE_F32 && dst->type == GGML_TYPE_F32
+        && src0->ne[0] % 2 == 0 && src1->ne[1] == 1;
+    bool use_mul_mat_vec_q =
+        ggml_is_quantized(src0->type)
+        && src1->type == GGML_TYPE_F32 && dst->type == GGML_TYPE_F32;
+    bool use_mul_mat_q =
+        ggml_is_quantized(src0->type)
+        && src1->type == GGML_TYPE_F32 && dst->type == GGML_TYPE_F32;
+
+    // debug helpers
+    GGML_LOG_INFO("%s: use_mul_mat_vec   = %d\n", __func__, use_mul_mat_vec);
+    GGML_LOG_INFO("%s: use_mul_mat_vec_q = %d\n", __func__, use_mul_mat_vec_q);
+    GGML_LOG_INFO("%s: use_mul_mat_q     = %d\n", __func__, use_mul_mat_q);
+    GGML_LOG_INFO("%s: src0: %8d %8d %8d %8d\n", __func__, src0->ne[0], src0->ne[1], src0->ne[2], src0->ne[3]);
+    GGML_LOG_INFO("%s:       %8d %8d %8d %8d\n", __func__, src0->nb[0], src0->nb[1], src0->nb[2], src0->nb[3]);
+    GGML_LOG_INFO("%s: src1: %8d %8d %8d %8d\n", __func__, src1->ne[0], src1->ne[1], src1->ne[2], src1->ne[3]);
+    GGML_LOG_INFO("%s:       %8d %8d %8d %8d\n", __func__, src1->nb[0], src1->nb[1], src1->nb[2], src1->nb[3]);
+    GGML_LOG_INFO("%s: src0 is contiguous %d, transposed %d, type = %s, name = %s\n", __func__, ggml_is_contiguous(src0), ggml_is_transposed(src0), ggml_type_name(src0->type), src0->name);
+    GGML_LOG_INFO("%s: src1 is contiguous %d, transposed %d, type = %s, name = %s\n", __func__, ggml_is_contiguous(src1), ggml_is_transposed(src1), ggml_type_name(src1->type), src1->name);
+
+    if (src0->type == GGML_TYPE_F16 && src1->type == GGML_TYPE_F16
+        && !ggml_is_transposed(src0) && !ggml_is_transposed(src1)
+        && src1->ne[2] * src1->ne[3] > 1) {
+        // general KQ + KQV multi-batch
+        GGML_LOG_INFO("%s: using zdnn_mul_mat_batched for KQ + KQV multi-batch\n", __func__);
+        // ggml_zdnn_mul_mat_batched(ctx, src0, src1, dst);
+    } else if (use_mul_mat_vec) {
+        GGML_LOG_INFO("%s: using zdnn_op_mul_mat_vec for vector multiplication\n", __func__);
+        // ggml_zdnn_op_mul_mat(ctx, src0, src1, dst, ggml_zdnn_op_mul_mat_vec, nullptr);
+    } else if (use_mul_mat_vec_q) {
+        GGML_LOG_INFO("%s: using zdnn_op_mul_mat_vec_q for quantized vector multiplication\n", __func__);
+        // ggml_zdnn_op_mul_mat(ctx, src0, src1, dst, ggml_zdnn_op_mul_mat_vec_q, ggml_zdnn_quantize_row_q8_1);
+    } else if (use_mul_mat_q) {
+        GGML_LOG_INFO("%s: using zdnn_op_mul_mat_q for quantized matrix multiplication\n", __func__);
+        // ggml_zdnn_op_mul_mat(ctx, src0, src1, dst, ggml_zdnn_op_mul_mat_q, ggml_zdnn_quantize_mmq_q8_1);
+    } else {
+        GGML_LOG_INFO("%s: using zdnn_op_mul_mat for general matrix multiplication\n", __func__);
+        // ggml_zdnn_op_mul_mat(ctx, src0, src1, dst, ggml_zdnn_op_mul_mat_blas, nullptr);
+    }
 
     zdnn_status status;
     zdnn_tensor_desc pre_tfm_desc_a, tfm_desc_a;
@@ -320,7 +361,7 @@ void ggml_zdnn_op_matmul(ggml_backend_zdnn_context & ctx, ggml_tensor * tensor) 
 
     for (size_t i = 0; i < b_nelements; ++i) {
         float * b_data = (float *)src_b;
-        if (!isfinite(b_data[i])) b_data[i] = 0.0f;  // TODO: DOUBLE CHECK THIS!!
+        // if (!isfinite(b_data[i])) b_data[i] = 0.0f;  // TODO: DOUBLE CHECK THIS!!
         if (b_data[i] > max_val) max_val = b_data[i];
         if (b_data[i] < min_val) min_val = b_data[i];
     }
@@ -428,7 +469,7 @@ static bool ggml_zdnn_compute_forward(struct ggml_backend_zdnn_context & ctx,
             ggml_zdnn_op_bin<zdnn_norm>(ctx, dst);
             break;
         case GGML_OP_MUL_MAT:
-            ggml_zdnn_op_matmul(ctx, dst);
+            ggml_zdnn_op_matmul(ctx, dst->src[0], dst->src[1], dst);
             break;
         case GGML_OP_MUL_MAT_ID:
         case GGML_OP_SOFT_MAX:
@@ -644,7 +685,7 @@ static ggml_backend_buffer_t ggml_backend_zdnn_device_buffer_from_host_ptr(ggml_
 static bool ggml_backend_zdnn_device_supports_op(ggml_backend_dev_t dev, const struct ggml_tensor * op) {
     const struct ggml_tensor * src0 = op->src[0];
     const struct ggml_tensor * src1 = op->src[1];
-    const uint32_t max_dim = zdnn_get_nnpa_max_dim_idx_size();
+    // const uint32_t max_dim = zdnn_get_nnpa_max_dim_idx_size();
 
     switch (op->op) {
         // GGML required ops
@@ -685,13 +726,24 @@ static bool ggml_backend_zdnn_device_supports_op(ggml_backend_dev_t dev, const s
         case GGML_OP_NORM:
             break;
         case GGML_OP_MUL_MAT:
-            if (src0->ne[0] > max_dim || src0->ne[1] > max_dim ||
-                src1->ne[0] > max_dim || src1->ne[1] > max_dim) {
-                GGML_LOG_INFO("%s: zDNN does not support large matrices A:(%ld x %ld) B:(%ld x %ld) max:%d\n",
-                               __func__, src0->ne[0], src0->ne[0], src1->ne[1], src1->ne[0], max_dim);
-                return false; // zDNN does not support large matrices
-            }
-            break;
+            {
+                const struct ggml_tensor * a = op->src[0];
+                const struct ggml_tensor * b = op->src[1];
+
+                if (b->type == GGML_TYPE_F16 && a->type != GGML_TYPE_F16)
+                    return false;
+
+                switch (a->type) {
+                    case GGML_TYPE_F32:
+                    case GGML_TYPE_F16:
+                    case GGML_TYPE_BF16:
+                    case GGML_TYPE_I32:
+                    case GGML_TYPE_I8:
+                        return true;
+                    default:
+                        return false;
+                }
+            } break;
         case GGML_OP_MUL_MAT_ID:
         case GGML_OP_SOFT_MAX:
         case GGML_OP_LEAKY_RELU:

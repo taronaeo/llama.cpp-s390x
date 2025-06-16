@@ -323,21 +323,21 @@ static void ggml_zdnn_op_mul_mat(ggml_backend_zdnn_context & ctx,
     }
     // GGML_LOG_INFO("%s: src_b min: %g, max: %g\n", __func__, min_val, max_val);
 
-    // void * a_transposed = (void *)ggml_aligned_malloc(a_cols * a_rows * sizeof(ggml_element_size(src0)));
-    // for (int i = 0; i < a_rows; i++) {
-    //     for (int j = 0; j < a_cols; j++) {
-    //         memcpy(
-    //             (char *)a_transposed + (j * a_rows + i) * ggml_element_size(src0),
-    //             (const char *)src_a + (i * a_cols + j) * ggml_element_size(src0),
-    //             ggml_element_size(src0)
-    //         );
-    //     }
-    // }
+    void * a_transposed = (void *)ggml_aligned_malloc(m * k * sizeof(ggml_element_size(src0)));
+    for (int i = 0; i < m; i++) {
+        for (int j = 0; j < k; j++) {
+            memcpy(
+                (char *)a_transposed + (j * m + i) * ggml_element_size(src0),
+                (const char *)src_a + (i * k + j) * ggml_element_size(src0),
+                ggml_element_size(src0)
+            );
+        }
+    }
 
     status = zdnn_transform_ztensor(&ztensor_b, src1->data);
     GGML_ASSERT(status == ZDNN_OK && "zdnn_transform_ztensor failed for tensor B");
 
-    status = zdnn_transform_ztensor(&ztensor_a, src0->data);
+    status = zdnn_transform_ztensor(&ztensor_a, a_transposed);
     GGML_ASSERT(status == ZDNN_OK && "zdnn_transform_ztensor failed for tensor A");
 
     void * zero_bias = (void *)calloc(k, sizeof(ggml_element_size(dst)));
@@ -382,7 +382,7 @@ static void ggml_zdnn_op_mul_mat(ggml_backend_zdnn_context & ctx,
     GGML_ASSERT(status == ZDNN_OK && "zdnn_free_ztensor_buffer failed for tensor result");
 
     free(zero_bias);
-    // free(a_transposed);
+    free(a_transposed);
 }
 
 static void ggml_zdnn_mul_mat(ggml_backend_zdnn_context & ctx,

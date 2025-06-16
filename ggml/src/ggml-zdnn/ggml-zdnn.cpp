@@ -738,11 +738,17 @@ static bool ggml_backend_zdnn_device_supports_op(ggml_backend_dev_t dev, const s
             break;
         case GGML_OP_MUL_MAT:
             {
-                const struct ggml_tensor * a = op->src[0];
-                const struct ggml_tensor * b = op->src[1];
+                const ggml_tensor * a = op->src[0];
+                const ggml_tensor * b = op->src[1];
 
                 if (b->type == GGML_TYPE_F16 && a->type != GGML_TYPE_F16)
                     return false;
+
+                if (a->ne[0] > 32768 || a->ne[1] > 32768
+                    || b->ne[0] > 32768 || b->ne[1] > 32768) {
+                    GGML_LOG_ERROR("%s: zDNN does not support tensors with dimensions larger than 32768\n", __func__);
+                    return false;
+                }
 
                 switch (a->type) {
                     case GGML_TYPE_F32:

@@ -246,48 +246,42 @@ static void ggml_zdnn_op_mul_mat(ggml_backend_zdnn_context & ctx,
 
     zdnn_ztensor ztensor_a, ztensor_b, ztensor_bias, ztensor_result;
 
-    const int64_t a_rows = src0->ne[1];
-    const int64_t a_cols = src0->ne[0];
-    const int64_t b_rows = src1->ne[1];
-    const int64_t b_cols = src1->ne[0];
-
-    assert(b_cols == a_cols);
-
-    const int64_t result_rows = dst->ne[1];
-    const int64_t result_cols = dst->ne[0];
+    const int64_t m = ne01;
+    const int64_t n = ne11;
+    const int64_t k = ne00/ggml_blck_size(src0->type);
 
     GGML_LOG_INFO("%s: GGML pattern C = B A^T:\n", __func__);
     GGML_LOG_INFO("%s: A: (%ld,%ld), B: (%ld,%ld) -> C: (%ld,%ld)\n",
-                  __func__, a_rows, a_cols, b_rows, b_cols, result_rows, result_cols);
+                  __func__, m, n, k, n, m, k);
     GGML_LOG_INFO("%s: Computed as B(%ld,%ld) @ A^T(%ld,%ld) = C(%ld,%ld)\n",
-                  __func__, b_rows, b_cols, a_cols, a_rows, result_rows, result_cols);
+                  __func__, k, n, k, m, m, k);
 
     zdnn_init_pre_transformed_desc(
         ZDNN_2D,
         ggml_zdnn_type_mapping(src1->type),
         &pre_tfm_desc_b,
-        b_rows, b_cols
+        m, n
     );
 
     zdnn_init_pre_transformed_desc(
         ZDNN_2D,
         ggml_zdnn_type_mapping(src0->type),
         &pre_tfm_desc_a,
-        a_cols, a_rows
+        n, k
     );
 
     zdnn_init_pre_transformed_desc(
         ZDNN_1D,
         ggml_zdnn_type_mapping(dst->type),
         &pre_tfm_desc_bias,
-        result_cols
+        k
     );
 
     zdnn_init_pre_transformed_desc(
         ZDNN_2D,
         ggml_zdnn_type_mapping(dst->type),
         &pre_tfm_desc_result,
-        result_rows, result_cols
+        m, k
     );
 
     status = zdnn_generate_transformed_desc(&pre_tfm_desc_a, &tfm_desc_a);
@@ -346,7 +340,7 @@ static void ggml_zdnn_op_mul_mat(ggml_backend_zdnn_context & ctx,
     status = zdnn_transform_ztensor(&ztensor_a, src0->data);
     GGML_ASSERT(status == ZDNN_OK && "zdnn_transform_ztensor failed for tensor A");
 
-    void * zero_bias = (void *)calloc(result_cols, sizeof(ggml_element_size(dst)));
+    void * zero_bias = (void *)calloc(k, sizeof(ggml_element_size(dst)));
     status = zdnn_transform_ztensor(&ztensor_bias, zero_bias);
     GGML_ASSERT(status == ZDNN_OK && "zdnn_transform_ztensor failed for tensor bias");
 

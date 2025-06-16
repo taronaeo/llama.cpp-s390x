@@ -227,53 +227,16 @@ void ggml_zdnn_op_unary(ggml_backend_zdnn_context & ctx, ggml_tensor * tensor) {
     ZDNN_CHECK(zdnn_free_ztensor_buffer(&ztensor_dst));
 }
 
-void ggml_zdnn_op_matmul(ggml_backend_zdnn_context & ctx,
-                         const ggml_tensor * src0,
-                         const ggml_tensor * src1,
-                         ggml_tensor * dst) {
-    GGML_UNUSED(ctx);
-
-    bool use_mul_mat_vec =
-        (src0->type == GGML_TYPE_F16 || src0->type == GGML_TYPE_BF16)
-        && src1->type == GGML_TYPE_F32 && dst->type == GGML_TYPE_F32
-        && src0->ne[0] % 2 == 0 && src1->ne[1] == 1;
-    bool use_mul_mat_vec_q =
-        ggml_is_quantized(src0->type)
-        && src1->type == GGML_TYPE_F32 && dst->type == GGML_TYPE_F32;
-    bool use_mul_mat_q =
-        ggml_is_quantized(src0->type)
-        && src1->type == GGML_TYPE_F32 && dst->type == GGML_TYPE_F32;
-
-    // debug helpers
-    GGML_LOG_INFO("%s: use_mul_mat_vec   = %d\n", __func__, use_mul_mat_vec);
-    GGML_LOG_INFO("%s: use_mul_mat_vec_q = %d\n", __func__, use_mul_mat_vec_q);
-    GGML_LOG_INFO("%s: use_mul_mat_q     = %d\n", __func__, use_mul_mat_q);
-    GGML_LOG_INFO("%s: src0: %8d %8d %8d %8d\n", __func__, src0->ne[0], src0->ne[1], src0->ne[2], src0->ne[3]);
-    GGML_LOG_INFO("%s:       %8d %8d %8d %8d\n", __func__, src0->nb[0], src0->nb[1], src0->nb[2], src0->nb[3]);
-    GGML_LOG_INFO("%s: src1: %8d %8d %8d %8d\n", __func__, src1->ne[0], src1->ne[1], src1->ne[2], src1->ne[3]);
-    GGML_LOG_INFO("%s:       %8d %8d %8d %8d\n", __func__, src1->nb[0], src1->nb[1], src1->nb[2], src1->nb[3]);
-    GGML_LOG_INFO("%s: src0 is contiguous %d, transposed %d, type = %s, name = %s\n", __func__, ggml_is_contiguous(src0), ggml_is_transposed(src0), ggml_type_name(src0->type), src0->name);
-    GGML_LOG_INFO("%s: src1 is contiguous %d, transposed %d, type = %s, name = %s\n", __func__, ggml_is_contiguous(src1), ggml_is_transposed(src1), ggml_type_name(src1->type), src1->name);
-
-    if (src0->type == GGML_TYPE_F16 && src1->type == GGML_TYPE_F16
-        && !ggml_is_transposed(src0) && !ggml_is_transposed(src1)
-        && src1->ne[2] * src1->ne[3] > 1) {
-        // general KQ + KQV multi-batch
-        GGML_LOG_INFO("%s: using zdnn_mul_mat_batched for KQ + KQV multi-batch\n", __func__);
-        // ggml_zdnn_mul_mat_batched(ctx, src0, src1, dst);
-    } else if (use_mul_mat_vec) {
-        GGML_LOG_INFO("%s: using zdnn_op_mul_mat_vec for vector multiplication\n", __func__);
-        // ggml_zdnn_op_mul_mat(ctx, src0, src1, dst, ggml_zdnn_op_mul_mat_vec, nullptr);
-    } else if (use_mul_mat_vec_q) {
-        GGML_LOG_INFO("%s: using zdnn_op_mul_mat_vec_q for quantized vector multiplication\n", __func__);
-        // ggml_zdnn_op_mul_mat(ctx, src0, src1, dst, ggml_zdnn_op_mul_mat_vec_q, ggml_zdnn_quantize_row_q8_1);
-    } else if (use_mul_mat_q) {
-        GGML_LOG_INFO("%s: using zdnn_op_mul_mat_q for quantized matrix multiplication\n", __func__);
-        // ggml_zdnn_op_mul_mat(ctx, src0, src1, dst, ggml_zdnn_op_mul_mat_q, ggml_zdnn_quantize_mmq_q8_1);
-    } else {
-        GGML_LOG_INFO("%s: using zdnn_op_mul_mat for general matrix multiplication\n", __func__);
-        // ggml_zdnn_op_mul_mat(ctx, src0, src1, dst, ggml_zdnn_op_mul_mat_blas, nullptr);
-    }
+// typedef void (* ggml_zdnn_op_mul_mat_t)(
+//     ggml_backend_zdnn_context & ctx,
+//     const ggml_tensor * src0,
+//     const ggml_tensor * src1,
+//           ggml_tensor * dst);
+static void ggml_zdnn_op_mul_mat(ggml_backend_zdnn_context & ctx,
+                                         const ggml_tensor * src0,
+                                         const ggml_tensor * src1,
+                                               ggml_tensor * dst) {
+    GGML_TENSOR_BINARY_OP_LOCALS;
 
     zdnn_status status;
     zdnn_tensor_desc pre_tfm_desc_a, tfm_desc_a;
@@ -429,8 +392,57 @@ void ggml_zdnn_op_matmul(ggml_backend_zdnn_context & ctx,
     free(a_transposed);
 }
 
-static bool ggml_zdnn_compute_forward(struct ggml_backend_zdnn_context & ctx,
-                                      struct               ggml_tensor * dst) {
+static void ggml_zdnn_mul_mat(ggml_backend_zdnn_context & ctx,
+                              const         ggml_tensor * src0,
+                              const         ggml_tensor * src1,
+                                            ggml_tensor * dst) {
+    GGML_UNUSED(ctx);
+
+    bool use_mul_mat_vec =
+        (src0->type == GGML_TYPE_F16 || src0->type == GGML_TYPE_BF16)
+        && src1->type == GGML_TYPE_F32 && dst->type == GGML_TYPE_F32
+        && src0->ne[0] % 2 == 0 && src1->ne[1] == 1;
+    bool use_mul_mat_vec_q =
+        ggml_is_quantized(src0->type)
+        && src1->type == GGML_TYPE_F32 && dst->type == GGML_TYPE_F32;
+    bool use_mul_mat_q =
+        ggml_is_quantized(src0->type)
+        && src1->type == GGML_TYPE_F32 && dst->type == GGML_TYPE_F32;
+
+    // debug helpers
+    GGML_LOG_INFO("%s: use_mul_mat_vec   = %d\n", __func__, use_mul_mat_vec);
+    GGML_LOG_INFO("%s: use_mul_mat_vec_q = %d\n", __func__, use_mul_mat_vec_q);
+    GGML_LOG_INFO("%s: use_mul_mat_q     = %d\n", __func__, use_mul_mat_q);
+    GGML_LOG_INFO("%s: src0: %8d %8d %8d %8d\n", __func__, src0->ne[0], src0->ne[1], src0->ne[2], src0->ne[3]);
+    GGML_LOG_INFO("%s:       %8d %8d %8d %8d\n", __func__, src0->nb[0], src0->nb[1], src0->nb[2], src0->nb[3]);
+    GGML_LOG_INFO("%s: src1: %8d %8d %8d %8d\n", __func__, src1->ne[0], src1->ne[1], src1->ne[2], src1->ne[3]);
+    GGML_LOG_INFO("%s:       %8d %8d %8d %8d\n", __func__, src1->nb[0], src1->nb[1], src1->nb[2], src1->nb[3]);
+    GGML_LOG_INFO("%s: src0 is contiguous %d, transposed %d, type = %s, name = %s\n", __func__, ggml_is_contiguous(src0), ggml_is_transposed(src0), ggml_type_name(src0->type), src0->name);
+    GGML_LOG_INFO("%s: src1 is contiguous %d, transposed %d, type = %s, name = %s\n", __func__, ggml_is_contiguous(src1), ggml_is_transposed(src1), ggml_type_name(src1->type), src1->name);
+
+    if (src0->type == GGML_TYPE_F16 && src1->type == GGML_TYPE_F16
+        && !ggml_is_transposed(src0) && !ggml_is_transposed(src1)
+        && src1->ne[2] * src1->ne[3] > 1) {
+        // general KQ + KQV multi-batch
+        GGML_LOG_INFO("%s: using zdnn_mul_mat_batched for KQ + KQV multi-batch\n", __func__);
+        // ggml_zdnn_mul_mat_batched(ctx, src0, src1, dst);
+    } else if (use_mul_mat_vec) {
+        GGML_LOG_INFO("%s: using zdnn_op_mul_mat_vec for vector multiplication\n", __func__);
+        // ggml_zdnn_op_mul_mat(ctx, src0, src1, dst, ggml_zdnn_op_mul_mat_vec, nullptr);
+    } else if (use_mul_mat_vec_q) {
+        GGML_LOG_INFO("%s: using zdnn_op_mul_mat_vec_q for quantized vector multiplication\n", __func__);
+        // ggml_zdnn_op_mul_mat(ctx, src0, src1, dst, ggml_zdnn_op_mul_mat_vec_q, ggml_zdnn_quantize_row_q8_1);
+    } else if (use_mul_mat_q) {
+        GGML_LOG_INFO("%s: using zdnn_op_mul_mat_q for quantized matrix multiplication\n", __func__);
+        // ggml_zdnn_op_mul_mat(ctx, src0, src1, dst, ggml_zdnn_op_mul_mat_q, ggml_zdnn_quantize_mmq_q8_1);
+    } else {
+        GGML_LOG_INFO("%s: using zdnn_op_mul_mat for general matrix multiplication\n", __func__);
+        ggml_zdnn_op_mul_mat(ctx, src0, src1, dst);
+    }
+}
+
+static bool ggml_zdnn_compute_forward(ggml_backend_zdnn_context & ctx,
+                                                    ggml_tensor * dst) {
     switch (dst->op) {
         case GGML_OP_NONE:
         case GGML_OP_RESHAPE:
@@ -469,7 +481,7 @@ static bool ggml_zdnn_compute_forward(struct ggml_backend_zdnn_context & ctx,
             ggml_zdnn_op_bin<zdnn_norm>(ctx, dst);
             break;
         case GGML_OP_MUL_MAT:
-            ggml_zdnn_op_matmul(ctx, dst->src[0], dst->src[1], dst);
+            ggml_zdnn_mul_mat(ctx, dst->src[0], dst->src[1], dst);
             break;
         case GGML_OP_MUL_MAT_ID:
         case GGML_OP_SOFT_MAX:

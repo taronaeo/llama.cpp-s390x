@@ -319,7 +319,8 @@ void ggml_zdnn_op_matmul(ggml_backend_zdnn_context & ctx, ggml_tensor * tensor) 
     float min_val = INFINITY;
 
     for (size_t i = 0; i < b_nelements; ++i) {
-        const float * b_data = (const float *)src_b;
+        float * b_data = (float *)src_b;
+        if (!isfinite(b_data[i])) b_data[i] = -std::numeric_limits<float>::max();
         if (b_data[i] > max_val) max_val = b_data[i];
         if (b_data[i] < min_val) min_val = b_data[i];
     }

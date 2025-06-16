@@ -324,7 +324,7 @@ static void ggml_zdnn_op_mul_mat(ggml_backend_zdnn_context & ctx,
 
     for (size_t i = 0; i < b_nelements; ++i) {
         float * b_data = (float *)src_b;
-        // if (!isfinite(b_data[i])) b_data[i] = 0.0f;  // TODO: DOUBLE CHECK THIS!!
+        if (!isfinite(b_data[i])) b_data[i] = -999.9f;  // TODO: DOUBLE CHECK THIS!!
         if (b_data[i] > max_val) max_val = b_data[i];
         if (b_data[i] < min_val) min_val = b_data[i];
     }

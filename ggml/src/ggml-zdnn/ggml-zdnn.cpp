@@ -315,19 +315,18 @@ static void ggml_zdnn_op_mul_mat(ggml_backend_zdnn_context & ctx,
     status = zdnn_init_ztensor_with_malloc(&pre_tfm_desc_result, &tfm_desc_result, &ztensor_result);
     GGML_ASSERT(status == ZDNN_OK && "zdnn_init_ztensor_with_malloc failed for tensor result");
 
-    // const void * src_a = (const void *)src0->data;
-    // const void * src_b = (const void *)src1->data;
+    const void  * src_a = (const void  *)src0->data;
+          float * src_b = (      float *)src1->data;
 
-    // size_t b_nelements = ggml_nelements(src1);
-    // float max_val = -INFINITY;
-    // float min_val = INFINITY;
+    size_t b_nelements = ggml_nelements(src1);
+    float max_val = -INFINITY;
+    float min_val = INFINITY;
 
-    // for (size_t i = 0; i < b_nelements; ++i) {
-    //     float * b_data = (float *)src_b;
-    //     // if (!isfinite(b_data[i])) b_data[i] = 0.0f;  // TODO: DOUBLE CHECK THIS!!
-    //     if (b_data[i] > max_val) max_val = b_data[i];
-    //     if (b_data[i] < min_val) min_val = b_data[i];
-    // }
+    for (size_t i = 0; i < b_nelements; ++i) {
+        if (!isfinite(src_b[i])) src_b[i] = 0.0f;  // TODO: DOUBLE CHECK THIS!!
+        // if (b_data[i] > max_val) max_val = b_data[i];
+        // if (b_data[i] < min_val) min_val = b_data[i];
+    }
     // GGML_LOG_INFO("%s: src_b min: %g, max: %g\n", __func__, min_val, max_val);
 
     // void * a_transposed = (void *)ggml_aligned_malloc(a_cols * a_rows * sizeof(ggml_element_size(src0)));

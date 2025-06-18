@@ -121,21 +121,21 @@ All models need to be converted to Big-Endian. You can achieve this in three cas
 
 ### 1. Virtualization Setup
 
-    We strongly recommend using only LPAR (Type-1) virtualization to get the most performance.
-    
-    Note: Type-2 virtualization is not supported at the moment, while you can get it running, the performance will not be the best.
+We strongly recommend using only LPAR (Type-1) virtualization to get the most performance.
+
+Note: Type-2 virtualization is not supported at the moment, while you can get it running, the performance will not be the best.
 
 ### 2. IFL (Core) Count
 
-    We recommend a minimum of 8 shared IFLs assigned to the LPAR. Increasing the IFL count past 8 shared IFLs will only improve Prompt Processing performance but not Token Generation.
-    
-    Note: IFL count does not equate to vCPU count.
+We recommend a minimum of 8 shared IFLs assigned to the LPAR. Increasing the IFL count past 8 shared IFLs will only improve Prompt Processing performance but not Token Generation.
+
+Note: IFL count does not equate to vCPU count.
 
 ### 3. SMT vs NOSMT (Simultaneous Multithreading)
 
-    We strongly recommend disabling SMT via the kernel boot parameters as it negatively affects performance. Please refer to your Linux distribution's guide on disabling SMT via kernel boot parameters.
+We strongly recommend disabling SMT via the kernel boot parameters as it negatively affects performance. Please refer to your Linux distribution's guide on disabling SMT via kernel boot parameters.
 
 ### 4. BLAS vs NOBLAS
 
-    We strongly recommend using BLAS for llama.cpp as there are no custom kernels for s390x for llama.cpp at the moment.
+We strongly recommend using BLAS for llama.cpp as there are no custom kernels for s390x for llama.cpp at the moment.
 

@@ -68,13 +68,13 @@ cmake --build build --config Release -j $(nproc)
 
 All models need to be converted to Big-Endian. You can achieve this in three cases:
 
-1. Use pre-converted models verified for use on IBM Z & LinuxONE (easiest)
+1. **Use pre-converted models verified for use on IBM Z & LinuxONE (easiest)**
 
     You can find popular models pre-converted and verified at [s390x Ready Models](hf.co/collections/taronaeo/s390x-ready-models-672765393af438d0ccb72a08).
 
     These models and their respective tokenizers are verified to run correctly on IBM Z & LinuxONE.
 
-2. Convert safetensors model to GGUF Big-Endian directly (recommended)
+2. **Convert safetensors model to GGUF Big-Endian directly (recommended)**
 
     ```bash
     python3 convert_hf_to_gguf.py \
@@ -94,7 +94,7 @@ All models need to be converted to Big-Endian. You can achieve this in three cas
         granite-3.3-2b-instruct/
     ```
 
-3. Convert existing GGUF Little-Endian model to Big-Endian
+3. **Convert existing GGUF Little-Endian model to Big-Endian**
 
     ```bash
     python3 gguf-py/gguf/scripts/gguf_convert_endian.py model-name.f16.gguf BIG
@@ -109,5 +109,33 @@ All models need to be converted to Big-Endian. You can achieve this in three cas
     **Notes:**
     - The GGUF endian conversion script may not support all data types at the moment and may fail for some models/quantizations. When that happens, please try manually converting the safetensors model to GGUF Big-Endian via Step 2.
 
+## IBM zDNN Accelerator
 
+*No direction at the moment.*
+
+## IBM Spyre Accelerator
+
+*No direction at the moment.*
+
+## Performance Optimization
+
+### Virtualization Setup
+
+We strongly recommend using only LPAR (Type-1) virtualization to get the most performance.
+
+Note: Type-2 virtualization is not supported at the moment, while you can get it running, the performance will not be the best.
+
+### IFL (Core) Count
+
+We recommend a minimum of 8 shared IFLs assigned to the LPAR. Increasing the IFL count past 8 shared IFLs will only improve Prompt Processing performance but not Token Generation.
+
+Note: IFL count does not equate to vCPU count.
+
+### SMT vs NOSMT (Simultaneous Multithreading)
+
+We strongly recommend disabling SMT via the kernel boot parameters as it negatively affects performance. Please refer to your Linux distribution's guide on disabling SMT via kernel boot parameters.
+
+### BLAS vs NOBLAS
+
+We strongly recommend using BLAS for llama.cpp as there are no custom kernels for s390x for llama.cpp at the moment.
 

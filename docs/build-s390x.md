@@ -1,9 +1,9 @@
 > [!IMPORTANT]
-> This build documentation is specific only to IBM Z & LinuxONE mainframes (s390x). You can find the build documentation for other architectures: [build.md](docs/build.md).
+> This build documentation is specific only to IBM Z & LinuxONE mainframes (s390x). You can find the build documentation for other architectures: [build.md](build.md).
 
 # Build llama.cpp locally (for s390x)
 
-The main product of this project is the `llama` library. Its C-style interface can be found in [include/llama.h](include/llama.h).
+The main product of this project is the `llama` library. Its C-style interface can be found in [include/llama.h](//include/llama.h).
 
 The project also includes many example programs and tools using the `llama` library. The examples range from simple, minimal code snippets to sophisticated sub-projects such as an OpenAI-compatible HTTP server.
 

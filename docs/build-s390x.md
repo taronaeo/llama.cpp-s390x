@@ -37,7 +37,7 @@ cmake --build build --config Release -j $(nproc)
         -DGGML_BLAS=ON              \
         -DGGML_BLAS_VENDOR=OpenBLAS \
         -DGGML_VXE=OFF
-    
+
     cmake --build build --config Release -j $(nproc)
     ```
 
@@ -85,7 +85,7 @@ All models need to be converted to Big-Endian. You can achieve this in three cas
     ```
 
     For example,
-    
+
     ```bash
     python3 convert_hf_to_gguf.py \
         --outfile granite-3.3-2b-instruct-be.f16.gguf \
@@ -99,13 +99,13 @@ All models need to be converted to Big-Endian. You can achieve this in three cas
     ```bash
     python3 gguf-py/gguf/scripts/gguf_convert_endian.py model-name.f16.gguf BIG
     ```
-    
+
     For example,
     ```bash
     python3 gguf-py/gguf/scripts/gguf_convert_endian.py granite-3.3-2b-instruct-le.f16.gguf BIG
     mv granite-3.3-2b-instruct-le.f16.gguf granite-3.3-2b-instruct-be.f16.gguf
     ```
-    
+
     **Notes:**
     - The GGUF endian conversion script may not support all data types at the moment and may fail for some models/quantizations. When that happens, please try manually converting the safetensors model to GGUF Big-Endian via Step 2.
 

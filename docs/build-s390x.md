@@ -66,48 +66,48 @@ cmake --build build --config Release -j $(nproc)
 
 ## Getting GGUF Models
 
-In order to run GGUF models, the model needs to be converted to Big-Endian. You can achieve this in three cases:
+All models need to be converted to Big-Endian. You can achieve this in three cases:
 
 1. Use pre-converted models verified for use on IBM Z & LinuxONE (easiest)
 
-You can find popular models pre-converted and verified at [s390x Ready Models](hf.co/collections/taronaeo/s390x-ready-models-672765393af438d0ccb72a08).
+    You can find popular models pre-converted and verified at [s390x Ready Models](hf.co/collections/taronaeo/s390x-ready-models-672765393af438d0ccb72a08).
 
-These models and their respective tokenizers are verified to run correctly on IBM Z & LinuxONE.
+    These models and their respective tokenizers are verified to run correctly on IBM Z & LinuxONE.
 
 2. Convert safetensors model to GGUF Big-Endian directly (recommended)
 
-```bash
-python3 convert_hf_to_gguf.py \
-    --outfile model-name-be.f16.gguf \
-    --outtype f16 \
-    --bigendian \
-    model-directory/
-```
+    ```bash
+    python3 convert_hf_to_gguf.py \
+        --outfile model-name-be.f16.gguf \
+        --outtype f16 \
+        --bigendian \
+        model-directory/
+    ```
 
-For example,
-
-```bash
-python3 convert_hf_to_gguf.py \
-    --outfile granite-3.3-2b-instruct-be.f16.gguf \
-    --outtype f16 \
-    --bigendian \
-    granite-3.3-2b-instruct/
-```
+    For example,
+    
+    ```bash
+    python3 convert_hf_to_gguf.py \
+        --outfile granite-3.3-2b-instruct-be.f16.gguf \
+        --outtype f16 \
+        --bigendian \
+        granite-3.3-2b-instruct/
+    ```
 
 3. Convert existing GGUF Little-Endian model to Big-Endian
 
-```bash
-python3 gguf-py/gguf/scripts/gguf_convert_endian.py model-name.f16.gguf BIG
-```
-
-For example,
-```bash
-python3 gguf-py/gguf/scripts/gguf_convert_endian.py granite-3.3-2b-instruct-le.f16.gguf BIG
-mv granite-3.3-2b-instruct-le.f16.gguf granite-3.3-2b-instruct-be.f16.gguf
-```
-
-**Notes:**
-- The GGUF endian conversion script may not support all data types at the moment and may fail for some models/quantizations. When that happens, please try manually converting the safetensors model to GGUF Big-Endian via Step 2.
+    ```bash
+    python3 gguf-py/gguf/scripts/gguf_convert_endian.py model-name.f16.gguf BIG
+    ```
+    
+    For example,
+    ```bash
+    python3 gguf-py/gguf/scripts/gguf_convert_endian.py granite-3.3-2b-instruct-le.f16.gguf BIG
+    mv granite-3.3-2b-instruct-le.f16.gguf granite-3.3-2b-instruct-be.f16.gguf
+    ```
+    
+    **Notes:**
+    - The GGUF endian conversion script may not support all data types at the moment and may fail for some models/quantizations. When that happens, please try manually converting the safetensors model to GGUF Big-Endian via Step 2.
 
 
 

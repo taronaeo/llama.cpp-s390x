@@ -436,7 +436,7 @@ static void ggml_zdnn_mul_mat(ggml_backend_zdnn_context & ctx,
         GGML_LOG_INFO("%s: using zdnn_op_mul_mat_q for quantized matrix multiplication\n", __func__);
         // ggml_zdnn_op_mul_mat(ctx, src0, src1, dst, ggml_zdnn_op_mul_mat_q, ggml_zdnn_quantize_mmq_q8_1);
     } else {
-        GGML_LOG_INFO("%s: using zdnn_op_mul_mat for general matrix multiplication\n", __func__);
+        // GGML_LOG_INFO("%s: using zdnn_op_mul_mat for general matrix multiplication\n", __func__);
         ggml_zdnn_op_mul_mat(ctx, src0, src1, dst);
     }
 }
@@ -444,12 +444,12 @@ static void ggml_zdnn_mul_mat(ggml_backend_zdnn_context & ctx,
 static bool ggml_zdnn_compute_forward(ggml_backend_zdnn_context & ctx,
                                                     ggml_tensor * dst) {
     switch (dst->op) {
-        case GGML_OP_NONE:
-        case GGML_OP_RESHAPE:
-        case GGML_OP_VIEW:
-        case GGML_OP_PERMUTE:
-        case GGML_OP_TRANSPOSE:
-            break;
+        // case GGML_OP_NONE:
+        // case GGML_OP_RESHAPE:
+        // case GGML_OP_VIEW:
+        // case GGML_OP_PERMUTE:
+        // case GGML_OP_TRANSPOSE:
+        //     break;
         case GGML_OP_ADD:
             //! NOTE: Tested OK
             ggml_zdnn_op_bin<zdnn_add>(ctx, dst);
@@ -744,6 +744,10 @@ static bool ggml_backend_zdnn_device_supports_op(ggml_backend_dev_t dev, const s
 
                 if (b->type == GGML_TYPE_F16 && a->type != GGML_TYPE_F16)
                     return false;
+
+                if (!ggml_is_contiguous(a) || !ggml_is_contiguous(b)) {
+                    return false; // zDNN requires contiguous tensors
+                }
 
                 if (a->ne[0] > 32768 || a->ne[1] > 32768 ||
                     b->ne[0] > 32768 || b->ne[1] > 32768) {

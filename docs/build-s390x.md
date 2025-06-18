@@ -113,7 +113,7 @@ All models need to be converted to Big-Endian. You can achieve this in three cas
 
 ### 1. SIMD Acceleration
 
-Only available in IBM z15 or later system with the `-DGGML_VXE=ON` (turned on by default). No hardware acceleration is possible with llama.cpp with older systems, such as IBM z14 or EC13. In such systems, the APIs can still run but will use a scalar implementation.
+Only available in IBM z15 or later system with the `-DGGML_VXE=ON` (turned on by default) compile flag. No hardware acceleration is possible with llama.cpp with older systems, such as IBM z14 or EC13. In such systems, the APIs can still run but will use a scalar implementation.
 
 ### 2. zDNN Accelerator
 

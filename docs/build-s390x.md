@@ -109,13 +109,15 @@ All models need to be converted to Big-Endian. You can achieve this in three cas
     **Notes:**
     - The GGUF endian conversion script may not support all data types at the moment and may fail for some models/quantizations. When that happens, please try manually converting the safetensors model to GGUF Big-Endian via Step 2.
 
-## IBM zDNN Accelerator
+## IBM Accelerators
 
-*Only available in IBM z16 and onwards. No direction at the moment.*
+### 1. IBM zDNN Accelerator
 
-## IBM Spyre Accelerator
+    *Only available in IBM z16 and onwards. No direction at the moment.*
 
-*No direction at the moment.*
+### 2. IBM Spyre Accelerator
+
+    *No direction at the moment.*
 
 ## Performance Tuning
 
@@ -139,7 +141,7 @@ We strongly recommend disabling SMT via the kernel boot parameters as it negativ
 
 We strongly recommend using BLAS for llama.cpp as there are no custom kernels for s390x for llama.cpp at the moment.
 
-## Issues Related to IBM Z & LinuxONE
+## Getting Help on IBM Z & LinuxONE
 
 1. **Bugs, Feature Requests**
 

@@ -111,11 +111,15 @@ All models need to be converted to Big-Endian. You can achieve this in three cas
 
 ## IBM Accelerators
 
-### 1. zDNN Accelerator
+### 1. SIMD Acceleration
 
-*Only available in IBM z16 and onwards. No direction at the moment.*
+Only available in IBM z15 or later system with the `-DGGML_VXE=ON` (turned on by default). No hardware acceleration is possible with llama.cpp with older systems, such as IBM z14 or EC13. In such systems, the APIs can still run but will use a scalar implementation.
 
-### 2. Spyre Accelerator
+### 2. zDNN Accelerator
+
+*Only available in IBM z16 or later system. No direction at the moment.*
+
+### 3. Spyre Accelerator
 
 *No direction at the moment.*
 
@@ -123,23 +127,23 @@ All models need to be converted to Big-Endian. You can achieve this in three cas
 
 ### 1. Virtualization Setup
 
-We strongly recommend using only LPAR (Type-1) virtualization to get the most performance.
+It is strongly recommended to use only LPAR (Type-1) virtualization to get the most performance.
 
 Note: Type-2 virtualization is not supported at the moment, while you can get it running, the performance will not be the best.
 
 ### 2. IFL (Core) Count
 
-We recommend a minimum of 8 shared IFLs assigned to the LPAR. Increasing the IFL count past 8 shared IFLs will only improve Prompt Processing performance but not Token Generation.
+It is recommended to allocate a minimum of 8 shared IFLs assigned to the LPAR. Increasing the IFL count past 8 shared IFLs will only improve Prompt Processing performance but not Token Generation.
 
 Note: IFL count does not equate to vCPU count.
 
 ### 3. SMT vs NOSMT (Simultaneous Multithreading)
 
-We strongly recommend disabling SMT via the kernel boot parameters as it negatively affects performance. Please refer to your Linux distribution's guide on disabling SMT via kernel boot parameters.
+It is strongly recommended to disable SMT via the kernel boot parameters as it negatively affects performance. Please refer to your Linux distribution's guide on disabling SMT via kernel boot parameters.
 
 ### 4. BLAS vs NOBLAS
 
-We strongly recommend using BLAS for llama.cpp as there are no custom kernels for s390x for llama.cpp at the moment.
+IBM VXE/VXE2 SIMD acceleration depends on the BLAS implementation. It is strongly recommended to use BLAS.
 
 ## Getting Help on IBM Z & LinuxONE
 

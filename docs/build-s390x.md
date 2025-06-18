@@ -139,3 +139,13 @@ We strongly recommend disabling SMT via the kernel boot parameters as it negativ
 
 We strongly recommend using BLAS for llama.cpp as there are no custom kernels for s390x for llama.cpp at the moment.
 
+## Issues Related to IBM Z & LinuxONE
+
+1. **Bugs, Feature Requests**
+
+    Please file an issue in llama.cpp and ensure that the title contains "s390x".
+
+2. **Other Questions**
+
+    Please reach out directly to [aionz@us.ibm.com](mailto:aionz@us.ibm.com).
+

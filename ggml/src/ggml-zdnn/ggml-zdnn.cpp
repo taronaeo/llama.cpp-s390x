@@ -750,6 +750,12 @@ static bool ggml_backend_zdnn_device_supports_op(ggml_backend_dev_t dev, const s
                     return false; // zDNN does not support tensors larger than 32768x32768
                 }
 
+                if ((a->type == GGML_TYPE_F16 || a->type == GGML_TYPE_BF16)
+                    && b->type == GGML_TYPE_F32 && b->type == GGML_TYPE_F32
+                    && op->ne[0] % 2 == 0 && op->ne[1] == 1) {
+                    return false;
+                }
+
                 switch (a->type) {
                     case GGML_TYPE_F32:
                     case GGML_TYPE_F16:

@@ -113,11 +113,11 @@ All models need to be converted to Big-Endian. You can achieve this in three cas
 
 ### 1. IBM zDNN Accelerator
 
-    *Only available in IBM z16 and onwards. No direction at the moment.*
+*Only available in IBM z16 and onwards. No direction at the moment.*
 
 ### 2. IBM Spyre Accelerator
 
-    *No direction at the moment.*
+*No direction at the moment.*
 
 ## Performance Tuning
 

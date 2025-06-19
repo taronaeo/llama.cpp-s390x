@@ -92,7 +92,7 @@ void zdnn_tensor_bcast(const struct ggml_tensor * src,
  *
  * @throws Aborts the program if the type is not supported.
  */
-static zdnn_data_types ggml_zdnn_type_mapping(ggml_type type);
+inline zdnn_data_types ggml_zdnn_type_mapping(ggml_type type);
 
 /**
  * @brief Creates and initializes a zDNN tensor from a given GGML tensor.
@@ -101,18 +101,20 @@ static zdnn_data_types ggml_zdnn_type_mapping(ggml_type type);
  * and allocates memory for the zDNN tensor using the provided GGML tensor and
  * its shape information.
  *
- * @param src           Pointer to the source GGML tensor.
- * @param ne            Pointer to an array of 4 int64_t values representing the tensor shape
- *                      in the reversed-NCHW format (i.e., WHCN).
  * @param pre_tfm_desc  Reference to a zdnn_tensor_desc to be initialized as the pre-transformed descriptor.
  * @param tfm_desc      Reference to a zdnn_tensor_desc to be initialized as the transformed descriptor.
  * @param ztensor       Reference to a zdnn_ztensor to be initialized and allocated.
+ * @param src           Pointer to the source GGML tensor.
+ * @param ne            Pointer to an array of 4 int64_t values representing the tensor shape
+ *                      in the reversed-NCHW format (i.e., WHCN).
+ * @param layout        The zdnn_data_layouts enum value representing the desired data layout for the tensor.
  */
-void ggml_zdnn_create_tensor(const ggml_tensor      * tensor,
-                                   zdnn_tensor_desc & pre_tfm_desc,
-                                   zdnn_tensor_desc & tfm_desc,
-                                   zdnn_ztensor     & ztensor,
-                             const ggml_tensor      * dst);
+inline void ggml_zdnn_create_tensor(zdnn_tensor_desc  & pre_tfm_desc,
+                                    zdnn_tensor_desc  & tfm_desc,
+                                    zdnn_ztensor      & ztensor,
+                              const ggml_tensor       * src,
+                              const int64_t           * ne,
+                              const zdnn_data_layouts   layout);
 
 /**
  * @brief Loads data from a buffer into a zdnn_ztensor.
@@ -121,20 +123,56 @@ void ggml_zdnn_create_tensor(const ggml_tensor      * tensor,
  * the provided zdnn_ztensor structure by calling zdnn_transform_ztensor. It checks
  * for errors using the ZDNN_CHECK macro.
  *
- * @param buffer   Pointer to the source buffer containing tensor data.
  * @param ztensor  Reference to the zdnn_ztensor structure to be populated.
+ * @param buffer   Pointer to the source buffer containing tensor data.
  */
-void ggml_zdnn_load_tensor(const ggml_tensor  * tensor,
-                                 zdnn_ztensor & ztensor);
-
-static bool ggml_zdnn_compute_forward(struct ggml_backend_zdnn_context & ctx,
-                                      struct               ggml_tensor * dst);
+inline void ggml_zdnn_load_tensor(zdnn_ztensor & ztensor,
+                                          void * buffer);
 
 template<zdnn_status (*zdnn_op)(const zdnn_ztensor *, const zdnn_ztensor *, zdnn_ztensor *)>
 void ggml_zdnn_op_bin(ggml_backend_zdnn_context & ctx, ggml_tensor * tensor);
 
 template<zdnn_status (*zdnn_op)(const zdnn_ztensor *, zdnn_ztensor *)>
 void ggml_zdnn_op_unary(ggml_backend_zdnn_context & ctx, ggml_tensor * tensor);
+
+static void ggml_zdnn_op_mul_mat(ggml_backend_zdnn_context & ctx,
+                                         const ggml_tensor * src0,
+                                         const ggml_tensor * src1,
+                                               ggml_tensor * dst);
+
+/**
+ * @brief Dispatches matrix multiplication operations for zDNN backend based on tensor types and shapes.
+ *
+ * This function selects the appropriate matrix multiplication routine depending on the types and shapes
+ * of the input tensors. It supports various cases including:
+ * - Standard matrix multiplication for F16 tensors.
+ * - Vector multiplication for F16/BF16 matrices and F32 vectors.
+ * - Quantized matrix and vector multiplication for quantized types.
+ * - General matrix multiplication as a fallback.
+ *
+ * @param ctx   zDNN backend context used for operation dispatch.
+ * @param src0  Pointer to the first source tensor (matrix).
+ * @param src1  Pointer to the second source tensor (matrix or vector).
+ * @param dst   Pointer to the destination tensor where the result will be stored.
+ */
+inline void ggml_zdnn_mul_mat_dispatch(ggml_backend_zdnn_context & ctx,
+                                               const ggml_tensor * src0,
+                                               const ggml_tensor * src1,
+                                                     ggml_tensor * dst);
+
+/**
+ * @brief Executes the forward computation for a given tensor operation using the zDNN backend.
+ *
+ * This function dispatches the computation based on the operation type specified in the destination tensor (`dst->op`).
+ * It supports a variety of binary and unary operations, as well as matrix multiplication. For unsupported or unimplemented
+ * operations, the function returns false.
+ *
+ * @param ctx  Reference to the zDNN backend context used for computation.
+ * @param dst  Pointer to the destination tensor, which contains the operation type and source tensors.
+ * @return true if the operation was successfully dispatched and computed; false if the operation is unsupported or not implemented.
+ */
+inline bool ggml_zdnn_compute_forward(ggml_backend_zdnn_context & ctx,
+                                                    ggml_tensor * dst);
 
 void ggml_zdnn_op_add(ggml_backend_zdnn_context & ctx, ggml_tensor * tensor);
 void ggml_zdnn_op_sub(ggml_backend_zdnn_context & ctx, ggml_tensor * tensor);

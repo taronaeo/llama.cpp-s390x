@@ -13,11 +13,11 @@
 // --------------------------------------------------------------------------
 // zDNN Internal Helper Functions
 // --------------------------------------------------------------------------
-void zdnn_tensor_pack(         void * dst_buffer,
-                      const    void * src_buffer,
+void zdnn_tensor_pack(      void    * dst_buffer,
+                      const void    * src_buffer,
                       const int64_t * ne,
-                      const  size_t * nb,
-                             size_t   element_size) {
+                      const size_t  * nb,
+                            size_t    element_size) {
     const int64_t src_w = ne[0];
     const int64_t src_h = ne[1];
     const int64_t src_c = ne[2];
@@ -45,10 +45,10 @@ void zdnn_tensor_pack(         void * dst_buffer,
     }
 }
 
-void zdnn_tensor_bcast(const struct ggml_tensor * src,
-                       const struct ggml_tensor * dst,
-                                           void * dst_buffer,
-                                         size_t   element_size) {
+void zdnn_tensor_bcast(const ggml_tensor * src,
+                       const ggml_tensor * dst,
+                                    void * dst_buffer,
+                                  size_t   element_size) {
     const int64_t src_w = src->ne[0];
     const int64_t src_h = src->ne[1];
     const int64_t src_c = src->ne[2];
@@ -113,14 +113,14 @@ static zdnn_data_types ggml_zdnn_type_mapping(ggml_type type) {
     }
 }
 
-void ggml_zdnn_create_tensor(const ggml_tensor      * src,
-                             const int64_t          * ne,
-                                   zdnn_tensor_desc & pre_tfm_desc,
-                                   zdnn_tensor_desc & tfm_desc,
-                                   zdnn_ztensor     & ztensor) {
-
+static void ggml_zdnn_create_tensor(zdnn_tensor_desc  & pre_tfm_desc,
+                                    zdnn_tensor_desc  & tfm_desc,
+                                    zdnn_ztensor      & ztensor,
+                              const ggml_tensor       * src,
+                              const int64_t           * ne,
+                              const zdnn_data_layouts   layout) {
     zdnn_init_pre_transformed_desc(
-        ZDNN_NCHW,
+        layout,
         ggml_zdnn_type_mapping(src->type),
         &pre_tfm_desc,
         ne[3], ne[2], ne[1], ne[0]
@@ -130,8 +130,8 @@ void ggml_zdnn_create_tensor(const ggml_tensor      * src,
     ZDNN_CHECK(zdnn_init_ztensor_with_malloc(&pre_tfm_desc, &tfm_desc, &ztensor));
 }
 
-void ggml_zdnn_load_tensor(void         * buffer,
-                           zdnn_ztensor & ztensor) {
+static void ggml_zdnn_load_tensor(zdnn_ztensor & ztensor,
+                                          void * buffer) {
     ZDNN_CHECK(zdnn_transform_ztensor(&ztensor, buffer));
 }
 
@@ -151,9 +151,9 @@ void ggml_zdnn_op_bin(ggml_backend_zdnn_context & ctx, ggml_tensor * tensor) {
     zdnn_ztensor ztensor_src1;
     zdnn_ztensor ztensor_dst;
 
-    ggml_zdnn_create_tensor(src0, dst->ne, pre_tfm_desc_src0, tfm_desc_src0, ztensor_src0);
-    ggml_zdnn_create_tensor(src1, dst->ne, pre_tfm_desc_src1, tfm_desc_src1, ztensor_src1);
-    ggml_zdnn_create_tensor(dst , dst->ne, pre_tfm_desc_dst , tfm_desc_dst , ztensor_dst );
+    ggml_zdnn_create_tensor(pre_tfm_desc_src0, tfm_desc_src0, ztensor_src0, src0, dst->ne, ZDNN_NCHW);
+    ggml_zdnn_create_tensor(pre_tfm_desc_src1, tfm_desc_src1, ztensor_src1, src1, dst->ne, ZDNN_NCHW);
+    ggml_zdnn_create_tensor(pre_tfm_desc_dst , tfm_desc_dst , ztensor_dst , dst , dst->ne, ZDNN_NCHW);
 
     void * src0_contiguous = nullptr;
     void * src1_contiguous = nullptr;
@@ -216,8 +216,8 @@ void ggml_zdnn_op_unary(ggml_backend_zdnn_context & ctx, ggml_tensor * tensor) {
     zdnn_ztensor ztensor_src0;
     zdnn_ztensor ztensor_dst;
 
-    ggml_zdnn_create_tensor(src0, dst->ne, pre_tfm_desc_src0, tfm_desc_src0, ztensor_src0);
-    ggml_zdnn_create_tensor(dst , dst->ne, pre_tfm_desc_dst , tfm_desc_dst , ztensor_dst );
+    ggml_zdnn_create_tensor(pre_tfm_desc_src0, tfm_desc_src0, ztensor_src0, src0, dst->ne, ZDNN_NCHW);
+    ggml_zdnn_create_tensor(pre_tfm_desc_dst , tfm_desc_dst , ztensor_dst , dst , dst->ne, ZDNN_NCHW);
 
     ggml_zdnn_load_tensor(src0->data, ztensor_src0);
 
@@ -333,18 +333,6 @@ static void ggml_zdnn_op_mul_mat(ggml_backend_zdnn_context & ctx,
     const void * src_a = (const void *)src0->data;
     const void * src_b = (const void *)src1->data;
 
-    size_t b_nelements = ggml_nelements(src1);
-    float max_val = -INFINITY;
-    float min_val = INFINITY;
-
-    for (size_t i = 0; i < b_nelements; ++i) {
-        float * b_data = (float *)src_b;
-        if (b_data[i] == -INFINITY) b_data[i] = -9999.9f;
-        if (b_data[i] > max_val) max_val = b_data[i];
-        if (b_data[i] < min_val) min_val = b_data[i];
-    }
-    GGML_LOG_INFO("%s: src_b min: %g, max: %g\n", __func__, min_val, max_val);
-
     void * a_transposed = (void *)ggml_aligned_malloc(a_cols * a_rows * sizeof(ggml_element_size(src0)));
     for (int i = 0; i < a_rows; i++) {
         for (int j = 0; j < a_cols; j++) {
@@ -369,25 +357,8 @@ static void ggml_zdnn_op_mul_mat(ggml_backend_zdnn_context & ctx,
     status = zdnn_matmul_op(&ztensor_b, &ztensor_a, &ztensor_bias,
                             MATMUL_OP_ADDITION,
                             &ztensor_result);
-    // GGML_ASSERT(status == ZDNN_OK && "zdnn_matmul_transpose_op failed");
-    if (status == ZDNN_INVALID_SHAPE) {
-        GGML_LOG_INFO("zDNN: Invalid shape for matmul operation. "
-                        "This may be due to the input tensors not being compatible for matrix multiplication.");
-        GGML_ABORT("%s: fatal: zdnn_matmul_transpose_op failed with ZDNN_INVALID_SHAPE",
-                       __func__);
-    } else if (status == ZDNN_INVALID_TYPE) {
-        GGML_LOG_INFO("zDNN: Invalid type for matmul operation. "
-                        "This may be due to the input tensors having incompatible data types.");
-        GGML_ABORT("%s: fatal: zdnn_matmul_transpose_op failed with ZDNN_INVALID_TYPE",
-                       __func__);
-    } else if (status == ZDNN_INVALID_FORMAT) {
-        GGML_LOG_INFO("zDNN: Invalid format for matmul operation. "
-                        "This may be due to the input tensors having incompatible data formats.");
-        GGML_ABORT("%s: fatal: zdnn_matmul_transpose_op failed with ZDNN_INVALID_FORMAT",
-                       __func__);
-    }
+    GGML_ASSERT(status == ZDNN_OK && "zdnn_matmul_transpose_op failed");
 
-    // float * result_transposed = (float *)ggml_aligned_malloc(p * m * sizeof(float));
     status = zdnn_transform_origtensor(&ztensor_result, dst->data);
     GGML_ASSERT(status == ZDNN_OK && "zdnn_transform_origtensor failed for tensor result");
 
@@ -459,12 +430,6 @@ static void ggml_zdnn_mul_mat(ggml_backend_zdnn_context & ctx,
 static bool ggml_zdnn_compute_forward(ggml_backend_zdnn_context & ctx,
                                                     ggml_tensor * dst) {
     switch (dst->op) {
-        // case GGML_OP_NONE:
-        // case GGML_OP_RESHAPE:
-        // case GGML_OP_VIEW:
-        // case GGML_OP_PERMUTE:
-        // case GGML_OP_TRANSPOSE:
-        //     break;
         case GGML_OP_ADD:
             //! NOTE: Tested OK
             ggml_zdnn_op_bin<zdnn_add>(ctx, dst);

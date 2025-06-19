@@ -238,6 +238,21 @@ static void ggml_zdnn_op_mul_mat(ggml_backend_zdnn_context & ctx,
                                                ggml_tensor * dst) {
     GGML_TENSOR_BINARY_OP_LOCALS;
 
+    const enum ggml_type type = src0->type;
+
+    GGML_ASSERT(ne0 == ne01);
+    GGML_ASSERT(ne1 == ne11);
+    GGML_ASSERT(ne2 == ne12);
+    GGML_ASSERT(ne3 == ne13);
+
+    GGML_ASSERT(nb00 == ggml_type_size(type));
+    GGML_ASSERT(nb10 == ggml_type_size(src1->type));
+
+    GGML_ASSERT(nb0 == sizeof(float));
+    GGML_ASSERT(nb0 <= nb1);
+    GGML_ASSERT(nb1 <= nb2);
+    GGML_ASSERT(nb2 <= nb3);
+
     zdnn_status status;
     zdnn_tensor_desc pre_tfm_desc_a, tfm_desc_a;
     zdnn_tensor_desc pre_tfm_desc_b, tfm_desc_b;

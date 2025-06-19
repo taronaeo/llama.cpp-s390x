@@ -3460,7 +3460,7 @@ bool llamafile_sgemm(const struct ggml_compute_params * params, int64_t m, int64
 #elif defined(__VXE__) || defined(__VXE2__)
         if (n < 4)
             return false;
-        if (Btype == GGML_TYPE_FP16) {
+        if (Btype == GGML_TYPE_F16) {
             tinyBLAS<4, float32x4_t, float32x4_t, ggml_fp16_t, ggml_fp16_t, float> tb{ params,
                 k, (const ggml_fp16_t *)A, lda,
                 (const ggml_fp16_t *)B, ldb,

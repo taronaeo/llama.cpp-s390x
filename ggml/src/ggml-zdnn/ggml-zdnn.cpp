@@ -250,7 +250,7 @@ static void ggml_zdnn_op_mul_mat(ggml_backend_zdnn_context & ctx,
 
     const ggml_tensor * weights = src0;
     const ggml_tensor * inputs  = src1;
-    const ggml_tensor * output  = dst;
+          ggml_tensor * output  = dst;
 
     zdnn_tensor_desc pre_tfm_desc_weights, tfm_desc_weights;
     zdnn_tensor_desc pre_tfm_desc_inputs, tfm_desc_inputs;
@@ -274,15 +274,15 @@ static void ggml_zdnn_op_mul_mat(ggml_backend_zdnn_context & ctx,
     const int64_t bias_dim[4]   = { 1, 1, 1, result_cols };
     const int64_t output_dim[4] = { 1, 1, result_cols, result_rows };
 
-    ggml_zdnn_create_tensor(pre_tfm_desc_inputs,  tfm_desc_inputs,  ztensor_inputs,  src1, b_dim,      ZDNN_2D);
     ggml_zdnn_create_tensor(pre_tfm_desc_weights, tfm_desc_weights, ztensor_weights, src0, a_dim,      ZDNN_2D);
+    ggml_zdnn_create_tensor(pre_tfm_desc_inputs,  tfm_desc_inputs,  ztensor_inputs,  src1, b_dim,      ZDNN_2D);
     ggml_zdnn_create_tensor(pre_tfm_desc_bias,    tfm_desc_bias,    ztensor_bias,    dst,  bias_dim,   ZDNN_1D);
     ggml_zdnn_create_tensor(pre_tfm_desc_output,  tfm_desc_output,  ztensor_output,  dst,  output_dim, ZDNN_2D);
 
     const size_t weights_size = ggml_element_size(src0);
 
     void * bias_data = (void *)calloc(result_cols, sizeof(ggml_element_size(dst)));
-    void * weights_data_transposed = (void *)ggml_aligned_malloc(a_cols * a_rows * sizeof(ggml_element_size(src0)));
+    void * weights_data_transposed = (void *)ggml_aligned_malloc(a_cols * a_rows * weights_size);
     for (int i = 0; i < a_rows; i++) {
         for (int j = 0; j < a_cols; j++) {
             memcpy(
@@ -293,16 +293,16 @@ static void ggml_zdnn_op_mul_mat(ggml_backend_zdnn_context & ctx,
         }
     }
 
-    ZDNN_CHECK(zdnn_transform_ztensor(&ztensor_inputs, inputs->data));
     ZDNN_CHECK(zdnn_transform_ztensor(&ztensor_weights, weights_data_transposed));
-    ZDNN_CHECK(zdnn_transform_ztensor(&ztensor_bias, bias_data));
+    ZDNN_CHECK(zdnn_transform_ztensor(&ztensor_inputs,  inputs->data));
+    ZDNN_CHECK(zdnn_transform_ztensor(&ztensor_bias,    bias_data));
 
     ZDNN_CHECK(zdnn_matmul_op(&ztensor_inputs, &ztensor_weights, &ztensor_bias,
                               MATMUL_OP_ADDITION, &ztensor_output));
-    ZDNN_CHECK(zdnn_transform_origtensor(&ztensor_output, dst->data));
+    ZDNN_CHECK(zdnn_transform_origtensor(&ztensor_output, output->data));
 
-    ZDNN_CHECK(zdnn_free_ztensor_buffer(&ztensor_inputs));
     ZDNN_CHECK(zdnn_free_ztensor_buffer(&ztensor_weights));
+    ZDNN_CHECK(zdnn_free_ztensor_buffer(&ztensor_inputs));
     ZDNN_CHECK(zdnn_free_ztensor_buffer(&ztensor_bias));
     ZDNN_CHECK(zdnn_free_ztensor_buffer(&ztensor_output));
 

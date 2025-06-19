@@ -310,10 +310,10 @@ static void ggml_zdnn_op_mul_mat(ggml_backend_zdnn_context & ctx,
     free(weights_data_transposed);
 }
 
-static void ggml_zdnn_mul_mat(ggml_backend_zdnn_context & ctx,
-                              const         ggml_tensor * src0,
-                              const         ggml_tensor * src1,
-                                            ggml_tensor * dst) {
+inline void ggml_zdnn_mul_mat_dispatch(ggml_backend_zdnn_context & ctx,
+                                               const ggml_tensor * src0,
+                                               const ggml_tensor * src1,
+                                                     ggml_tensor * dst) {
     GGML_UNUSED(ctx);
 
     bool use_mul_mat_vec =
@@ -393,7 +393,7 @@ static bool ggml_zdnn_compute_forward(ggml_backend_zdnn_context & ctx,
             ggml_zdnn_op_bin<zdnn_norm>(ctx, dst);
             break;
         case GGML_OP_MUL_MAT:
-            ggml_zdnn_mul_mat(ctx, dst->src[0], dst->src[1], dst);
+            ggml_zdnn_mul_mat_dispatch(ctx, dst->src[0], dst->src[1], dst);
             break;
         case GGML_OP_MUL_MAT_ID:
         case GGML_OP_SOFT_MAX:

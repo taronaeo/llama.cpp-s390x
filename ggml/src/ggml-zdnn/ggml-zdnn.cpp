@@ -259,16 +259,20 @@ static void ggml_zdnn_op_mul_mat(ggml_backend_zdnn_context & ctx,
 
     zdnn_ztensor ztensor_weights, ztensor_inputs, ztensor_bias, ztensor_output;
 
-    const int64_t M = ne1;
-    const int64_t N = ne0;
-    const int64_t P = ne00;
+    const int64_t a_rows = src0->ne[1];
+    const int64_t a_cols = src0->ne[0];
+    const int64_t b_rows = src1->ne[1];
+    const int64_t b_cols = src1->ne[0];
 
-    assert(N == P);
+    assert(b_cols == a_cols);
 
-    const int64_t b_dim[4]      = { 1, 1, N, M };
-    const int64_t a_dim[4]      = { 1, 1, N, P };
-    const int64_t bias_dim[4]   = { 1, 1, 1, M };
-    const int64_t output_dim[4] = { 1, 1, N, M };
+    const int64_t result_rows = dst->ne[1];
+    const int64_t result_cols = dst->ne[0];
+
+    const int64_t b_dim[4]      = { 1, 1, b_cols, b_rows };
+    const int64_t a_dim[4]      = { 1, 1, a_rows, a_cols };
+    const int64_t bias_dim[4]   = { 1, 1, 1, result_cols };
+    const int64_t output_dim[4] = { 1, 1, result_cols, result_rows };
 
     ggml_zdnn_create_tensor(pre_tfm_desc_weights, tfm_desc_weights, ztensor_weights, src0, a_dim,      ZDNN_2D);
     ggml_zdnn_create_tensor(pre_tfm_desc_inputs,  tfm_desc_inputs,  ztensor_inputs,  src1, b_dim,      ZDNN_2D);
@@ -277,13 +281,13 @@ static void ggml_zdnn_op_mul_mat(ggml_backend_zdnn_context & ctx,
 
     const size_t weights_size = ggml_element_size(src0);
 
-    void * bias_data = (void *)calloc(N, sizeof(ggml_element_size(dst)));
-    void * weights_data_transposed = (void *)ggml_aligned_malloc(P * N * weights_size);
-    for (int i = 0; i < N; i++) {
-        for (int j = 0; j < P; j++) {
+    void * bias_data = (void *)calloc(result_cols, sizeof(ggml_element_size(dst)));
+    void * weights_data_transposed = (void *)ggml_aligned_malloc(a_cols * a_rows * weights_size);
+    for (int i = 0; i < a_rows; i++) {
+        for (int j = 0; j < a_cols; j++) {
             memcpy(
-                (char *)weights_data_transposed + (j * N + i) * weights_size,
-                (const char *)weights->data + (i * P + j) * weights_size,
+                (char *)weights_data_transposed + (j * a_rows + i) * weights_size,
+                (const char *)weights->data + (i * a_cols + j) * weights_size,
                 weights_size
             );
         }

@@ -9,6 +9,7 @@
 #include <memory>
 #include <stdint.h>
 #include <csignal>
+#include <vecintrin.h>
 
 // --------------------------------------------------------------------------
 // zDNN Internal Helper Functions
@@ -85,6 +86,50 @@ void zdnn_tensor_bcast(const ggml_tensor * src,
         memcpy(dst_ptr + dst_offset,
                src_ptr + src_offset,
                element_size);
+    }
+}
+
+inline void zdnn_transpose(const float   * src,
+                                 float   * dst,
+                           const int64_t   M,
+                           const int64_t   N) {
+    const int block_size = 4;
+    int i = 0, j = 0;
+
+    for (i = 0; i <= M - block_size; i += block_size) {
+        for (j = 0; j <= N - block_size; j += block_size) {
+            float32x4_t row0 = vec_xl(0, &src[(i + 0) * N + j]);
+            float32x4_t row1 = vec_xl(0, &src[(i + 1) * N + j]);
+            float32x4_t row2 = vec_xl(0, &src[(i + 2) * N + j]);
+            float32x4_t row3 = vec_xl(0, &src[(i + 3) * N + j]);
+
+            float32x4_t tmp0 = vec_mergeh(row0, row2);
+            float32x4_t tmp1 = vec_mergeh(row1, row3);
+            float32x4_t tmp2 = vec_mergel(row0, row2);
+            float32x4_t tmp3 = vec_mergel(row1, row3);
+
+            float32x4_t out0 = vec_mergeh(tmp0, tmp1);
+            float32x4_t out1 = vec_mergel(tmp0, tmp1);
+            float32x4_t out2 = vec_mergeh(tmp2, tmp3);
+            float32x4_t out3 = vec_mergel(tmp2, tmp3);
+
+            vec_xst(out0, 0, &dst[(j + 0) * M + i]);
+            vec_xst(out1, 0, &dst[(j + 1) * M + i]);
+            vec_xst(out2, 0, &dst[(j + 2) * M + i]);
+            vec_xst(out3, 0, &dst[(j + 3) * M + i]);
+        }
+    }
+
+    for (int i_rem = 0; i_rem < M; ++i_rem) {
+        for (int j_rem = j; j_rem < N; ++j_rem) {
+            dst[j_rem * M + i_rem] = src[i_rem * N + j_rem];
+        }
+    }
+
+    for (int i_rem = 0; i_rem < M; ++i_rem) {
+        for (int j_rem = 0; j_rem < j; ++j_rem) {
+            dst[j_rem * M + i_rem] = src[i_rem * N + j_rem];
+        }
     }
 }
 
@@ -283,15 +328,21 @@ static void ggml_zdnn_op_mul_mat(ggml_backend_zdnn_context & ctx,
 
     void * bias_data = (void *)calloc(output_cols, sizeof(ggml_element_size(dst)));
     void * weights_data_transposed = (void *)ggml_aligned_malloc(weights_cols * weights_rows * weights_size);
-    for (int i = 0; i < weights_rows; i++) {
-        for (int j = 0; j < weights_cols; j++) {
-            memcpy(
-                (char *)weights_data_transposed + (j * weights_rows + i) * weights_size,
-                (const char *)weights->data + (i * weights_cols + j) * weights_size,
-                weights_size
-            );
-        }
-    }
+
+    zdnn_transpose((const float *)weights->data,
+                   (      float *)weights_data_transposed,
+                   weights_rows,
+                   weights_cols);
+
+    // for (int i = 0; i < weights_rows; i++) {
+    //     for (int j = 0; j < weights_cols; j++) {
+    //         memcpy(
+    //             (char *)weights_data_transposed + (j * weights_rows + i) * weights_size,
+    //             (const char *)weights->data + (i * weights_cols + j) * weights_size,
+    //             weights_size
+    //         );
+    //     }
+    // }
 
     ZDNN_CHECK(zdnn_transform_ztensor(&ztensor_weights, weights_data_transposed));
     ZDNN_CHECK(zdnn_transform_ztensor(&ztensor_inputs,  inputs->data));

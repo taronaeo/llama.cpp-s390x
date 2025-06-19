@@ -227,6 +227,11 @@ void ggml_zdnn_op_unary(ggml_backend_zdnn_context & ctx, ggml_tensor * tensor) {
     ZDNN_CHECK(zdnn_free_ztensor_buffer(&ztensor_dst));
 }
 
+// typedef void (* ggml_zdnn_op_mul_mat_t)(
+//     ggml_backend_zdnn_context & ctx,
+//     const ggml_tensor * src0,
+//     const ggml_tensor * src1,
+//           ggml_tensor * dst);
 static void ggml_zdnn_op_mul_mat(ggml_backend_zdnn_context & ctx,
                                          const ggml_tensor * src0,
                                          const ggml_tensor * src1,
@@ -248,12 +253,13 @@ static void ggml_zdnn_op_mul_mat(ggml_backend_zdnn_context & ctx,
     GGML_ASSERT(nb1 <= nb2);
     GGML_ASSERT(nb2 <= nb3);
 
-    zdnn_tensor_desc pre_tfm_desc_weights, tfm_desc_weights;
-    zdnn_tensor_desc pre_tfm_desc_inputs,  tfm_desc_inputs;
-    zdnn_tensor_desc pre_tfm_desc_bias,    tfm_desc_bias;
-    zdnn_tensor_desc pre_tfm_desc_output,  tfm_desc_output;
+    zdnn_status status;
+    zdnn_tensor_desc pre_tfm_desc_a, tfm_desc_a;
+    zdnn_tensor_desc pre_tfm_desc_b, tfm_desc_b;
+    zdnn_tensor_desc pre_tfm_desc_bias, tfm_desc_bias;
+    zdnn_tensor_desc pre_tfm_desc_result, tfm_desc_result;
 
-    zdnn_ztensor ztensor_inputs, ztensor_weights, ztensor_bias, ztensor_output;
+    zdnn_ztensor ztensor_a, ztensor_b, ztensor_bias, ztensor_result;
 
     const int64_t a_rows = src0->ne[1];
     const int64_t a_cols = src0->ne[0];
@@ -265,43 +271,111 @@ static void ggml_zdnn_op_mul_mat(ggml_backend_zdnn_context & ctx,
     const int64_t result_rows = dst->ne[1];
     const int64_t result_cols = dst->ne[0];
 
-    const int64_t weights_dim[4] = { a_cols, a_rows, 1, 1 };
-    const int64_t inputs_dim[4]  = { b_rows, b_cols, 1, 1 };
-    const int64_t bias_dim[4]    = { result_cols, 1, 1, 1 };
-    const int64_t output_dim[4]  = { result_rows, result_cols, 1, 1 };
+    GGML_LOG_INFO("%s: GGML pattern C = B A^T:\n", __func__);
+    GGML_LOG_INFO("%s: A: (%ld,%ld), B: (%ld,%ld) -> C: (%ld,%ld)\n",
+                  __func__, a_rows, a_cols, b_rows, b_cols, result_rows, result_cols);
+    GGML_LOG_INFO("%s: Computed as B(%ld,%ld) @ A^T(%ld,%ld) = C(%ld,%ld)\n",
+                  __func__, b_rows, b_cols, a_cols, a_rows, result_rows, result_cols);
 
-    ggml_zdnn_create_tensor(pre_tfm_desc_weights, tfm_desc_weights, ztensor_weights, src0, weights_dim, ZDNN_2D);
-    ggml_zdnn_create_tensor(pre_tfm_desc_inputs,  tfm_desc_inputs,  ztensor_inputs,  src1, inputs_dim,  ZDNN_2D);
-    ggml_zdnn_create_tensor(pre_tfm_desc_bias,    tfm_desc_bias,    ztensor_bias,    dst,  bias_dim,    ZDNN_1D);
-    ggml_zdnn_create_tensor(pre_tfm_desc_output,  tfm_desc_output,  ztensor_output,  dst,  output_dim,  ZDNN_2D);
+    zdnn_init_pre_transformed_desc(
+        ZDNN_2D,
+        ggml_zdnn_type_mapping(src1->type),
+        &pre_tfm_desc_b,
+        b_rows, b_cols
+    );
 
-    void * bias_data = (void *)calloc(result_cols, sizeof(ggml_element_size(dst)));
-    void * weights_data = (void *)ggml_aligned_malloc(a_cols * a_rows * sizeof(ggml_element_size(src0)));
+    zdnn_init_pre_transformed_desc(
+        ZDNN_2D,
+        ggml_zdnn_type_mapping(src0->type),
+        &pre_tfm_desc_a,
+        a_cols, a_rows
+    );
+
+    zdnn_init_pre_transformed_desc(
+        ZDNN_1D,
+        ggml_zdnn_type_mapping(dst->type),
+        &pre_tfm_desc_bias,
+        result_cols
+    );
+
+    zdnn_init_pre_transformed_desc(
+        ZDNN_2D,
+        ggml_zdnn_type_mapping(dst->type),
+        &pre_tfm_desc_result,
+        result_rows, result_cols
+    );
+
+    status = zdnn_generate_transformed_desc(&pre_tfm_desc_a, &tfm_desc_a);
+    GGML_ASSERT(status == ZDNN_OK && "zdnn_generate_transformed_desc failed for tensor A");
+
+    status = zdnn_generate_transformed_desc(&pre_tfm_desc_b, &tfm_desc_b);
+    GGML_ASSERT(status == ZDNN_OK && "zdnn_generate_transformed_desc failed for tensor B");
+
+    status = zdnn_generate_transformed_desc(&pre_tfm_desc_bias, &tfm_desc_bias);
+    GGML_ASSERT(status == ZDNN_OK && "zdnn_generate_transformed_desc failed for tensor bias");
+
+    status = zdnn_generate_transformed_desc(&pre_tfm_desc_result, &tfm_desc_result);
+    GGML_ASSERT(status == ZDNN_OK && "zdnn_generate_transformed_desc failed for tensor result");
+
+
+    status = zdnn_init_ztensor_with_malloc(&pre_tfm_desc_a, &tfm_desc_a, &ztensor_a);
+    GGML_ASSERT(status == ZDNN_OK && "zdnn_init_ztensor_with_malloc failed for tensor A");
+
+    status = zdnn_init_ztensor_with_malloc(&pre_tfm_desc_b, &tfm_desc_b, &ztensor_b);
+    GGML_ASSERT(status == ZDNN_OK && "zdnn_init_ztensor_with_malloc failed for tensor B");
+
+    status = zdnn_init_ztensor_with_malloc(&pre_tfm_desc_bias, &tfm_desc_bias, &ztensor_bias);
+    GGML_ASSERT(status == ZDNN_OK && "zdnn_init_ztensor_with_malloc failed for tensor bias");
+
+    status = zdnn_init_ztensor_with_malloc(&pre_tfm_desc_result, &tfm_desc_result, &ztensor_result);
+    GGML_ASSERT(status == ZDNN_OK && "zdnn_init_ztensor_with_malloc failed for tensor result");
+
+    const void * src_a = (const void *)src0->data;
+    const void * src_b = (const void *)src1->data;
+
+    void * a_transposed = (void *)ggml_aligned_malloc(a_cols * a_rows * sizeof(ggml_element_size(src0)));
     for (int i = 0; i < a_rows; i++) {
         for (int j = 0; j < a_cols; j++) {
             memcpy(
-                (char *)weights_data + (j * a_rows + i) * ggml_element_size(src0),
-                (const char *)src0->data + (i * a_cols + j) * ggml_element_size(src0),
+                (char *)a_transposed + (j * a_rows + i) * ggml_element_size(src0),
+                (const char *)src_a + (i * a_cols + j) * ggml_element_size(src0),
                 ggml_element_size(src0)
             );
         }
     }
 
-    ggml_zdnn_load_tensor(ztensor_inputs, weights_data);
-    ggml_zdnn_load_tensor(ztensor_weights, src1->data);
-    ggml_zdnn_load_tensor(ztensor_bias, bias_data);
+    status = zdnn_transform_ztensor(&ztensor_b, src_b);
+    GGML_ASSERT(status == ZDNN_OK && "zdnn_transform_ztensor failed for tensor B");
 
-    ZDNN_CHECK(zdnn_matmul_op(&ztensor_weights, &ztensor_inputs, &ztensor_bias,
-                              MATMUL_OP_ADDITION, &ztensor_output));
+    status = zdnn_transform_ztensor(&ztensor_a, a_transposed);
+    GGML_ASSERT(status == ZDNN_OK && "zdnn_transform_ztensor failed for tensor A");
 
-    ZDNN_CHECK(zdnn_transform_origtensor(&ztensor_output, dst->data));
-    ZDNN_CHECK(zdnn_free_ztensor_buffer(&ztensor_inputs));
-    ZDNN_CHECK(zdnn_free_ztensor_buffer(&ztensor_weights));
-    ZDNN_CHECK(zdnn_free_ztensor_buffer(&ztensor_bias));
-    ZDNN_CHECK(zdnn_free_ztensor_buffer(&ztensor_output));
+    void * zero_bias = (void *)calloc(result_cols, sizeof(ggml_element_size(dst)));
+    status = zdnn_transform_ztensor(&ztensor_bias, zero_bias);
+    GGML_ASSERT(status == ZDNN_OK && "zdnn_transform_ztensor failed for tensor bias");
 
-    free(bias_data);
-    free(weights_data);
+    status = zdnn_matmul_op(&ztensor_b, &ztensor_a, &ztensor_bias,
+                            MATMUL_OP_ADDITION,
+                            &ztensor_result);
+    GGML_ASSERT(status == ZDNN_OK && "zdnn_matmul_transpose_op failed");
+
+    status = zdnn_transform_origtensor(&ztensor_result, dst->data);
+    GGML_ASSERT(status == ZDNN_OK && "zdnn_transform_origtensor failed for tensor result");
+
+    status = zdnn_free_ztensor_buffer(&ztensor_a);
+    GGML_ASSERT(status == ZDNN_OK && "zdnn_free_ztensor_buffer failed for tensor A");
+
+    status = zdnn_free_ztensor_buffer(&ztensor_b);
+    GGML_ASSERT(status == ZDNN_OK && "zdnn_free_ztensor_buffer failed for tensor B");
+
+    status = zdnn_free_ztensor_buffer(&ztensor_bias);
+    GGML_ASSERT(status == ZDNN_OK && "zdnn_free_ztensor_buffer failed for tensor bias");
+
+    status = zdnn_free_ztensor_buffer(&ztensor_result);
+    GGML_ASSERT(status == ZDNN_OK && "zdnn_free_ztensor_buffer failed for tensor result");
+
+    free(zero_bias);
+    free(a_transposed);
 }
 
 static void ggml_zdnn_mul_mat(ggml_backend_zdnn_context & ctx,
@@ -322,15 +396,15 @@ static void ggml_zdnn_mul_mat(ggml_backend_zdnn_context & ctx,
         && src1->type == GGML_TYPE_F32 && dst->type == GGML_TYPE_F32;
 
     // debug helpers
-    // GGML_LOG_INFO("%s: use_mul_mat_vec   = %d\n", __func__, use_mul_mat_vec);
-    // GGML_LOG_INFO("%s: use_mul_mat_vec_q = %d\n", __func__, use_mul_mat_vec_q);
-    // GGML_LOG_INFO("%s: use_mul_mat_q     = %d\n", __func__, use_mul_mat_q);
-    // GGML_LOG_INFO("%s: src0: %8d %8d %8d %8d\n", __func__, src0->ne[0], src0->ne[1], src0->ne[2], src0->ne[3]);
-    // GGML_LOG_INFO("%s:       %8d %8d %8d %8d\n", __func__, src0->nb[0], src0->nb[1], src0->nb[2], src0->nb[3]);
-    // GGML_LOG_INFO("%s: src1: %8d %8d %8d %8d\n", __func__, src1->ne[0], src1->ne[1], src1->ne[2], src1->ne[3]);
-    // GGML_LOG_INFO("%s:       %8d %8d %8d %8d\n", __func__, src1->nb[0], src1->nb[1], src1->nb[2], src1->nb[3]);
-    // GGML_LOG_INFO("%s: src0 is contiguous %d, transposed %d, type = %s, name = %s\n", __func__, ggml_is_contiguous(src0), ggml_is_transposed(src0), ggml_type_name(src0->type), src0->name);
-    // GGML_LOG_INFO("%s: src1 is contiguous %d, transposed %d, type = %s, name = %s\n", __func__, ggml_is_contiguous(src1), ggml_is_transposed(src1), ggml_type_name(src1->type), src1->name);
+    GGML_LOG_INFO("%s: use_mul_mat_vec   = %d\n", __func__, use_mul_mat_vec);
+    GGML_LOG_INFO("%s: use_mul_mat_vec_q = %d\n", __func__, use_mul_mat_vec_q);
+    GGML_LOG_INFO("%s: use_mul_mat_q     = %d\n", __func__, use_mul_mat_q);
+    GGML_LOG_INFO("%s: src0: %8d %8d %8d %8d\n", __func__, src0->ne[0], src0->ne[1], src0->ne[2], src0->ne[3]);
+    GGML_LOG_INFO("%s:       %8d %8d %8d %8d\n", __func__, src0->nb[0], src0->nb[1], src0->nb[2], src0->nb[3]);
+    GGML_LOG_INFO("%s: src1: %8d %8d %8d %8d\n", __func__, src1->ne[0], src1->ne[1], src1->ne[2], src1->ne[3]);
+    GGML_LOG_INFO("%s:       %8d %8d %8d %8d\n", __func__, src1->nb[0], src1->nb[1], src1->nb[2], src1->nb[3]);
+    GGML_LOG_INFO("%s: src0 is contiguous %d, transposed %d, type = %s, name = %s\n", __func__, ggml_is_contiguous(src0), ggml_is_transposed(src0), ggml_type_name(src0->type), src0->name);
+    GGML_LOG_INFO("%s: src1 is contiguous %d, transposed %d, type = %s, name = %s\n", __func__, ggml_is_contiguous(src1), ggml_is_transposed(src1), ggml_type_name(src1->type), src1->name);
 
     if (src0->type == GGML_TYPE_F16 && src1->type == GGML_TYPE_F16
         && !ggml_is_transposed(src0) && !ggml_is_transposed(src1)

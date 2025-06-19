@@ -253,9 +253,9 @@ static void ggml_zdnn_op_mul_mat(ggml_backend_zdnn_context & ctx,
           ggml_tensor * output  = dst;
 
     zdnn_tensor_desc pre_tfm_desc_weights, tfm_desc_weights;
-    zdnn_tensor_desc pre_tfm_desc_inputs, tfm_desc_inputs;
-    zdnn_tensor_desc pre_tfm_desc_bias, tfm_desc_bias;
-    zdnn_tensor_desc pre_tfm_desc_output, tfm_desc_output;
+    zdnn_tensor_desc pre_tfm_desc_inputs,  tfm_desc_inputs;
+    zdnn_tensor_desc pre_tfm_desc_bias,    tfm_desc_bias;
+    zdnn_tensor_desc pre_tfm_desc_output,  tfm_desc_output;
 
     zdnn_ztensor ztensor_weights, ztensor_inputs, ztensor_bias, ztensor_output;
 

@@ -182,8 +182,8 @@ void ggml_zdnn_op_bin(ggml_backend_zdnn_context & ctx, ggml_tensor * tensor) {
 
     // zdnn_tensor_pack(src1_packed, src1_contiguous, dst->ne, dst->nb, element_size);
 
-    ggml_zdnn_load_tensor(src0_contiguous, ztensor_src0);
-    ggml_zdnn_load_tensor(src1_contiguous, ztensor_src1);
+    ggml_zdnn_load_tensor(ztensor_src0, src0_contiguous);
+    ggml_zdnn_load_tensor(ztensor_src1, src1_contiguous);
 
     ZDNN_CHECK(zdnn_op(&ztensor_src0, &ztensor_src1, &ztensor_dst));
     ZDNN_CHECK(zdnn_transform_origtensor(&ztensor_dst, tensor->data));
@@ -219,7 +219,7 @@ void ggml_zdnn_op_unary(ggml_backend_zdnn_context & ctx, ggml_tensor * tensor) {
     ggml_zdnn_create_tensor(pre_tfm_desc_src0, tfm_desc_src0, ztensor_src0, src0, dst->ne, ZDNN_NCHW);
     ggml_zdnn_create_tensor(pre_tfm_desc_dst , tfm_desc_dst , ztensor_dst , dst , dst->ne, ZDNN_NCHW);
 
-    ggml_zdnn_load_tensor(src0->data, ztensor_src0);
+    ggml_zdnn_load_tensor(ztensor_src0, src0->data);
 
     ZDNN_CHECK(zdnn_op(&ztensor_src0, &ztensor_dst));
     ZDNN_CHECK(zdnn_transform_origtensor(&ztensor_dst, tensor->data));

@@ -92,7 +92,7 @@ void zdnn_tensor_bcast(const ggml_tensor * src,
 // --------------------------------------------------------------------------
 // zDNN Interfacing API
 // --------------------------------------------------------------------------
-static zdnn_data_types ggml_zdnn_type_mapping(ggml_type type) {
+inline zdnn_data_types ggml_zdnn_type_mapping(ggml_type type) {
     switch (type) {
         case GGML_TYPE_F32:
             return FP32;
@@ -113,7 +113,7 @@ static zdnn_data_types ggml_zdnn_type_mapping(ggml_type type) {
     }
 }
 
-static void ggml_zdnn_create_tensor(zdnn_tensor_desc  & pre_tfm_desc,
+inline void ggml_zdnn_create_tensor(zdnn_tensor_desc  & pre_tfm_desc,
                                     zdnn_tensor_desc  & tfm_desc,
                                     zdnn_ztensor      & ztensor,
                               const ggml_tensor       * src,
@@ -130,7 +130,7 @@ static void ggml_zdnn_create_tensor(zdnn_tensor_desc  & pre_tfm_desc,
     ZDNN_CHECK(zdnn_init_ztensor_with_malloc(&pre_tfm_desc, &tfm_desc, &ztensor));
 }
 
-static void ggml_zdnn_load_tensor(zdnn_ztensor & ztensor,
+inline void ggml_zdnn_load_tensor(zdnn_ztensor & ztensor,
                                           void * buffer) {
     ZDNN_CHECK(zdnn_transform_ztensor(&ztensor, buffer));
 }
@@ -359,7 +359,7 @@ inline void ggml_zdnn_mul_mat_dispatch(ggml_backend_zdnn_context & ctx,
     }
 }
 
-static bool ggml_zdnn_compute_forward(ggml_backend_zdnn_context & ctx,
+inline bool ggml_zdnn_compute_forward(ggml_backend_zdnn_context & ctx,
                                                     ggml_tensor * dst) {
     switch (dst->op) {
         case GGML_OP_ADD:

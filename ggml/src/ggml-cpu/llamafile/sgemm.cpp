@@ -250,7 +250,13 @@ template <> inline float32x4_t load(const ggml_fp16_t *p) {
 
 #if defined(__VXE__) || defined(__VXE2__)
 template <> inline float32x4_t load(const ggml_fp16_t * p) {
-    return vec_xl(0, p);
+    float tmp[4];
+
+    for (int i = 0; i < 4; i++) {
+        tmp[i] = GGML_FP16_TO_FP32(x[i]);
+    }
+
+    return vec_xl(0, (const float *)(tmp));
 }
 template <> inline float32x4_t load(const float * p) {
     return vec_xl(0, p);

@@ -248,12 +248,16 @@ static void ggml_zdnn_op_mul_mat(ggml_backend_zdnn_context & ctx,
     GGML_ASSERT(nb1 <= nb2);
     GGML_ASSERT(nb2 <= nb3);
 
-    zdnn_tensor_desc pre_tfm_desc_a, tfm_desc_a;
-    zdnn_tensor_desc pre_tfm_desc_b, tfm_desc_b;
-    zdnn_tensor_desc pre_tfm_desc_bias, tfm_desc_bias;
-    zdnn_tensor_desc pre_tfm_desc_result, tfm_desc_result;
+    const ggml_tensor * weights = src0;
+    const ggml_tensor * inputs  = src1;
+    const ggml_tensor * output  = dst;
 
-    zdnn_ztensor ztensor_a, ztensor_b, ztensor_bias, ztensor_result;
+    zdnn_tensor_desc pre_tfm_desc_weights, tfm_desc_weights;
+    zdnn_tensor_desc pre_tfm_desc_inputs, tfm_desc_inputs;
+    zdnn_tensor_desc pre_tfm_desc_bias, tfm_desc_bias;
+    zdnn_tensor_desc pre_tfm_desc_output, tfm_desc_output;
+
+    zdnn_ztensor ztensor_weights, ztensor_inputs, ztensor_bias, ztensor_output;
 
     const int64_t a_rows = src0->ne[1];
     const int64_t a_cols = src0->ne[0];
@@ -268,43 +272,42 @@ static void ggml_zdnn_op_mul_mat(ggml_backend_zdnn_context & ctx,
     const int64_t b_dim[4]      = { 1, 1, b_cols, b_rows };
     const int64_t a_dim[4]      = { 1, 1, a_rows, a_cols };
     const int64_t bias_dim[4]   = { 1, 1, 1, result_cols };
-    const int64_t result_dim[4] = { 1, 1, result_cols, result_rows };
+    const int64_t output_dim[4] = { 1, 1, result_cols, result_rows };
 
-    ggml_zdnn_create_tensor(pre_tfm_desc_b, tfm_desc_b, ztensor_b, src1, b_dim, ZDNN_2D);
-    ggml_zdnn_create_tensor(pre_tfm_desc_a, tfm_desc_a, ztensor_a, src0, a_dim, ZDNN_2D);
-    ggml_zdnn_create_tensor(pre_tfm_desc_bias, tfm_desc_bias, ztensor_bias, dst, bias_dim, ZDNN_1D);
-    ggml_zdnn_create_tensor(pre_tfm_desc_result, tfm_desc_result, ztensor_result, dst, result_dim, ZDNN_2D);
+    ggml_zdnn_create_tensor(pre_tfm_desc_inputs,  tfm_desc_inputs,  ztensor_inputs,  src1, b_dim,      ZDNN_2D);
+    ggml_zdnn_create_tensor(pre_tfm_desc_weights, tfm_desc_weights, ztensor_weights, src0, a_dim,      ZDNN_2D);
+    ggml_zdnn_create_tensor(pre_tfm_desc_bias,    tfm_desc_bias,    ztensor_bias,    dst,  bias_dim,   ZDNN_1D);
+    ggml_zdnn_create_tensor(pre_tfm_desc_output,  tfm_desc_output,  ztensor_output,  dst,  output_dim, ZDNN_2D);
 
-    const void * src_a = (const void *)src0->data;
-    const void * src_b = (const void *)src1->data;
+    const size_t weights_size = ggml_element_size(src0);
 
-    void * zero_bias = (void *)calloc(result_cols, sizeof(ggml_element_size(dst)));
-    void * a_transposed = (void *)ggml_aligned_malloc(a_cols * a_rows * sizeof(ggml_element_size(src0)));
+    void * bias_data = (void *)calloc(result_cols, sizeof(ggml_element_size(dst)));
+    void * weights_data_transposed = (void *)ggml_aligned_malloc(a_cols * a_rows * sizeof(ggml_element_size(src0)));
     for (int i = 0; i < a_rows; i++) {
         for (int j = 0; j < a_cols; j++) {
             memcpy(
-                (char *)a_transposed + (j * a_rows + i) * ggml_element_size(src0),
-                (const char *)src_a + (i * a_cols + j) * ggml_element_size(src0),
-                ggml_element_size(src0)
+                (char *)weights_data_transposed + (j * a_rows + i) * weights_size,
+                (const char *)weights->data + (i * a_cols + j) * weights_size,
+                weights_size
             );
         }
     }
 
-    ZDNN_CHECK(zdnn_transform_ztensor(&ztensor_b, src_b));
-    ZDNN_CHECK(zdnn_transform_ztensor(&ztensor_a, a_transposed));
-    ZDNN_CHECK(zdnn_transform_ztensor(&ztensor_bias, zero_bias));
+    ZDNN_CHECK(zdnn_transform_ztensor(&ztensor_inputs, inputs->data));
+    ZDNN_CHECK(zdnn_transform_ztensor(&ztensor_weights, weights_data_transposed));
+    ZDNN_CHECK(zdnn_transform_ztensor(&ztensor_bias, bias_data));
 
-    ZDNN_CHECK(zdnn_matmul_op(&ztensor_b, &ztensor_a, &ztensor_bias,
-                              MATMUL_OP_ADDITION, &ztensor_result));
+    ZDNN_CHECK(zdnn_matmul_op(&ztensor_inputs, &ztensor_weights, &ztensor_bias,
+                              MATMUL_OP_ADDITION, &ztensor_output));
+    ZDNN_CHECK(zdnn_transform_origtensor(&ztensor_output, dst->data));
 
-    ZDNN_CHECK(zdnn_transform_origtensor(&ztensor_result, dst->data));
-    ZDNN_CHECK(zdnn_free_ztensor_buffer(&ztensor_a));
-    ZDNN_CHECK(zdnn_free_ztensor_buffer(&ztensor_b));
+    ZDNN_CHECK(zdnn_free_ztensor_buffer(&ztensor_inputs));
+    ZDNN_CHECK(zdnn_free_ztensor_buffer(&ztensor_weights));
     ZDNN_CHECK(zdnn_free_ztensor_buffer(&ztensor_bias));
-    ZDNN_CHECK(zdnn_free_ztensor_buffer(&ztensor_result));
+    ZDNN_CHECK(zdnn_free_ztensor_buffer(&ztensor_output));
 
-    free(zero_bias);
-    free(a_transposed);
+    free(bias_data);
+    free(weights_data_transposed);
 }
 
 static void ggml_zdnn_mul_mat(ggml_backend_zdnn_context & ctx,
@@ -606,7 +609,6 @@ static ggml_backend_buffer_t ggml_backend_zdnn_device_buffer_from_host_ptr(ggml_
 static bool ggml_backend_zdnn_device_supports_op(ggml_backend_dev_t dev, const struct ggml_tensor * op) {
     const struct ggml_tensor * src0 = op->src[0];
     const struct ggml_tensor * src1 = op->src[1];
-    // const uint32_t max_dim = zdnn_get_nnpa_max_dim_idx_size();
 
     switch (op->op) {
         // GGML required ops
@@ -651,16 +653,13 @@ static bool ggml_backend_zdnn_device_supports_op(ggml_backend_dev_t dev, const s
                 const struct ggml_tensor * a = op->src[0];
                 const struct ggml_tensor * b = op->src[1];
 
-                if (b->type == GGML_TYPE_F16 && a->type != GGML_TYPE_F16)
-                    return false;
-
-                if (!ggml_is_contiguous(a) || !ggml_is_contiguous(b)) {
-                    return false; // zDNN requires contiguous tensors
-                }
-
-                if (a->ne[0] > 32768 || a->ne[1] > 32768 ||
+                // Note: zDNN cannot handle strided tensors as of now
+                // See: https://github.com/IBM/zDNN/issues/37
+                if ((b->type == GGML_TYPE_F16 && a->type != GGML_TYPE_F16) ||
+                    !ggml_is_contiguous(a) || !ggml_is_contiguous(b) ||
+                    a->ne[0] > 32768 || a->ne[1] > 32768 ||
                     b->ne[0] > 32768 || b->ne[1] > 32768) {
-                    return false; // zDNN does not support tensors larger than 32768x32768
+                    return false;
                 }
 
                 if ((a->type == GGML_TYPE_F16 || a->type == GGML_TYPE_BF16)

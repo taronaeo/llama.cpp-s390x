@@ -249,6 +249,9 @@ template <> inline float32x4_t load(const ggml_fp16_t *p) {
 #endif // __ARM_NEON
 
 #if defined(__VXE__) || defined(__VXE2__)
+template <> inline float32x4_t load(const ggml_fp16_t * p) {
+    return vec_xl(0, p);
+}
 template <> inline float32x4_t load(const float * p) {
     return vec_xl(0, p);
 }

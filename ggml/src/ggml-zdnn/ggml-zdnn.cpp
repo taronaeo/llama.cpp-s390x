@@ -88,46 +88,55 @@ void zdnn_tensor_bcast(const ggml_tensor * src,
     }
 }
 
+inline void zdnn_transpose_4x4(const float * src,
+                                     float * dst,
+                                   int64_t   src_stride,
+                                   int64_t   dst_stride) {
+    float32x4_t row0 = vec_xl(0, src + 0 * src_stride);
+    float32x4_t row1 = vec_xl(0, src + 1 * src_stride);
+    float32x4_t row2 = vec_xl(0, src + 2 * src_stride);
+    float32x4_t row3 = vec_xl(0, src + 3 * src_stride);
+
+    float32x4_t tmp0 = vec_mergeh(row0, row1);
+    float32x4_t tmp1 = vec_mergel(row0, row1);
+    float32x4_t tmp2 = vec_mergeh(row2, row3);
+    float32x4_t tmp3 = vec_mergel(row2, row3);
+
+    float32x4_t col0 = vec_mergeh(tmp0, tmp2);
+    float32x4_t col1 = vec_mergel(tmp0, tmp2);
+    float32x4_t col2 = vec_mergeh(tmp1, tmp3);
+    float32x4_t col3 = vec_mergel(tmp1, tmp3);
+
+    vec_xst(col0, 0, dst + 0 * dst_stride);
+    vec_xst(col1, 0, dst + 1 * dst_stride);
+    vec_xst(col2, 0, dst + 2 * dst_stride);
+    vec_xst(col3, 0, dst + 3 * dst_stride);
+}
+
 inline void zdnn_transpose(const float   * src,
                                  float   * dst,
-                           const int64_t   M,
-                           const int64_t   N) {
-    const int block_size = 4;
-    int i = 0, j = 0;
+                           const int64_t   rows,
+                           const int64_t   cols) {
+    const int64_t block_size = 4;
 
-    for (i = 0; i <= M - block_size; i += block_size) {
-        for (j = 0; j <= N - block_size; j += block_size) {
-            float32x4_t row0 = vec_xl(0, &src[(i + 0) * N + j]);
-            float32x4_t row1 = vec_xl(0, &src[(i + 1) * N + j]);
-            float32x4_t row2 = vec_xl(0, &src[(i + 2) * N + j]);
-            float32x4_t row3 = vec_xl(0, &src[(i + 3) * N + j]);
+    for (int64_t i = 0; i < rows - block_size + 1; i += block_size) {
+        for (int64_t j = 0; j < cols - block_size + 1; j += block_size) {
+            zdnn_transpose_4x4(src + i * cols + j,
+                               dst + j * rows + i,
+                               cols,
+                               rows);
+        }
 
-            float32x4_t tmp0 = vec_mergeh(row0, row2);
-            float32x4_t tmp1 = vec_mergeh(row1, row3);
-            float32x4_t tmp2 = vec_mergel(row0, row2);
-            float32x4_t tmp3 = vec_mergel(row1, row3);
-
-            float32x4_t out0 = vec_mergeh(tmp0, tmp1);
-            float32x4_t out1 = vec_mergel(tmp0, tmp1);
-            float32x4_t out2 = vec_mergeh(tmp2, tmp3);
-            float32x4_t out3 = vec_mergel(tmp2, tmp3);
-
-            vec_xst(out0, 0, &dst[(j + 0) * M + i]);
-            vec_xst(out1, 0, &dst[(j + 1) * M + i]);
-            vec_xst(out2, 0, &dst[(j + 2) * M + i]);
-            vec_xst(out3, 0, &dst[(j + 3) * M + i]);
+        for (int64_t j = (cols / block_size) * block_size; j < cols; j++) {
+            for (int64_t k = 0; k < block_size && i + k < rows; k++) {
+                dst[(j * rows) + (i + k)] = src[(i + k) * cols + j];
+            }
         }
     }
 
-    for (int i_rem = 0; i_rem < M; ++i_rem) {
-        for (int j_rem = j; j_rem < N; ++j_rem) {
-            dst[j_rem * M + i_rem] = src[i_rem * N + j_rem];
-        }
-    }
-
-    for (int i_rem = 0; i_rem < M; ++i_rem) {
-        for (int j_rem = 0; j_rem < j; ++j_rem) {
-            dst[j_rem * M + i_rem] = src[i_rem * N + j_rem];
+    for (int64_t i = (rows / block_size) * block_size; i < rows; i++) {
+        for (int64_t j = 0; j < cols; j++) {
+            dst[(j * rows) + i] = src[i * cols + j];
         }
     }
 }
@@ -330,8 +339,8 @@ static void ggml_zdnn_op_mul_mat(ggml_backend_zdnn_context & ctx,
 
     zdnn_transpose((const float *)weights->data,
                    (      float *)weights_data_transposed,
-                   weights_rows,
-                   weights_cols);
+                   weights_cols,
+                   weights_rows);
 
     // for (int i = 0; i < weights_rows; i++) {
     //     for (int j = 0; j < weights_cols; j++) {

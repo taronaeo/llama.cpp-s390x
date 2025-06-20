@@ -88,166 +88,6 @@ void zdnn_tensor_bcast(const ggml_tensor * src,
     }
 }
 
-inline void zdnn_transpose_4x4(const float * src,
-                                     float * dst,
-                                   int64_t   src_stride,
-                                   int64_t   dst_stride) {
-    float32x4_t row0 = vec_xl(0, src + 0 * src_stride);
-    float32x4_t row1 = vec_xl(0, src + 1 * src_stride);
-    float32x4_t row2 = vec_xl(0, src + 2 * src_stride);
-    float32x4_t row3 = vec_xl(0, src + 3 * src_stride);
-
-    float32x4_t tmp0 = vec_mergeh(row0, row1);
-    float32x4_t tmp1 = vec_mergel(row0, row1);
-    float32x4_t tmp2 = vec_mergeh(row2, row3);
-    float32x4_t tmp3 = vec_mergel(row2, row3);
-
-    float32x4_t col0 = vec_mergeh(tmp0, tmp2);
-    float32x4_t col1 = vec_mergel(tmp0, tmp2);
-    float32x4_t col2 = vec_mergeh(tmp1, tmp3);
-    float32x4_t col3 = vec_mergel(tmp1, tmp3);
-
-    vec_xst(col0, 0, dst + 0 * dst_stride);
-    vec_xst(col1, 0, dst + 1 * dst_stride);
-    vec_xst(col2, 0, dst + 2 * dst_stride);
-    vec_xst(col3, 0, dst + 3 * dst_stride);
-}
-
-inline void zdnn_transpose_8x8(const uint16_t * src,
-                                     uint16_t * dst,
-                                      int64_t   src_stride,
-                                      int64_t   dst_stride) {
-    __vector unsigned short row[8];
-    for (int i = 0; i < 8; i++) {
-        row[i] = vec_xl(0, (unsigned short *)(src + i * src_stride));
-    }
-
-    __vector unsigned short tmp[8];
-    tmp[0] = vec_mergeh(row[0], row[1]);
-    tmp[1] = vec_mergel(row[0], row[1]);
-    tmp[2] = vec_mergeh(row[2], row[3]);
-    tmp[3] = vec_mergel(row[2], row[3]);
-    tmp[4] = vec_mergeh(row[4], row[5]);
-    tmp[5] = vec_mergel(row[4], row[5]);
-    tmp[6] = vec_mergeh(row[6], row[7]);
-    tmp[7] = vec_mergel(row[6], row[7]);
-
-    __vector unsigned int quad[8];
-    quad[0] = (__vector unsigned int)vec_mergeh((__vector unsigned int)tmp[0], (__vector unsigned int)tmp[2]);
-    quad[1] = (__vector unsigned int)vec_mergel((__vector unsigned int)tmp[0], (__vector unsigned int)tmp[2]);
-    quad[2] = (__vector unsigned int)vec_mergeh((__vector unsigned int)tmp[1], (__vector unsigned int)tmp[3]);
-    quad[3] = (__vector unsigned int)vec_mergel((__vector unsigned int)tmp[1], (__vector unsigned int)tmp[3]);
-    quad[4] = (__vector unsigned int)vec_mergeh((__vector unsigned int)tmp[4], (__vector unsigned int)tmp[6]);
-    quad[5] = (__vector unsigned int)vec_mergel((__vector unsigned int)tmp[4], (__vector unsigned int)tmp[6]);
-    quad[6] = (__vector unsigned int)vec_mergeh((__vector unsigned int)tmp[5], (__vector unsigned int)tmp[7]);
-    quad[7] = (__vector unsigned int)vec_mergel((__vector unsigned int)tmp[5], (__vector unsigned int)tmp[7]);
-
-    __vector unsigned short col[8];
-    col[0] = (__vector unsigned short)vec_mergeh((__vector unsigned long long)quad[0], (__vector unsigned long long)quad[4]);
-    col[1] = (__vector unsigned short)vec_mergel((__vector unsigned long long)quad[0], (__vector unsigned long long)quad[4]);
-    col[2] = (__vector unsigned short)vec_mergeh((__vector unsigned long long)quad[1], (__vector unsigned long long)quad[5]);
-    col[3] = (__vector unsigned short)vec_mergel((__vector unsigned long long)quad[1], (__vector unsigned long long)quad[5]);
-    col[4] = (__vector unsigned short)vec_mergeh((__vector unsigned long long)quad[2], (__vector unsigned long long)quad[6]);
-    col[5] = (__vector unsigned short)vec_mergel((__vector unsigned long long)quad[2], (__vector unsigned long long)quad[6]);
-    col[6] = (__vector unsigned short)vec_mergeh((__vector unsigned long long)quad[3], (__vector unsigned long long)quad[7]);
-    col[7] = (__vector unsigned short)vec_mergel((__vector unsigned long long)quad[3], (__vector unsigned long long)quad[7]);
-
-    for (int i = 0; i < 8; i++) {
-        vec_xst(col[i], 0, (unsigned short *)(dst + i * dst_stride));
-    }
-}
-
-inline void transpose_fp32_matrix(const float * src,
-                                               float * dst,
-                                             int64_t   rows,
-                                             int64_t   cols) {
-    const int64_t block_size = 4;
-
-    for (int64_t i = 0; i < rows - block_size + 1; i += block_size) {
-        for (int64_t j = 0; j < cols - block_size + 1; j += block_size) {
-            zdnn_transpose_4x4(src + i * cols + j,
-                               dst + j * rows + i,
-                               cols, rows);
-        }
-
-        for (int64_t j = (cols / block_size) * block_size; j < cols; j++) {
-            for (int64_t k = 0; k < block_size && i + k < rows; k++) {
-                dst[(j * rows) + (i + k)] = src[(i + k) * cols + j];
-            }
-        }
-    }
-
-    for (int64_t i = (rows / block_size) * block_size; i < rows; i++) {
-        for (int64_t j = 0; j < cols; j++) {
-            dst[(j * rows) + i] = src[i * cols + j];
-        }
-    }
-}
-
-inline void transpose_fp16_matrix(const uint16_t * src,
-                                        uint16_t * dst,
-                                         int64_t   rows,
-                                         int64_t   cols) {
-    const int16_t block_size = 8;
-
-    for (int64_t i = 0; i < rows - block_size + 1; i += block_size) {
-        for (int64_t j = 0; j < cols - block_size + 1; j += block_size) {
-            zdnn_transpose_8x8(src + i * cols + j,
-                               dst + j * rows + i,
-                               cols, rows);
-        }
-
-        for (int64_t j = (cols / block_size) * block_size; j < cols; j++) {
-            for (int64_t k = 0; k < block_size && i + k < rows; k++) {
-                dst[(j * rows) + (i + k)] = src[(i + k) * cols + j];
-            }
-        }
-    }
-
-    for (int64_t i = (rows / block_size) * block_size; i < rows; i++) {
-        for (int64_t j = 0; j < cols; j++) {
-            dst[(j * rows) + i] = src[i * cols + j];
-        }
-    }
-}
-
-inline void transpose_generic_matrix(const void * src,
-                                           void * dst,
-                                   const int64_t rows,
-                                   const int64_t cols,
-                                          size_t element_size) {
-    const char * src_bytes = (const char *)src;
-          char * dst_bytes = (      char *)dst;
-
-    for (int64_t i = 0; i < rows; i++) {
-        for (int64_t j = 0; j < cols; j++) {
-            memcpy(
-                dst_bytes + (j * rows + i) * element_size,
-                src_bytes + (i * cols + j) * element_size,
-                element_size
-            );
-        }
-    }
-}
-
-inline void zdnn_transpose(const void    * src,
-                                 void    * dst,
-                           const int64_t   rows,
-                           const int64_t   cols,
-                                  size_t   element_size) {
-    if (element_size == sizeof(float)) {
-        transpose_fp32_matrix((const float *)src,
-                                     (      float *)dst,
-                                     rows, cols);
-    } else if (element_size == sizeof(uint16_t)) {
-        transpose_fp16_matrix((const uint16_t *)src,
-                              (      uint16_t *)dst,
-                              rows, cols);
-    } else {
-        transpose_generic_matrix(src, dst, rows, cols, element_size);
-    }
-}
-
 
 // --------------------------------------------------------------------------
 // zDNN Interfacing API
@@ -444,19 +284,15 @@ static void ggml_zdnn_op_mul_mat(ggml_backend_zdnn_context & ctx,
     void * bias_data = (void *)calloc(output_cols, sizeof(ggml_element_size(dst)));
     void * weights_data_transposed = (void *)ggml_aligned_malloc(weights_cols * weights_rows * weights_size);
 
-    zdnn_transpose(weights->data,
-                   weights_data_transposed,
-                   weights_rows, weights_cols, weights_size);
-
-    // for (int i = 0; i < weights_rows; i++) {
-    //     for (int j = 0; j < weights_cols; j++) {
-    //         memcpy(
-    //             (char *)weights_data_transposed + (j * weights_rows + i) * weights_size,
-    //             (const char *)weights->data + (i * weights_cols + j) * weights_size,
-    //             weights_size
-    //         );
-    //     }
-    // }
+    for (int i = 0; i < weights_rows; i++) {
+        for (int j = 0; j < weights_cols; j++) {
+            memcpy(
+                (char *)weights_data_transposed + (j * weights_rows + i) * weights_size,
+                (const char *)weights->data + (i * weights_cols + j) * weights_size,
+                weights_size
+            );
+        }
+    }
 
     ZDNN_CHECK(zdnn_transform_ztensor(&ztensor_weights, weights_data_transposed));
     ZDNN_CHECK(zdnn_transform_ztensor(&ztensor_inputs,  inputs->data));

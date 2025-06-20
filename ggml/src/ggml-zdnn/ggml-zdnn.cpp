@@ -1,8 +1,6 @@
 #include "ggml-impl.h"
-#include "ggml-zdnn.h"
 #include "ggml-backend-impl.h"
 
-#include "ggml-cpu-impl.h"
 #include "ggml-zdnn/zdnn.h"
 #include "ggml-zdnn/ggml-zdnn-impl.h"
 

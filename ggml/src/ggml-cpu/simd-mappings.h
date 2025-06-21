@@ -981,6 +981,7 @@ static inline float32x4_t __lzs_f16cx4_load(const ggml_fp16_t * x) {
 #endif
 }
 
+// TODO: check why this function is not being hit at all
 static inline void __lzs_f16cx4_store(ggml_fp16_t * x, float32x4_t v_y) {
 #ifdef __NNPA__
     float32x4_t zero = vec_splats(0.0f);
@@ -989,7 +990,6 @@ static inline void __lzs_f16cx4_store(ggml_fp16_t * x, float32x4_t v_y) {
     x[1] = vec_extract(v_x, 1);
     x[2] = vec_extract(v_x, 2);
     x[3] = vec_extract(v_x, 3);
-    raise(SIGINT);  // TODO: Ensure it is called
 #else
     float arr[4];
 

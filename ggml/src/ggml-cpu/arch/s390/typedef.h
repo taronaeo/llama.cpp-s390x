@@ -146,6 +146,8 @@ inline static int32x4_t ggml_vec_dot(int32x4_t acc, int8x16_t a, int8x16_t b) {
     return acc + (vec_unpackh(p) + vec_unpackl(p));
 }
 
+#else
+#error "This file requires s390x architecture with vector support (__s390x__ && __VEC__)"
 #endif  // __s390x__ && __VEC__
 
 #ifdef __cplusplus

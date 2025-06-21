@@ -3181,9 +3181,9 @@ void ggml_cpu_fp16_to_fp32(const ggml_fp16_t * x, float * y, int64_t n) {
 
     for (; i + 3 < n; i += 4) {
         uint16x8_t v_x = vec_xl(0, (const ggml_fp16_t *)(x + i));
-        uint16x8_t nnpa_dfl16 = vec_convert_from_fp16(v_x, 0);
-        float32x4_t result = vec_extend_to_fp32_hi(nnpa_dfl16, 0);
-        vec_xst(result, 0, (float *)(y + i));
+        uint16x8_t v_xd = vec_convert_from_fp16(v_x, 0);
+        float32x4_t v_xdh = vec_extend_to_fp32_hi(v_xd, 0);
+        vec_xst(v_xdh, 0, (float *)(y + i));
     }
 #endif
 

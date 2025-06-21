@@ -443,7 +443,6 @@ function(ggml_add_cpu_backend_variant_impl tag_name)
     elseif (GGML_SYSTEM_ARCH STREQUAL "s390x")
         message(STATUS "s390x detected")
         list(APPEND GGML_CPU_SOURCES ggml-cpu/arch/s390/quants.c)
-        list(APPEND GGML_CPU_SOURCES ggml-cpu/arch/s390/typedef.h)
         file(READ "/proc/cpuinfo" CPUINFO_CONTENTS)
         string(REGEX REPLACE "machine[ \t\r\n]*=[ \t\r\n]*([0-9]+)" "\\1" S390X_M ${CPUINFO_CONTENTS})
 

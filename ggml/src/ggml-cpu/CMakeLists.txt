@@ -467,6 +467,7 @@ function(ggml_add_cpu_backend_variant_impl tag_name)
         if (GGML_VXE)
             message(STATUS "VX/VXE/VXE2 enabled")
             list(APPEND ARCH_FLAGS -mvx -mzvector)
+            list(APPEND ARCH_DEFINITIONS GGML_NNPA __NNPA__)
         endif()
 
         if (GGML_NNPA)

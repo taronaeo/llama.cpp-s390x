@@ -55,6 +55,10 @@ if (GGML_ALL_WARNINGS)
     endif()
 endif()
 
+if (GGML_NNPA)
+    add_compile_definitions(__NNPA__)
+endif()
+
 if (GGML_LTO)
     include(CheckIPOSupported)
     check_ipo_supported(RESULT result OUTPUT output)

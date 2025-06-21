@@ -967,7 +967,6 @@ static inline float32x4_t __lzs_f16cx4_load(const ggml_fp16_t * x) {
 #ifdef __NNPA__
     uint16x8_t v_x = vec_xl(0, (const ggml_fp16_t *)x);
     uint16x8_t nnpa_dlf16 = vec_convert_from_fp16(v_x, 0);
-    raise(SIGINT);  // TODO: Ensure it is called
     return vec_extend_to_fp32_hi(nnpa_dlf16, 0);
 #else
     float tmp[4];

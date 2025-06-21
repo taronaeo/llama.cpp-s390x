@@ -3167,9 +3167,7 @@ void ggml_cpu_fp16_to_fp32(const ggml_fp16_t * x, float * y, int64_t n) {
         __m128 y_vec = _mm_cvtph_ps(x_vec);
         _mm_storeu_ps(y + i, y_vec);
     }
-#endif
-
-#if defined(__NNPA__)
+#elif defined(__NNPA__)
     for (; i + 7 < n; i += 8) {
         uint16x8_t v_x = vec_xl(0, (const ggml_fp16_t *)(x + i));
         uint16x8_t v_xd = vec_convert_from_fp16(v_x, 0);

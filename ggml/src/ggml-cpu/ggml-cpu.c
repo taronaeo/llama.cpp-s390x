@@ -3148,7 +3148,8 @@ void ggml_cpu_fp32_to_fp16(const float * x, ggml_fp16_t * y, int64_t n) {
         float32x4_t v_xh = vec_xl(0, (const float *)(x + i + 0));
         float32x4_t v_xl = vec_xl(0, (const float *)(x + i + 4));
         uint16x8_t v_xd = vec_round_from_fp32(v_xh, v_xl, 0);
-        vec_xst(v_xd, 0, (ggml_fp16_t *)(y + i));
+        uint16x8_t v_xdi = vec_convert_to_fp16(v_xd, 0);
+        vec_xst(v_xdi, 0, (ggml_fp16_t *)(y + i));
         printf("breakpoint");
     }
 #endif

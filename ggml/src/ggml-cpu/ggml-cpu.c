@@ -3145,15 +3145,15 @@ void ggml_cpu_fp32_to_fp16(const float * x, ggml_fp16_t * y, int64_t n) {
     for (; i + 7 < n; i += 8) {
         float32x4_t v_xh = vec_xl(0, (const float *)(x + i + 0));
         float32x4_t v_xl = vec_xl(0, (const float *)(x + i + 4));
-        uint16x8_t v_xd = vec_round_from_fp32(v_xh, v_xl, 0);
-        uint16x8_t v_y = vec_convert_to_fp16(v_xd, 0);
+        uint16x8_t v_yd = vec_round_from_fp32(v_xh, v_xl, 0);
+        uint16x8_t v_y = vec_convert_to_fp16(v_yd, 0);
         vec_xst(v_y, 0, (ggml_fp16_t *)(y + i));
     }
     for (; i + 3 < n; i += 4) {
         float32x4_t v_x = vec_xl(0, (const float *)(x + i));
         float32x4_t v_zero = vec_splats(0.0f);
-        uint16x8_t v_xd = vec_round_from_fp32(v_x, v_zero, 0);
-        uint16x8_t v_y = vec_convert_to_fp16(v_xd, 0);
+        uint16x8_t v_yd = vec_round_from_fp32(v_x, v_zero, 0);
+        uint16x8_t v_y = vec_convert_to_fp16(v_yd, 0);
         vec_xst(v_y, 0, (ggml_fp16_t *)(y + i));
     }
 #endif
@@ -3185,18 +3185,17 @@ void ggml_cpu_fp16_to_fp32(const ggml_fp16_t * x, float * y, int64_t n) {
 #elif defined(__NNPA__)
     for (; i + 7 < n; i += 8) {
         uint16x8_t v_x = vec_xl(0, (const ggml_fp16_t *)(x + i));
-        uint16x8_t v_xd = vec_convert_from_fp16(v_x, 0);
-        float32x4_t v_xdh = vec_extend_to_fp32_hi(v_xd, 0);
-        float32x4_t v_xdl = vec_extend_to_fp32_lo(v_xd, 0);
-        vec_xst(v_xdh, 0, (float *)(y + i + 0));
-        vec_xst(v_xdl, 0, (float *)(y + i + 4));
+        uint16x8_t v_yd = vec_convert_from_fp16(v_x, 0);
+        float32x4_t v_yh = vec_extend_to_fp32_hi(v_yd, 0);
+        float32x4_t v_yl = vec_extend_to_fp32_lo(v_yd, 0);
+        vec_xst(v_yh, 0, (float *)(y + i + 0));
+        vec_xst(v_yl, 0, (float *)(y + i + 4));
     }
-
     for (; i + 3 < n; i += 4) {
         uint16x8_t v_x = vec_xl(0, (const ggml_fp16_t *)(x + i));
-        uint16x8_t v_xd = vec_convert_from_fp16(v_x, 0);
-        float32x4_t v_xdh = vec_extend_to_fp32_hi(v_xd, 0);
-        vec_xst(v_xdh, 0, (float *)(y + i));
+        uint16x8_t v_yd = vec_convert_from_fp16(v_x, 0);
+        float32x4_t v_yh = vec_extend_to_fp32_hi(v_yd, 0);
+        vec_xst(v_yh, 0, (float *)(y + i));
     }
 #endif
 

@@ -430,6 +430,8 @@ GGML_API void ggml_aligned_free(void * ptr, size_t size);
     *                      |           | needed for s390x detection.
     *                      | this file is here, where the s390x
     *                      | detection macros are not defined.
+    *
+    * TODO: Fix s390x platform detection in this file.
     */
 
     #define GGML_COMPUTE_FP16_TO_FP32(x) ggml_compute_fp16_to_fp32(x)

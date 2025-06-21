@@ -30,7 +30,7 @@
 
 #if defined(GGML_VXE)
 #include <vecintrin.h>
-#include "ggml-cpu/arch/s390/typedef.h"
+#include <ggml-cpu/ggml-cpu-impl.h>
 #endif
 
 #if defined(GGML_NNPA)

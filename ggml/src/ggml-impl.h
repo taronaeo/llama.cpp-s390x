@@ -31,13 +31,13 @@
 #if defined(GGML_VXE)
 #include <vecintrin.h>
 #include <ggml-cpu/ggml-cpu-impl.h>
+#endif
 
 #if defined(GGML_NNPA)
 #ifndef __NNPA__
 #define __NNPA__
 #endif  // __NNPA__
 #endif  // GGML_NNPA
-#endif  // __s390x__ && __VEC__
 
 #ifdef __cplusplus
 extern "C" {

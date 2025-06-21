@@ -57,10 +57,12 @@ endif()
 
 if (GGML_VXE)
     add_compile_definitions(GGML_VXE)
+    message(STATUS "GGML_VXE triggered")
 endif()
 
 if (GGML_NNPA)
     add_compile_definitions(GGML_NNPA)
+    message(STATUS "GGML_NNPA triggered")
 endif()
 
 if (GGML_LTO)

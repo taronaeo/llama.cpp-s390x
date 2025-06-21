@@ -463,6 +463,12 @@ GGML_API void ggml_aligned_free(void * ptr, size_t size);
     }
 
     static inline float ggml_compute_fp16_to_fp32(ggml_fp16_t h) {
+        #ifdef __NNPA__
+        printf("%s: __NNPA__ is defined.\n");
+        #else
+        printf("%s: __NNPA__ is not defined.\n");
+        #endif
+
         const uint32_t w = (uint32_t) h << 16;
         const uint32_t sign = w & UINT32_C(0x80000000);
         const uint32_t two_w = w + w;

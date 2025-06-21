@@ -28,17 +28,6 @@
 #include <immintrin.h>
 #endif
 
-#if defined(GGML_VXE)
-#include <vecintrin.h>
-#include <ggml-cpu/ggml-cpu-impl.h>
-#endif
-
-#if defined(GGML_NNPA)
-#ifndef __NNPA__
-#define __NNPA__
-#endif  // __NNPA__
-#endif  // GGML_NNPA
-
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -429,6 +418,19 @@ GGML_API void ggml_aligned_free(void * ptr, size_t size);
     #define GGML_FP32_TO_FP16(x) GGML_COMPUTE_FP32_TO_FP16(x)
 
 #elif defined(__NNPA__)
+    /*
+    * Note: This functionality is ready for use, but the compiler macros
+    *       defined for the s390x platform are defined in ggml-cpu while
+    *       this file is 1 step behind, in ggml-src. I currently have no
+    *       idea how to fix this, so I am leaving it as is.
+    *
+    * CMake chain: ggml -> ggml-src -> ggml-cpu
+    *                      ^^^^^^^^    ^^^^^^^^
+    *                      |           | ggml-cpu defines the macros
+    *                      |           | needed for s390x detection.
+    *                      | this file is here, where the s390x
+    *                      | detection macros are not defined.
+    */
 
     #define GGML_COMPUTE_FP16_TO_FP32(x) ggml_compute_fp16_to_fp32(x)
     #define GGML_COMPUTE_FP32_TO_FP16(x) ggml_compute_fp32_to_fp16(x)
@@ -474,12 +476,6 @@ GGML_API void ggml_aligned_free(void * ptr, size_t size);
     }
 
     static inline float ggml_compute_fp16_to_fp32(ggml_fp16_t h) {
-        #ifdef __NNPA__
-        printf("%s: __NNPA__ is defined.\n", __func__);
-        #else
-        printf("%s: __NNPA__ is not defined.\n", __func__);
-        #endif
-
         const uint32_t w = (uint32_t) h << 16;
         const uint32_t sign = w & UINT32_C(0x80000000);
         const uint32_t two_w = w + w;

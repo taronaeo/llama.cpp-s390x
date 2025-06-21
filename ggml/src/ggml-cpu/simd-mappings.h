@@ -963,7 +963,7 @@ static inline void __lsx_f16x4_store(ggml_fp16_t * x, __m128 y) {
 #define GGML_F16_EPR  GGML_F32_EPR
 
 static inline float32x4_t __lzs_f16cx4_load(const ggml_fp16_t * x) {
-#ifdef __NNPA__
+#if defined(__NNPA__)
     uint16x8_t v_x = vec_xl(0, (const ggml_fp16_t *)x);
     uint16x8_t nnpa_dlf16 = vec_convert_from_fp16(v_x, 0);
     return vec_extend_to_fp32_hi(nnpa_dlf16, 0);
@@ -980,8 +980,17 @@ static inline float32x4_t __lzs_f16cx4_load(const ggml_fp16_t * x) {
 #endif
 }
 
-// TODO: check why this function is not being hit at all
 static inline void __lzs_f16cx4_store(ggml_fp16_t * x, float32x4_t v_y) {
+#if defined(__NNPA__)
+    float32x4_t v_zero = vec_splats(0.0f);
+    uint16x8_t v_xd = vec_round_from_fp32(v_y, v_zero, 0);
+    uint16x8_t v_x = vec_convert_to_fp16(v_xd, 0);
+
+    x[0] = vec_extract(v_x, 0);
+    x[1] = vec_extract(v_x, 1);
+    x[2] = vec_extract(v_x, 2);
+    x[3] = vec_extract(v_x, 3);
+#else
     float arr[4];
 
     // note: keep type-cast here to prevent compiler bugs
@@ -991,6 +1000,7 @@ static inline void __lzs_f16cx4_store(ggml_fp16_t * x, float32x4_t v_y) {
     for (int i = 0; i < 4; i++) {
         x[i] = GGML_FP32_TO_FP16(arr[i]);
     }
+#endif
 }
 
 #define GGML_F16_VEC                GGML_F32x4

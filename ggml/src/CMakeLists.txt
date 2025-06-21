@@ -55,8 +55,12 @@ if (GGML_ALL_WARNINGS)
     endif()
 endif()
 
+if (GGML_VXE)
+    add_compile_definitions(GGML_VXE)
+endif()
+
 if (GGML_NNPA)
-    add_compile_definitions(__NNPA__)
+    add_compile_definitions(GGML_NNPA)
 endif()
 
 if (GGML_LTO)

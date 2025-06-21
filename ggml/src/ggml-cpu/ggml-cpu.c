@@ -3168,6 +3168,19 @@ void ggml_cpu_fp16_to_fp32(const ggml_fp16_t * x, float * y, int64_t n) {
         _mm_storeu_ps(y + i, y_vec);
     }
 #endif
+
+#if defined(__NNPA__)
+    for (; i + 3 < n; i += 4) {
+        uint16x8_t v_x = vec_xl(0, (const ggml_fp16_t *)(x + i));
+        uint16x8_t nnpa_dfl16 = vec_convert_from_fp16(v_x, 0);
+        float32x4_t result = vec_extend_to_fp32_hi(nnpa_dfl16, 0);
+        y[i + 0] = result[0];
+        y[i + 1] = result[1];
+        y[i + 2] = result[2];
+        y[i + 3] = result[3];
+    }
+#endif
+
     for (; i < n; ++i) {
         y[i] = GGML_FP16_TO_FP32(x[i]);
     }

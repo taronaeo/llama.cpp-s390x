@@ -196,7 +196,6 @@ add_library(ggml-base
             ../include/gguf.h
             ggml.c
             ggml.cpp
-            ggml-impl.h
             ggml-alloc.c
             ggml-backend.cpp
             ggml-opt.cpp
@@ -402,18 +401,4 @@ if (BUILD_SHARED_LIBS)
         target_compile_definitions(${target} PRIVATE GGML_BUILD)
         target_compile_definitions(${target} PUBLIC  GGML_SHARED)
     endforeach()
-endif()
-
-if (GGML_VXE)
-    add_compile_definitions(GGML_VXE)
-    target_compile_definitions(ggml PRIVATE GGML_VXE)
-    target_compile_definitions(ggml-base PRIVATE GGML_VXE)
-    message(STATUS "GGML_VXE triggered")
-endif()
-
-if (GGML_NNPA)
-    add_compile_definitions(GGML_NNPA)
-    target_compile_definitions(ggml PRIVATE GGML_NNPA)
-    target_compile_definitions(ggml-base PRIVATE GGML_NNPA)
-    message(STATUS "GGML_NNPA triggered")
 endif()

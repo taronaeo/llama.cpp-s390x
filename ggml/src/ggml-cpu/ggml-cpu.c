@@ -3175,14 +3175,16 @@ void ggml_cpu_fp16_to_fp32(const ggml_fp16_t * x, float * y, int64_t n) {
         uint16x8_t v_xd = vec_convert_from_fp16(v_x, 0);
         float32x4_t v_xdh = vec_extend_to_fp32_hi(v_xd, 0);
         float32x4_t v_xdl = vec_extend_to_fp32_lo(v_xd, 0);
-        y[i + 0] = v_xdh[0];
-        y[i + 1] = v_xdh[1];
-        y[i + 2] = v_xdh[2];
-        y[i + 3] = v_xdh[3];
-        y[i + 4] = v_xdl[0];
-        y[i + 5] = v_xdl[1];
-        y[i + 6] = v_xdl[2];
-        y[i + 7] = v_xdl[3];
+        vec_xst(v_xdh, 0, (float *)(y + i));
+        vec_xst(v_xdl, 0, (float *)(y + i + 4));
+        // y[i + 0] = v_xdh[0];
+        // y[i + 1] = v_xdh[1];
+        // y[i + 2] = v_xdh[2];
+        // y[i + 3] = v_xdh[3];
+        // y[i + 4] = v_xdl[0];
+        // y[i + 5] = v_xdl[1];
+        // y[i + 6] = v_xdl[2];
+        // y[i + 7] = v_xdl[3];
     }
 
     for (; i + 3 < n; i += 4) {

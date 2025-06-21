@@ -3144,7 +3144,7 @@ void ggml_cpu_fp32_to_fp16(const float * x, ggml_fp16_t * y, int64_t n) {
 #elif defined(__NNPA__)
     for (; i + 3 < n; i += 4) {
         float32x4_t v_x = vec_xl(0, (const float *)(x + i));
-        uint16x8_t v_xd = vec_convert_to_fp16(v_xh, 0);
+        uint16x8_t v_xd = vec_convert_to_fp16(v_x, 0);
         vec_xst(v_xd, 0, (ggml_fp16_t *)(y + i));
     }
 #endif

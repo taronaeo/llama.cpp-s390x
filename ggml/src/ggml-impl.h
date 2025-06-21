@@ -28,7 +28,7 @@
 #include <immintrin.h>
 #endif
 
-#if defined(__VXE__) || defined(__VXE2__)
+#if defined(__s390x__) && defined(__VEC__)
 #include <vecintrin.h>
 
 #define vec_neg(a)    (-(a))                // Vector Negate
@@ -75,8 +75,8 @@ typedef unsigned long long ulong64x2_t __attribute__((vector_size(16)));
 #ifndef __NNPA__
 #define __NNPA__
 #endif  // __NNPA__
-#endif  // __s390x__ && GGML_NNPA
-#endif  // __VXE__ || __VXE2__
+#endif  // GGML_NNPA
+#endif  // __s390x__ && __VEC__
 
 #ifdef __cplusplus
 extern "C" {

@@ -3142,18 +3142,6 @@ void ggml_cpu_fp32_to_fp16(const float * x, ggml_fp16_t * y, int64_t n) {
         _mm_storel_epi64((__m128i *)(y + i), y_vec);
     }
 #endif
-
-#if defined(__NNPA__)
-    for (; i + 7 < n; i += 8) {
-        float32x4_t v_xh = vec_xl(0, (const float *)(x + i + 0));
-        float32x4_t v_xl = vec_xl(0, (const float *)(x + i + 4));
-        uint16x8_t v_xd = vec_round_from_fp32(v_xh, v_xl, 0);
-        uint16x8_t v_xdi = vec_convert_to_fp16(v_xd, 0);
-        vec_xst(v_xdi, 0, (ggml_fp16_t *)(y + i));
-        printf("breakpoint");
-    }
-#endif
-
     for (; i < n; ++i) {
         y[i] = GGML_FP32_TO_FP16(x[i]);
     }

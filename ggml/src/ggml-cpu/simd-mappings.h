@@ -1,6 +1,7 @@
 #pragma once
 
 #include "ggml-cpu-impl.h"
+#include <signal.h>
 
 //
 // simd mappings
@@ -964,9 +965,12 @@ static inline void __lsx_f16x4_store(ggml_fp16_t * x, __m128 y) {
 
 static inline float32x4_t __lzs_f16cx4_load(const ggml_fp16_t * x) {
 #ifdef __NNPA__
+    print("%s: %8d %8d %8d %8d\n", __func__, x[0], x[1], x[2], x[3]);
     uint16x8_t v_x = vec_xl(0, (const ggml_fp16_t *)x);
     uint16x8_t nnpa_dlf16 = vec_convert_from_fp16(v_x, 0);
-    return vec_extend_to_fp32_hi(nnpa_dlf16, 0);
+    float32x4_t result = vec_extend_to_fp32_hi(nnpa_dlf16, 0);
+    print("%s: %8d %8d %8d %8d\n", __func__, result[0], result[1], result[2], result[3]);
+    return result;
 #else
     float tmp[4];
 

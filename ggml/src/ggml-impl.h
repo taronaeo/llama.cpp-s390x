@@ -28,7 +28,7 @@
 #include <immintrin.h>
 #endif
 
-#if defined(__s390x__) && defined(__VEC__)
+#if defined(GGML_VXE)
 #include <vecintrin.h>
 #include <ggml-cpu/ggml-cpu-impl.h>
 

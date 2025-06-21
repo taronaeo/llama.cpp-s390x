@@ -965,8 +965,8 @@ static inline void __lsx_f16x4_store(ggml_fp16_t * x, __m128 y) {
 static inline float32x4_t __lzs_f16cx4_load(const ggml_fp16_t * x) {
 #if defined(__NNPA__)
     uint16x8_t v_x = vec_xl(0, (const ggml_fp16_t *)x);
-    uint16x8_t nnpa_dlf16 = vec_convert_from_fp16(v_x, 0);
-    return vec_extend_to_fp32_hi(nnpa_dlf16, 0);
+    uint16x8_t v_xd = vec_convert_from_fp16(v_x, 0);
+    return vec_extend_to_fp32_hi(v_xd, 0);
 #else
     float tmp[4];
 

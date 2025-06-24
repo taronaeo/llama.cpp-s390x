@@ -2,6 +2,7 @@
 #define _USE_MATH_DEFINES // For M_PI on MSVC
 
 #include "ggml-backend.h"
+#include "ggml-cpu/simd-mappings.h"
 #include "ggml-impl.h"
 #include "ggml-threading.h"
 #include "ggml-cpu.h"

@@ -4,6 +4,7 @@
 #include "traits.h"
 #include "ggml-cpu-impl.h"
 #include "ggml-impl.h"
+#include "simd-mappings.h"
 
 #ifdef __cplusplus
 

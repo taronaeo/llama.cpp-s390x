@@ -6,6 +6,7 @@
 
 #include "../../quants.h"
 #include "../../ggml-cpu-impl.h"
+#include "../../simd-mappings.h"
 
 #include <math.h>
 #include <string.h>

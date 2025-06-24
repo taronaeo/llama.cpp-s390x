@@ -52,6 +52,7 @@
 #include "ggml-impl.h"
 #include "ggml-cpu-impl.h"
 #include "ggml-quants.h"
+#include "simd-mappings.h"
 
 #include <array>
 #include <type_traits>

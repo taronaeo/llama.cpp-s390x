@@ -2,9 +2,195 @@
 
 #include "ggml-cpu-impl.h"
 
+#ifdef __ARM_FEATURE_SVE
+#include <arm_sve.h>
+#endif // __ARM_FEATURE_SVE
+
+#if defined(__ARM_NEON) && !defined(__CUDACC__) && !defined(__MUSACC__)
+// if YCM cannot find <arm_neon.h>, make a symbolic link to it, for example:
+//
+//   $ ln -sfn /Library/Developer/CommandLineTools/usr/lib/clang/13.1.6/include/arm_neon.h ./src/
+//
+#include <arm_neon.h>
+#endif
+
+#if defined(__F16C__)
+#include <immintrin.h>
+#endif
+
 //
 // simd mappings
 //
+
+// FP16 to FP32 conversion
+
+// 16-bit float
+// on Arm, we use __fp16
+// on x86, we use uint16_t
+//
+// for old CUDA compilers (<= 11), we use uint16_t: ref https://github.com/ggml-org/llama.cpp/pull/10616
+// for     MUSA compilers        , we use uint16_t: ref https://github.com/ggml-org/llama.cpp/pull/11843
+//
+#if defined(__ARM_NEON) && !(defined(__CUDACC__) && __CUDACC_VER_MAJOR__ <= 11) && !defined(__MUSACC__)
+    #ifdef GGML_FP16_TO_FP32
+    #undef GGML_FP16_TO_FP32
+    #endif
+
+    #ifdef GGML_FP32_TO_FP16
+    #undef GGML_FP32_TO_FP16
+    #endif
+
+    #ifdef GGML_COMPUTE_FP16_TO_FP32
+    #undef GGML_COMPUTE_FP16_TO_FP32
+    #endif
+
+    #ifdef GGML_COMPUTE_FP32_TO_FP16
+    #undef GGML_COMPUTE_FP32_TO_FP16
+    #endif
+
+    #define GGML_COMPUTE_FP16_TO_FP32(x) neon_compute_fp16_to_fp32(x)
+    #define GGML_COMPUTE_FP32_TO_FP16(x) neon_compute_fp32_to_fp16(x)
+
+    #define GGML_FP16_TO_FP32(x) neon_compute_fp16_to_fp32(x)
+
+    static inline float neon_compute_fp16_to_fp32(ggml_fp16_t h) {
+        __fp16 tmp;
+        memcpy(&tmp, &h, sizeof(ggml_fp16_t));
+        return (float)tmp;
+    }
+
+    static inline ggml_fp16_t neon_compute_fp32_to_fp16(float f) {
+        ggml_fp16_t res;
+        __fp16 tmp = f;
+        memcpy(&res, &tmp, sizeof(ggml_fp16_t));
+        return res;
+    }
+#elif defined(__F16C__)
+    #ifdef GGML_COMPUTE_FP16_TO_FP32
+    #undef GGML_COMPUTE_FP16_TO_FP32
+    #endif
+
+    #ifdef GGML_COMPUTE_FP32_TO_FP16
+    #undef GGML_COMPUTE_FP32_TO_FP16
+    #endif
+
+    #ifdef _MSC_VER
+        #define GGML_COMPUTE_FP16_TO_FP32(x) _mm_cvtss_f32(_mm_cvtph_ps(_mm_cvtsi32_si128(x)))
+        #define GGML_COMPUTE_FP32_TO_FP16(x) _mm_extract_epi16(_mm_cvtps_ph(_mm_set_ss(x), 0), 0)
+    #else
+        #define GGML_COMPUTE_FP16_TO_FP32(x) _cvtsh_ss(x)
+        #define GGML_COMPUTE_FP32_TO_FP16(x) _cvtss_sh(x, 0)
+    #endif
+#elif defined(__POWER9_VECTOR__)
+    #ifdef GGML_FP16_TO_FP32
+    #undef GGML_FP16_TO_FP32
+    #endif
+
+    #ifdef GGML_FP32_TO_FP16
+    #undef GGML_FP32_TO_FP16
+    #endif
+
+    #ifdef GGML_COMPUTE_FP16_TO_FP32
+    #undef GGML_COMPUTE_FP16_TO_FP32
+    #endif
+
+    #ifdef GGML_COMPUTE_FP32_TO_FP16
+    #undef GGML_COMPUTE_FP32_TO_FP16
+    #endif
+
+    #define GGML_COMPUTE_FP16_TO_FP32(x) power_compute_fp16_to_fp32(x)
+    #define GGML_COMPUTE_FP32_TO_FP16(x) power_compute_fp32_to_fp16(x)
+    /* the inline asm below is about 12% faster than the lookup method */
+    #define GGML_FP16_TO_FP32(x) GGML_COMPUTE_FP16_TO_FP32(x)
+    #define GGML_FP32_TO_FP16(x) GGML_COMPUTE_FP32_TO_FP16(x)
+
+    static inline float power_compute_fp16_to_fp32(ggml_fp16_t h) {
+        float f;
+        double d;
+        __asm__(
+            "mtfprd %0,%2\n"
+            "xscvhpdp %0,%0\n"
+            "frsp %1,%0\n" :
+            /* temp */ "=d"(d),
+            /* out */  "=f"(f):
+            /* in */   "r"(h));
+        return f;
+    }
+
+    static inline ggml_fp16_t power_compute_fp32_to_fp16(float f) {
+        double d;
+        ggml_fp16_t r;
+        __asm__( /* xscvdphp can work on double or single precision */
+            "xscvdphp %0,%2\n"
+            "mffprd %1,%0\n" :
+            /* temp */ "=d"(d),
+            /* out */  "=r"(r):
+            /* in */   "f"(f));
+        return r;
+    }
+
+#elif defined(__riscv) && defined(__riscv_zfhmin)
+    #ifdef GGML_FP16_TO_FP32
+    #undef GGML_FP16_TO_FP32
+    #endif
+
+    #ifdef GGML_FP32_TO_FP16
+    #undef GGML_FP32_TO_FP16
+    #endif
+
+    #ifdef GGML_COMPUTE_FP16_TO_FP32
+    #undef GGML_COMPUTE_FP16_TO_FP32
+    #endif
+
+    #ifdef GGML_COMPUTE_FP32_TO_FP16
+    #undef GGML_COMPUTE_FP32_TO_FP16
+    #endif
+
+    static inline float riscv_compute_fp16_to_fp32(ggml_fp16_t h) {
+        float f;
+        __asm__(
+            "fmv.h.x %[f], %[h]\n\t"
+            "fcvt.s.h %[f], %[f]"
+            : [f] "=&f" (f)
+            : [h] "r" (h)
+        );
+        return f;
+    }
+
+    static inline ggml_fp16_t riscv_compute_fp32_to_fp16(float f) {
+        ggml_fp16_t res;
+        __asm__(
+            "fcvt.h.s %[f], %[f]\n\t"
+            "fmv.x.h %[h], %[f]"
+            : [h] "=&r" (res)
+            : [f] "f" (f)
+        );
+        return res;
+    }
+
+    #define GGML_COMPUTE_FP16_TO_FP32(x) riscv_compute_fp16_to_fp32(x)
+    #define GGML_COMPUTE_FP32_TO_FP16(x) riscv_compute_fp32_to_fp16(x)
+    #define GGML_FP16_TO_FP32(x) GGML_COMPUTE_FP16_TO_FP32(x)
+    #define GGML_FP32_TO_FP16(x) GGML_COMPUTE_FP32_TO_FP16(x)
+#endif
+
+// On ARM NEON, it's quicker to directly convert x -> x instead of calling into ggml_lookup_fp16_to_fp32,
+// so we define GGML_FP16_TO_FP32 and GGML_FP32_TO_FP16 elsewhere for NEON.
+// This is also true for POWER9.
+#if !defined(GGML_FP16_TO_FP32)
+inline static float ggml_lookup_fp16_to_fp32(ggml_fp16_t f) {
+    uint16_t s;
+    memcpy(&s, &f, sizeof(uint16_t));
+    return ggml_table_f32_f16[s];
+}
+
+#define GGML_FP16_TO_FP32(x) ggml_lookup_fp16_to_fp32(x)
+#endif
+
+#if !defined(GGML_FP32_TO_FP16)
+#define GGML_FP32_TO_FP16(x) GGML_COMPUTE_FP32_TO_FP16(x)
+#endif
+
 
 // we define a common set of C macros which map to specific intrinsics based on the current architecture
 // we then implement the fundamental computation operations below using only these macros

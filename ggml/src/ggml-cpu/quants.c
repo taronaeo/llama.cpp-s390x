@@ -2,6 +2,7 @@
 #include "ggml-common.h"
 
 #include "ggml-cpu-impl.h"
+#include "simd-mappings.h"
 #include "ggml-quants.h"
 #include "quants.h"
 

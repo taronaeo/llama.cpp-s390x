@@ -265,18 +265,18 @@
 #undef GGML_COMPUTE_FP32_TO_FP16
 #endif
 
-#define GGML_COMPUTE_FP16_TO_FP32(x) neon_compute_fp16_to_fp32(x)
-#define GGML_COMPUTE_FP32_TO_FP16(x) neon_compute_fp32_to_fp16(x)
+#define GGML_COMPUTE_FP16_TO_FP32(x) ggml_compute_fp16_to_fp32(x)
+#define GGML_COMPUTE_FP32_TO_FP16(x) ggml_compute_fp32_to_fp16(x)
 
-#define GGML_FP16_TO_FP32(x) neon_compute_fp16_to_fp32(x)
+#define GGML_FP16_TO_FP32(x) ggml_compute_fp16_to_fp32(x)
 
-static inline float neon_compute_fp16_to_fp32(ggml_fp16_t h) {
+static inline float ggml_compute_fp16_to_fp32(ggml_fp16_t h) {
     __fp16 tmp;
     memcpy(&tmp, &h, sizeof(ggml_fp16_t));
     return (float)tmp;
 }
 
-static inline ggml_fp16_t neon_compute_fp32_to_fp16(float f) {
+static inline ggml_fp16_t ggml_compute_fp32_to_fp16(float f) {
     ggml_fp16_t res;
     __fp16 tmp = f;
     memcpy(&res, &tmp, sizeof(ggml_fp16_t));
@@ -589,13 +589,13 @@ static inline unsigned char ggml_endian_byte(int i) {
 #undef GGML_COMPUTE_FP32_TO_FP16
 #endif
 
-#define GGML_COMPUTE_FP16_TO_FP32(x) power_compute_fp16_to_fp32(x)
-#define GGML_COMPUTE_FP32_TO_FP16(x) power_compute_fp32_to_fp16(x)
+#define GGML_COMPUTE_FP16_TO_FP32(x) ggml_compute_fp16_to_fp32(x)
+#define GGML_COMPUTE_FP32_TO_FP16(x) ggml_compute_fp32_to_fp16(x)
 /* the inline asm below is about 12% faster than the lookup method */
 #define GGML_FP16_TO_FP32(x) GGML_COMPUTE_FP16_TO_FP32(x)
 #define GGML_FP32_TO_FP16(x) GGML_COMPUTE_FP32_TO_FP16(x)
 
-static inline float power_compute_fp16_to_fp32(ggml_fp16_t h) {
+static inline float ggml_compute_fp16_to_fp32(ggml_fp16_t h) {
     float f;
     double d;
     __asm__(
@@ -608,7 +608,7 @@ static inline float power_compute_fp16_to_fp32(ggml_fp16_t h) {
     return f;
 }
 
-static inline ggml_fp16_t power_compute_fp32_to_fp16(float f) {
+static inline ggml_fp16_t ggml_compute_fp32_to_fp16(float f) {
     double d;
     ggml_fp16_t r;
     __asm__( /* xscvdphp can work on double or single precision */
@@ -1155,7 +1155,7 @@ static inline ggml_fp16_t nnpa_compute_fp32_to_fp16(float f) {
 
 #elif defined(__riscv) && defined(__riscv_zfhmin)
 
-static inline float riscv_compute_fp16_to_fp32(ggml_fp16_t h) {
+static inline float ggml_compute_fp16_to_fp32(ggml_fp16_t h) {
     float f;
     __asm__(
         "fmv.h.x %[f], %[h]\n\t"
@@ -1166,7 +1166,7 @@ static inline float riscv_compute_fp16_to_fp32(ggml_fp16_t h) {
     return f;
 }
 
-static inline ggml_fp16_t riscv_compute_fp32_to_fp16(float f) {
+static inline ggml_fp16_t ggml_compute_fp32_to_fp16(float f) {
     ggml_fp16_t res;
     __asm__(
         "fcvt.h.s %[f], %[f]\n\t"
@@ -1177,8 +1177,8 @@ static inline ggml_fp16_t riscv_compute_fp32_to_fp16(float f) {
     return res;
 }
 
-#define GGML_COMPUTE_FP16_TO_FP32(x) riscv_compute_fp16_to_fp32(x)
-#define GGML_COMPUTE_FP32_TO_FP16(x) riscv_compute_fp32_to_fp16(x)
+#define GGML_COMPUTE_FP16_TO_FP32(x) ggml_compute_fp16_to_fp32(x)
+#define GGML_COMPUTE_FP32_TO_FP16(x) ggml_compute_fp32_to_fp16(x)
 #define GGML_FP16_TO_FP32(x) GGML_COMPUTE_FP16_TO_FP32(x)
 #define GGML_FP32_TO_FP16(x) GGML_COMPUTE_FP32_TO_FP16(x)
 

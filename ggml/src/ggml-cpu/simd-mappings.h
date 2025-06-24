@@ -1014,7 +1014,7 @@ static inline void __lasx_f32cx8_store(ggml_fp16_t * x, __m256 y) {
 #define GGML_F32x4_ZERO    __lsx_vldi(0)
 #define GGML_F32x4_SET1(x) __lsx_vinsgr2vr_w(__lsx_vldi(0),(x), 0)
 #define GGML_F32x4_LOAD(x) __lsx_vld((x), 0)
-#define GGML_F32x4_STORE((x),(y))   __lsx_vst((y), (x), 0)
+#define GGML_F32x4_STORE(x, y)   __lsx_vst(y, x, 0)
 #define GGML_F32x4_FMA(a, b, c) __lsx_vfmadd_s(b, c, a)
 #define GGML_F32x4_ADD     __lsx_vfadd_s
 #define GGML_F32x4_MUL     __lsx_vfmul_s

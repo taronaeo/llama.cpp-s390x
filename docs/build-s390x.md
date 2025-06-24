@@ -82,7 +82,7 @@ All models need to be converted to Big-Endian. You can achieve this in three cas
 
 1. **Use pre-converted models verified for use on IBM Z & LinuxONE (easiest)**
 
-    You can find popular models pre-converted and verified at [s390x Ready Models](hf.co/collections/taronaeo/s390x-ready-models-672765393af438d0ccb72a08).
+    You can find popular models pre-converted and verified at [s390x Ready Models](https://huggingface.co/collections/taronaeo/s390x-ready-models-672765393af438d0ccb72a08).
 
     These models and their respective tokenizers are verified to run correctly on IBM Z & LinuxONE.
 

@@ -248,6 +248,43 @@
     #define GGML_F16_VEC_REDUCE         GGML_F32Cx4_REDUCE
 #endif
 
+#if !(defined(__CUDACC__) && __CUDACC_VER_MAJOR__ <= 11) && !defined(__MUSACC__)
+#ifdef GGML_FP16_TO_FP32
+#undef GGML_FP16_TO_FP32
+#endif
+
+#ifdef GGML_FP32_TO_FP16
+#undef GGML_FP32_TO_FP16
+#endif
+
+#ifdef GGML_COMPUTE_FP16_TO_FP32
+#undef GGML_COMPUTE_FP16_TO_FP32
+#endif
+
+#ifdef GGML_COMPUTE_FP32_TO_FP16
+#undef GGML_COMPUTE_FP32_TO_FP16
+#endif
+
+#define GGML_COMPUTE_FP16_TO_FP32(x) ggml_compute_fp16_to_fp32(x)
+#define GGML_COMPUTE_FP32_TO_FP16(x) ggml_compute_fp32_to_fp16(x)
+
+#define GGML_FP16_TO_FP32(x) ggml_compute_fp16_to_fp32(x)
+
+static inline float ggml_compute_fp16_to_fp32(ggml_fp16_t h) {
+    __fp16 tmp;
+    memcpy(&tmp, &h, sizeof(ggml_fp16_t));
+    return (float)tmp;
+}
+
+static inline ggml_fp16_t ggml_compute_fp32_to_fp16(float f) {
+    ggml_fp16_t res;
+    __fp16 tmp = f;
+    memcpy(&res, &tmp, sizeof(ggml_fp16_t));
+    return res;
+}
+
+#endif  // !__CUDACC__ && __CUDACC_VER_MAJOR__ <= 11 && !__MUSACC__
+
 #elif defined(__AVX512F__)
 
 #define GGML_SIMD
@@ -410,6 +447,23 @@ do {                                                              \
 // the  _mm256_cvt intrinsics require F16C
 #define GGML_F32Cx8_LOAD(x)     _mm256_cvtph_ps(_mm_loadu_si128((const __m128i *)(x)))
 #define GGML_F32Cx8_STORE(x, y) _mm_storeu_si128((__m128i *)(x), _mm256_cvtps_ph(y, 0))
+
+#ifdef GGML_COMPUTE_FP16_TO_FP32
+#undef GGML_COMPUTE_FP16_TO_FP32
+#endif
+
+#ifdef GGML_COMPUTE_FP32_TO_FP16
+#undef GGML_COMPUTE_FP32_TO_FP16
+#endif
+
+#ifdef _MSC_VER
+    #define GGML_COMPUTE_FP16_TO_FP32(x) _mm_cvtss_f32(_mm_cvtph_ps(_mm_cvtsi32_si128(x)))
+    #define GGML_COMPUTE_FP32_TO_FP16(x) _mm_extract_epi16(_mm_cvtps_ph(_mm_set_ss(x), 0), 0)
+#else
+    #define GGML_COMPUTE_FP16_TO_FP32(x) _cvtsh_ss(x)
+    #define GGML_COMPUTE_FP32_TO_FP16(x) _cvtss_sh(x, 0)
+#endif
+
 #else
 static inline __m256 __avx_f32cx8_load(const ggml_fp16_t * x) {
     float tmp[8];
@@ -518,6 +572,53 @@ static inline unsigned char ggml_endian_byte(int i) {
     vec_xst(vec_pack_to_short_fp32(r[i - GGML_ENDIAN_BYTE(1)],  \
                                    r[i - GGML_ENDIAN_BYTE(0)]), \
             0, p - GGML_F16_EPR)
+
+#ifdef GGML_FP16_TO_FP32
+#undef GGML_FP16_TO_FP32
+#endif
+
+#ifdef GGML_FP32_TO_FP16
+#undef GGML_FP32_TO_FP16
+#endif
+
+#ifdef GGML_COMPUTE_FP16_TO_FP32
+#undef GGML_COMPUTE_FP16_TO_FP32
+#endif
+
+#ifdef GGML_COMPUTE_FP32_TO_FP16
+#undef GGML_COMPUTE_FP32_TO_FP16
+#endif
+
+#define GGML_COMPUTE_FP16_TO_FP32(x) ggml_compute_fp16_to_fp32(x)
+#define GGML_COMPUTE_FP32_TO_FP16(x) ggml_compute_fp32_to_fp16(x)
+/* the inline asm below is about 12% faster than the lookup method */
+#define GGML_FP16_TO_FP32(x) GGML_COMPUTE_FP16_TO_FP32(x)
+#define GGML_FP32_TO_FP16(x) GGML_COMPUTE_FP32_TO_FP16(x)
+
+static inline float ggml_compute_fp16_to_fp32(ggml_fp16_t h) {
+    float f;
+    double d;
+    __asm__(
+        "mtfprd %0,%2\n"
+        "xscvhpdp %0,%0\n"
+        "frsp %1,%0\n" :
+        /* temp */ "=d"(d),
+        /* out */  "=f"(f):
+        /* in */   "r"(h));
+    return f;
+}
+
+static inline ggml_fp16_t ggml_compute_fp32_to_fp16(float f) {
+    double d;
+    ggml_fp16_t r;
+    __asm__( /* xscvdphp can work on double or single precision */
+        "xscvdphp %0,%2\n"
+        "mffprd %1,%0\n" :
+        /* temp */ "=d"(d),
+        /* out */  "=r"(r):
+        /* in */   "f"(f));
+    return r;
+}
 
 #elif defined(__wasm_simd128__)
 
@@ -1051,6 +1152,35 @@ static inline ggml_fp16_t nnpa_compute_fp32_to_fp16(float f) {
 }
 
 #endif  // __NNPA__
+
+#elif defined(__riscv) && defined(__riscv_zfhmin)
+
+static inline float ggml_compute_fp16_to_fp32(ggml_fp16_t h) {
+    float f;
+    __asm__(
+        "fmv.h.x %[f], %[h]\n\t"
+        "fcvt.s.h %[f], %[f]"
+        : [f] "=&f" (f)
+        : [h] "r" (h)
+    );
+    return f;
+}
+
+static inline ggml_fp16_t ggml_compute_fp32_to_fp16(float f) {
+    ggml_fp16_t res;
+    __asm__(
+        "fcvt.h.s %[f], %[f]\n\t"
+        "fmv.x.h %[h], %[f]"
+        : [h] "=&r" (res)
+        : [f] "f" (f)
+    );
+    return res;
+}
+
+#define GGML_COMPUTE_FP16_TO_FP32(x) ggml_compute_fp16_to_fp32(x)
+#define GGML_COMPUTE_FP32_TO_FP16(x) ggml_compute_fp32_to_fp16(x)
+#define GGML_FP16_TO_FP32(x) GGML_COMPUTE_FP16_TO_FP32(x)
+#define GGML_FP32_TO_FP16(x) GGML_COMPUTE_FP32_TO_FP16(x)
 
 #endif
 

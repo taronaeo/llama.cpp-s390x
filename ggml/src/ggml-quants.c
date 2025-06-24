@@ -4,7 +4,6 @@
 #include "ggml-quants.h"
 #include "ggml-impl.h"
 #include "ggml-cpu/ggml-cpu-impl.h"
-#include "ggml-cpu/simd-mappings.h"
 #include "ggml-cpu.h"
 
 #include <math.h>

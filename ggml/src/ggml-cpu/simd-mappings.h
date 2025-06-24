@@ -172,6 +172,42 @@
     #define GGML_COMPUTE_FP32_TO_FP16(x) riscv_compute_fp32_to_fp16(x)
     #define GGML_FP16_TO_FP32(x) GGML_COMPUTE_FP16_TO_FP32(x)
     #define GGML_FP32_TO_FP16(x) GGML_COMPUTE_FP32_TO_FP16(x)
+#elif defined(__NNPA__)
+    #ifdef GGML_FP16_TO_FP32
+    #undef GGML_FP16_TO_FP32
+    #endif
+
+    #ifdef GGML_FP32_TO_FP16
+    #undef GGML_FP32_TO_FP16
+    #endif
+
+    #ifdef GGML_COMPUTE_FP16_TO_FP32
+    #undef GGML_COMPUTE_FP16_TO_FP32
+    #endif
+
+    #ifdef GGML_COMPUTE_FP32_TO_FP16
+    #undef GGML_COMPUTE_FP32_TO_FP16
+    #endif
+
+    #define GGML_COMPUTE_FP16_TO_FP32(x) nnpa_compute_fp16_to_fp32(x)
+    #define GGML_COMPUTE_FP32_TO_FP16(x) nnpa_compute_fp32_to_fp16(x)
+
+    #define GGML_FP16_TO_FP32(x) GGML_COMPUTE_FP16_TO_FP32(x)
+    #define GGML_FP32_TO_FP16(x) GGML_COMPUTE_FP32_TO_FP16(x)
+
+    static inline float nnpa_compute_fp16_to_fp32(ggml_fp16_t h) {
+        uint16x8_t v_h = vec_splats(h);
+        uint16x8_t v_hd = vec_convert_from_fp16(v_h, 0);
+        return vec_extend_to_fp32_hi(v_hd, 0)[0];
+    }
+
+    static inline ggml_fp16_t nnpa_compute_fp32_to_fp16(float f) {
+        float32x4_t v_f = vec_splats(f);
+        float32x4_t v_zero = vec_splats(0.0f);
+        uint16x8_t v_hd = vec_round_from_fp32(v_f, v_zero, 0);
+        uint16x8_t v_h = vec_convert_to_fp16(v_hd, 0);
+        return vec_extract(v_h, 0);
+    }
 #endif
 
 // On ARM NEON, it's quicker to directly convert x -> x instead of calling into ggml_lookup_fp16_to_fp32,
@@ -1198,45 +1234,6 @@ static inline void __lzs_f16cx4_store(ggml_fp16_t * x, float32x4_t v_y) {
 #define GGML_F16_VEC_ADD            GGML_F32x4_ADD
 #define GGML_F16_VEC_MUL            GGML_F32x4_MUL
 #define GGML_F16_VEC_REDUCE         GGML_F32x4_REDUCE
-
-#if defined(__NNPA__)
-#ifdef GGML_FP16_TO_FP32
-#undef GGML_FP16_TO_FP32
-#endif
-
-#ifdef GGML_FP32_TO_FP16
-#undef GGML_FP32_TO_FP16
-#endif
-
-#ifdef GGML_COMPUTE_FP16_TO_FP32
-#undef GGML_COMPUTE_FP16_TO_FP32
-#endif
-
-#ifdef GGML_COMPUTE_FP32_TO_FP16
-#undef GGML_COMPUTE_FP32_TO_FP16
-#endif
-
-#define GGML_COMPUTE_FP16_TO_FP32(x) nnpa_compute_fp16_to_fp32(x)
-#define GGML_COMPUTE_FP32_TO_FP16(x) nnpa_compute_fp32_to_fp16(x)
-
-#define GGML_FP16_TO_FP32(x) GGML_COMPUTE_FP16_TO_FP32(x)
-#define GGML_FP32_TO_FP16(x) GGML_COMPUTE_FP32_TO_FP16(x)
-
-static inline float nnpa_compute_fp16_to_fp32(ggml_fp16_t h) {
-    uint16x8_t v_h = vec_splats(h);
-    uint16x8_t v_hd = vec_convert_from_fp16(v_h, 0);
-    return vec_extend_to_fp32_hi(v_hd, 0)[0];
-}
-
-static inline ggml_fp16_t nnpa_compute_fp32_to_fp16(float f) {
-    float32x4_t v_f = vec_splats(f);
-    float32x4_t v_zero = vec_splats(0.0f);
-    uint16x8_t v_hd = vec_round_from_fp32(v_f, v_zero, 0);
-    uint16x8_t v_h = vec_convert_to_fp16(v_hd, 0);
-    return vec_extract(v_h, 0);
-}
-
-#endif  // __NNPA__
 
 #endif
 

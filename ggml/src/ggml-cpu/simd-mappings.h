@@ -135,10 +135,6 @@
         uint16x8_t v_h = vec_convert_to_fp16(v_hd, 0);
         return vec_extract(v_h, 0);
     }
-#else
-    // fallback to the generic implementation
-    #define GGML_CPU_FP16_TO_FP32(x) GGML_FP16_TO_FP32(x)
-    #define GGML_CPU_FP32_TO_FP16(x) GGML_FP32_TO_FP16(x)
 #endif
 
 // On ARM NEON, it's quicker to directly convert x -> x instead of calling into ggml_lookup_fp16_to_fp32,

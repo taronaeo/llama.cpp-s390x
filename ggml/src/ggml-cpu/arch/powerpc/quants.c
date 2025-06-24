@@ -3,6 +3,7 @@
 #include "ggml-quants.h"
 #include "ggml-impl.h"
 #include "ggml-cpu.h"
+#include "simd-mappings.h"
 
 #include "../../quants.h"
 #include "../../ggml-cpu-impl.h"

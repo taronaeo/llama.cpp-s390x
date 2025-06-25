@@ -3479,7 +3479,6 @@ void ggml_cpu_init(void) {
                     ggml_fp16_t fp16;
                 } u = {i};
                 float f = GGML_CPU_FP16_TO_FP32(u.fp16);
-                ggml_table_f32_f16[i] = GGML_COMPUTE_FP16_TO_FP32(u.fp16);
                 ggml_table_gelu_f16[i] = GGML_CPU_FP32_TO_FP16(ggml_gelu_f32(f));
                 ggml_table_gelu_quick_f16[i] = GGML_CPU_FP32_TO_FP16(ggml_gelu_quick_f32(f));
             }

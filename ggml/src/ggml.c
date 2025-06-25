@@ -1411,6 +1411,19 @@ static inline bool ggml_can_repeat_rows(const struct ggml_tensor * t0, const str
 ////////////////////////////////////////////////////////////////////////////////
 
 struct ggml_context * ggml_init(struct ggml_init_params params) {
+    static bool is_first_call = true;
+
+    ggml_critical_section_start();
+
+    if (is_first_call) {
+        // initialize time system (required on Windows)
+        ggml_time_init();
+
+        is_first_call = false;
+    }
+
+    ggml_critical_section_end();
+
     struct ggml_context * ctx = GGML_MALLOC(sizeof(struct ggml_context));
 
     // allow to call ggml_init with 0 size

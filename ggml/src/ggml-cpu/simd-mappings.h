@@ -18,6 +18,10 @@
 #include <immintrin.h>
 #endif
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 //
 // simd mappings
 //
@@ -139,11 +143,7 @@
 
 // precomputed f32 table for f16 (256 KB)
 // defined in ggml-cpu.c, initialized in ggml_cpu_init()
-#ifdef __cplusplus
-extern "C" float ggml_table_f32_f16[1 << 16];
-#else
 extern float ggml_table_f32_f16[1 << 16];
-#endif
 
 // On ARM NEON, it's quicker to directly convert x -> x instead of calling into ggml_lookup_fp16_to_fp32,
 // so we define GGML_CPU_FP16_TO_FP32 and GGML_CPU_FP32_TO_FP16 elsewhere for NEON.
@@ -1177,4 +1177,9 @@ static inline void __lzs_f16cx4_store(ggml_fp16_t * x, float32x4_t v_y) {
 #ifdef GGML_SIMD
 #define GGML_F32_ARR (GGML_F32_STEP/GGML_F32_EPR)
 #define GGML_F16_ARR (GGML_F16_STEP/GGML_F16_EPR)
+#endif
+
+
+#ifdef __cplusplus
+}
 #endif

@@ -1179,7 +1179,6 @@ static inline void __lzs_f16cx4_store(ggml_fp16_t * x, float32x4_t v_y) {
 #define GGML_F16_ARR (GGML_F16_STEP/GGML_F16_EPR)
 #endif
 
-
 #ifdef __cplusplus
 }
 #endif

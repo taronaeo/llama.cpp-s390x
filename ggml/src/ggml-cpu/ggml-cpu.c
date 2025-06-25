@@ -3460,13 +3460,6 @@ int ggml_cpu_has_sme(void) {
 }
 
 void ggml_cpu_init(void) {
-    // needed to initialize f16 tables
-    {
-        struct ggml_init_params params = { 0, NULL, false };
-        struct ggml_context * ctx = ggml_init(params);
-        ggml_free(ctx);
-    }
-
     ggml_critical_section_start();
 
     static bool is_first_call = true;

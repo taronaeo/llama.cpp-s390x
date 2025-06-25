@@ -61,9 +61,6 @@
 #define m512i(p) (__m512i)(p)
 #endif
 
-// precomputed f32 table for f16 (256 KB) (ggml-impl.h)
-float ggml_table_f32_f16[1 << 16];
-
 #if defined(__linux__) || \
     defined(__FreeBSD__) || defined(__NetBSD__) || defined(__OpenBSD__) || \
     (defined(__APPLE__) && !TARGET_OS_TV && !TARGET_OS_WATCH)

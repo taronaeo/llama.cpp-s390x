@@ -185,6 +185,10 @@ IBM VXE/VXE2 SIMD acceleration depends on the BLAS implementation. It is strongl
 
     Answer: Please refer to the [Appendix B: SIMD Support Matrix](#appendix-b-simd-support-matrix) to check if your model quantization is supported by SIMD acceleration.
 
+3. I'm building on IBM z17 and getting the following error messages: `invalid switch -march=z17`
+
+    Answer: Please ensure that your GCC compiler is of minimum GCC 15.1.0 version, and have `binutils` updated to the latest version. If this does not fix the problem, kindly open an issue.
+
 ## Getting Help on IBM Z & LinuxONE
 
 1. **Bugs, Feature Requests**

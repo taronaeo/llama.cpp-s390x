@@ -10,10 +10,10 @@ extern "C" {
 #define GGML_ZDNN_BACKEND_NAME    "ZDNN"
 #define GGML_ZDNN_BACKEND_VERSION ZDNN_VERNUM
 
-GGML_BACKEND_API ggml_backend_t ggml_backend_zdnn_init();
-GGML_BACKEND_API bool ggml_backend_is_zdnn();
+GGML_BACKEND_API ggml_backend_t ggml_backend_zdnn_init(void);
+GGML_BACKEND_API bool ggml_backend_is_zdnn(ggml_backend_t backend);
 
-GGML_BACKEND_API ggml_backend_reg_t ggml_backend_zdnn_reg();
+GGML_BACKEND_API ggml_backend_reg_t ggml_backend_zdnn_reg(void);
 
 #ifdef __cplusplus
 }

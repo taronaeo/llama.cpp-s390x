@@ -83,7 +83,7 @@ ggml_backend_t ggml_backend_zdnn_init(void) {
         /* .interface   = */ ggml_backend_zdnn_i,
         /* .device      = */ ggml_backend_reg_dev_get(ggml_backend_zdnn_reg(), 0),
         /* .context     = */ ctx,
-    }
+    };
 }
 
 bool ggml_backend_is_zdnn(ggml_backend_t backend) {

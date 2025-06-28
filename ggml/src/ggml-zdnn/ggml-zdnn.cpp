@@ -84,6 +84,8 @@ ggml_backend_t ggml_backend_zdnn_init(void) {
         /* .device      = */ ggml_backend_reg_dev_get(ggml_backend_zdnn_reg(), 0),
         /* .context     = */ ctx,
     };
+
+    return backend;
 }
 
 bool ggml_backend_is_zdnn(ggml_backend_t backend) {
@@ -173,6 +175,8 @@ static bool ggml_backend_zdnn_device_supports_op(ggml_backend_dev_t dev, const g
     }
 
     GGML_UNUSED(dev);
+    GGML_UNUSED(src0);
+    GGML_UNUSED(src1);
 }
 
 static bool ggml_backend_zdnn_device_supports_buft(ggml_backend_dev_t dev, ggml_backend_buffer_type_t buft) {
@@ -250,6 +254,8 @@ ggml_backend_reg_t ggml_backend_zdnn_reg(void) {
         /* .iface       = */ ggml_backend_zdnn_reg_i,
         /* .context     = */ NULL,
     };
+
+    return &ggml_backend_zdnn_reg;
 }
 
 GGML_BACKEND_DL_IMPL(ggml_backend_zdnn_reg)

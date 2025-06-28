@@ -35,7 +35,27 @@ inline zdnn_data_types ggml_zdnn_type_mapping(ggml_type type) {
 // Kernels
 // --------------------------------------------------------------------------
 
+inline void ggml_zdnn_mul_mat_dispatch(ggml_backend_zdnn_context & ctx,
+                                               const ggml_tensor * src0,
+                                               const ggml_tensor * src1,
+                                                     ggml_tensor * dst) {
+    GGML_UNUSED(ctx);
+    std::raise(SIGINT);
+}
 
+inline bool ggml_zdnn_compute_forward(ggml_backend_zdnn_context & ctx,
+                                                    ggml_tensor * dst) {
+    switch (dst->op) {
+        case GGML_OP_MUL_MAT:
+            ggml_zdnn_mul_mat_dispatch(ctx, dst->src[0], dst->src[1], dst);
+            break;
+
+        default:
+            return false;
+    }
+
+    return true;
+}
 
 // --------------------------------------------------------------------------
 // Backend Buffer
@@ -235,32 +255,26 @@ static enum ggml_status ggml_backend_zdnn_graph_compute(ggml_backend_t backend, 
     for (int i = 0; i < cgraph->n_nodes; i++) {
         struct ggml_tensor * node = cgraph->nodes[i];
 
-        switch (node->op) {
-            case GGML_OP_NONE:
-            case GGML_OP_RESHAPE:
-            case GGML_OP_VIEW:
-            case GGML_OP_PERMUTE:
-            case GGML_OP_TRANSPOSE:
-                break;
-
-            case GGML_OP_MUL_MAT:
-                GGML_LOG_INFO("%s: processing node %d: %s\n", __func__, i, ggml_op_desc(node));
-                std::raise(SIGINT);
-                break;
-
-            case GGML_OP_OUT_PROD:
-                // GGML_LOG_INFO("%s: processing node %d: %s\n", __func__, i, ggml_op_desc(node));
-                break;
-
-            default:
-                GGML_ABORT("%s: unsupported op %s\n", __func__, ggml_op_desc(node));
+        if (ggml_is_empty(node)
+            || node->op == GGML_OP_NONE
+            || node->op == GGML_OP_RESHAPE
+            || node->op == GGML_OP_VIEW
+            || node->op == GGML_OP_PERMUTE
+            || node->op == GGML_OP_TRANSPOSE) {
+            continue;
         }
+
+        bool ok = ggml_zdnn_compute_forward(*ctx, node);
+        if (!ok) {
+            GGML_LOG_ERROR("%s: unsupported op %s (%s)\n",
+                           __func__, ggml_op_desc(node), node->name);
+            return GGML_STATUS_FAILED;
+        }
+
+        GGML_ASSERT(ok);
     }
 
     return GGML_STATUS_SUCCESS;
-
-    GGML_UNUSED(backend);
-    GGML_UNUSED(ctx);
 }
 
 static const ggml_backend_i ggml_backend_zdnn_i = {
@@ -365,7 +379,35 @@ static bool ggml_backend_zdnn_device_supports_op(ggml_backend_dev_t dev, const g
             return true;
 
         case GGML_OP_MUL_MAT:
-            return true;
+            {
+                const ggml_tensor * a = op->src[0];
+                const ggml_tensor * b = op->src[1];
+
+                if ((b->type == GGML_TYPE_F16 && a->type != GGML_TYPE_F16) ||
+                    !ggml_is_contiguous(a) || !ggml_is_contiguous(b) ||
+                    a->ne[0] > 32768 || a->ne[1] > 32768 ||
+                    b->ne[0] > 32768 || b->ne[1] > 32768) {
+                    return false;
+                }
+
+                // Disable batched matrix multiplication for now
+                if ((a->type == GGML_TYPE_F16 || a->type == GGML_TYPE_BF16)
+                    && b->type == GGML_TYPE_F32 && b->type == GGML_TYPE_F32
+                    && op->ne[0] % 2 == 0 && op->ne[1] == 1) {
+                    return false;
+                }
+
+                switch (a->type) {
+                    case GGML_TYPE_F32:
+                    case GGML_TYPE_F16:
+                    case GGML_TYPE_BF16:
+                    case GGML_TYPE_I32:
+                    case GGML_TYPE_I8:
+                        return true;
+                    default:
+                        return false;
+                }
+            } break;
         case GGML_OP_OUT_PROD:
             return false;
 

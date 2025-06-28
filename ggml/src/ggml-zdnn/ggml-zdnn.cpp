@@ -4,16 +4,51 @@
 #include "ggml-zdnn/zdnn.h"
 #include "ggml-zdnn/ggml-zdnn-impl.h"
 
+#include <csignal>
+
+// --------------------------------------------------------------------------
+// Utilities
+// --------------------------------------------------------------------------
+
+static inline zdnn_data_types ggml_zdnn_type_mapping(ggml_type type) {
+    switch (type) {
+        case GGML_TYPE_F32:
+            return FP32;
+        case GGML_TYPE_F16:
+            return FP16;
+        case GGML_TYPE_BF16:
+            return BFLOAT;
+        case GGML_TYPE_I8:
+            return INT8;
+        case GGML_TYPE_I32:
+            return INT32;
+        case GGML_TYPE_Q8_0:
+            return INT8;
+        default:
+            GGML_ABORT("%s: fatal: unable to determine zTensor data type",
+                       __func__);
+    }
+}
+
+
 // --------------------------------------------------------------------------
 // Kernels
 // --------------------------------------------------------------------------
+
+
 
 // --------------------------------------------------------------------------
 // Backend Buffer
 // --------------------------------------------------------------------------
 
+struct ggml_zdnn_tensor_extra {
+    zdnn_tensor_desc pre_transform_desc;
+    zdnn_tensor_desc transform_desc;
+    zdnn_ztensor ztensor;
+};
+
 static void ggml_backend_zdnn_buffer_free(ggml_backend_buffer_t buffer) {
-    ggml_aligned_free(buffer->context, buffer->size);
+    // ggml_aligned_free(buffer->context, buffer->size);
 }
 
 static void * ggml_backend_zdnn_buffer_get_base(ggml_backend_buffer_t buffer) {
@@ -28,39 +63,52 @@ static void * ggml_backend_zdnn_buffer_get_base(ggml_backend_buffer_t buffer) {
 }
 
 static void ggml_backend_zdnn_buffer_init_tensor(ggml_backend_buffer_t buffer, struct ggml_tensor * tensor) {
-    // TODO: Work on this
+    ggml_zdnn_tensor_extra * extra = new ggml_zdnn_tensor_extra;
+    zdnn_init_pre_transformed_desc(
+        ZDNN_2D,
+        ggml_zdnn_type_mapping(tensor->type),
+        &extra->pre_transform_desc,
+        1, 1, tensor->ne[1], tensor->ne[0]
+    );
+
+    ZDNN_CHECK(zdnn_generate_transformed_desc(&extra->pre_transform_desc, &extra->transform_desc));
+    ZDNN_CHECK(zdnn_init_ztensor_with_malloc(&extra->pre_transform_desc, &extra->transform_desc, &extra->ztensor));
+
+    tensor->extra = extra;
+
+    GGML_UNUSED(buffer);
 }
 
 static void ggml_backend_zdnn_buffer_memset_tensor(ggml_backend_buffer_t buffer, struct ggml_tensor * tensor, uint8_t value, size_t offset, size_t size) {
-    memset((char *)tensor->data + offset, value, size);
+    // memset((char *)tensor->data + offset, value, size);
 
     GGML_UNUSED(buffer);
 }
 
 static void ggml_backend_zdnn_buffer_set_tensor(ggml_backend_buffer_t buffer, struct ggml_tensor * tensor, const void * data, size_t offset, size_t size) {
-    memcpy((char *)tensor->data + offset, data, size);
+    // memcpy((char *)tensor->data + offset, data, size);
 
     GGML_UNUSED(buffer);
 }
 
 static void ggml_backend_zdnn_buffer_get_tensor(ggml_backend_buffer_t buffer, const struct ggml_tensor * tensor, void * data, size_t offset, size_t size) {
-    memcpy(data, (const char *)tensor->data + offset, size);
+    // memcpy(data, (const char *)tensor->data + offset, size);
 
     GGML_UNUSED(buffer);
 }
 
 static bool ggml_backend_zdnn_buffer_cpy_tensor(ggml_backend_buffer_t buffer, const struct ggml_tensor * src, struct ggml_tensor * dst) {
-    if (ggml_backend_buffer_is_host(src->buffer)) {
-        memcpy(dst->data, src->data, ggml_nbytes(src));
-        return true;
-    }
-    return false;
+    // if (ggml_backend_buffer_is_host(src->buffer)) {
+    //     memcpy(dst->data, src->data, ggml_nbytes(src));
+    //     return true;
+    // }
+    // return false;
 
     GGML_UNUSED(buffer);
 }
 
 static void ggml_backend_zdnn_buffer_clear(ggml_backend_buffer_t buffer, uint8_t value) {
-    memset(buffer->context, value, buffer->size);
+    // memset(buffer->context, value, buffer->size);
 }
 
 static const ggml_backend_buffer_i ggml_backend_zdnn_buffer_i = {
@@ -197,10 +245,11 @@ static enum ggml_status ggml_backend_zdnn_graph_compute(ggml_backend_t backend, 
 
             case GGML_OP_MUL_MAT:
                 GGML_LOG_INFO("%s: processing node %d: %s\n", __func__, i, ggml_op_desc(node));
+                std::raise(SIGINT);
                 break;
 
             case GGML_OP_OUT_PROD:
-                GGML_LOG_INFO("%s: processing node %d: %s\n", __func__, i, ggml_op_desc(node));
+                // GGML_LOG_INFO("%s: processing node %d: %s\n", __func__, i, ggml_op_desc(node));
                 break;
 
             default:
@@ -316,8 +365,9 @@ static bool ggml_backend_zdnn_device_supports_op(ggml_backend_dev_t dev, const g
             return true;
 
         case GGML_OP_MUL_MAT:
-        case GGML_OP_OUT_PROD:
             return true;
+        case GGML_OP_OUT_PROD:
+            return false;
 
         default:
             return false;
@@ -363,7 +413,11 @@ static const char * ggml_backend_zdnn_reg_get_name(ggml_backend_reg_t reg) {
 }
 
 static size_t ggml_backend_zdnn_reg_get_device_count(ggml_backend_reg_t reg) {
-    return 1;  // zDNN backend currently supports only one device
+    if (zdnn_is_nnpa_installed()) {
+        return 1;  // zDNN backend currently supports only one device
+    }
+
+    return 0;
 
     GGML_UNUSED(reg);
 }
@@ -412,6 +466,10 @@ ggml_backend_reg_t ggml_backend_zdnn_reg(void) {
 }
 
 ggml_backend_t ggml_backend_zdnn_init(void) {
+#ifdef STATIC_LIB
+    zdnn_init();
+#endif
+
     ggml_backend_zdnn_context * ctx = new ggml_backend_zdnn_context;
 
     ggml_backend_t backend = new ggml_backend {

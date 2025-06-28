@@ -10,7 +10,7 @@
 // Utilities
 // --------------------------------------------------------------------------
 
-static inline zdnn_data_types ggml_zdnn_type_mapping(ggml_type type) {
+inline zdnn_data_types ggml_zdnn_type_mapping(ggml_type type) {
     switch (type) {
         case GGML_TYPE_F32:
             return FP32;

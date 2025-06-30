@@ -137,8 +137,84 @@ static void ggml_backend_zdnn_buffer_memset_tensor(ggml_backend_buffer_t buffer,
 
 static void ggml_backend_zdnn_buffer_set_tensor(ggml_backend_buffer_t buffer, ggml_tensor * tensor, const void * data, size_t offset, size_t size) {
     // memcpy((char *)tensor->data + offset, data, size);
+    zdnn_status status;
     ggml_backend_zdnn_buffer_context * ctx = (ggml_backend_zdnn_buffer_context *)buffer->context;
-    ZDNN_CHECK(zdnn_transform_ztensor(&ctx->ztensor, (char *)data + offset));
+
+    GGML_LOG_INFO("%s: ===================================", __func__);
+    GGML_LOG_INFO("%s: ctx->pre_transform_desc.layout = %d", __func__, ctx->pre_transform_desc.layout);
+    GGML_LOG_INFO("%s: ctx->pre_transform_desc.format = %d", __func__, ctx->pre_transform_desc.format);
+    GGML_LOG_INFO("%s: ctx->pre_transform_desc.type = %d", __func__, ctx->pre_transform_desc.type);
+    GGML_LOG_INFO("%s: ctx->pre_transform_desc.dim4 = %d", __func__, ctx->pre_transform_desc.dim4);
+    GGML_LOG_INFO("%s: ctx->pre_transform_desc.dim3 = %d", __func__, ctx->pre_transform_desc.dim3);
+    GGML_LOG_INFO("%s: ctx->pre_transform_desc.dim2 = %d", __func__, ctx->pre_transform_desc.dim2);
+    GGML_LOG_INFO("%s: ctx->pre_transform_desc.dim1 = %d", __func__, ctx->pre_transform_desc.dim1);
+    GGML_LOG_INFO("%s: ===================================", __func__);
+    GGML_LOG_INFO("%s: ctx->transform_desc.layout = %d", __func__, ctx->transform_desc.layout);
+    GGML_LOG_INFO("%s: ctx->transform_desc.format = %d", __func__, ctx->transform_desc.format);
+    GGML_LOG_INFO("%s: ctx->transform_desc.type = %d", __func__, ctx->transform_desc.type);
+    GGML_LOG_INFO("%s: ctx->transform_desc.dim4 = %d", __func__, ctx->transform_desc.dim4);
+    GGML_LOG_INFO("%s: ctx->transform_desc.dim3 = %d", __func__, ctx->transform_desc.dim3);
+    GGML_LOG_INFO("%s: ctx->transform_desc.dim2 = %d", __func__, ctx->transform_desc.dim2);
+    GGML_LOG_INFO("%s: ctx->transform_desc.dim1 = %d", __func__, ctx->transform_desc.dim1);
+    GGML_LOG_INFO("%s: ===================================", __func__);
+    GGML_LOG_INFO("%s: ctx->ztensor.buffer_size = %" PRIu64, __func__, ctx->ztensor.buffer_size);
+    GGML_LOG_INFO("%s: ctx->ztensor.buffer = %p", __func__, ctx->ztensor.buffer);
+    GGML_LOG_INFO("%s: ctx->ztensor.is_transformed = %d", __func__, ctx->ztensor.is_transformed);
+    GGML_LOG_INFO("%s: ctx->ztensor.rec_scale = %f", __func__, ctx->ztensor.rec_scale);
+    GGML_LOG_INFO("%s: ctx->ztensor.offset = %f", __func__, ctx->ztensor.offset);
+    GGML_LOG_INFO("%s: ===================================", __func__);
+
+    status = zdnn_transform_ztensor(&ctx->ztensor, (char *)data + offset);
+    if (status == ZDNN_OK) {
+        return;
+    } else if (status == ZDNN_INVALID_FORMAT) {
+        GGML_LOG_INFO("%s: ZDNN_INVALID_FORMAT\n", __func__);
+        return;
+    } else if (status == ZDNN_INVALID_LAYOUT) {
+        GGML_LOG_INFO("%s: ZDNN_INVALID_LAYOUT\n", __func__);
+        return;
+    } else if (status == ZDNN_INVALID_TYPE) {
+        GGML_LOG_INFO("%s: ZDNN_INVALID_TYPE\n", __func__);
+        return;
+    } else if (status == ZDNN_INVALID_BUFFER) {
+        GGML_LOG_INFO("%s: ZDNN_INVALID_BUFFER\n", __func__);
+        return;
+    } else if (status == ZDNN_INVALID_SHAPE) {
+        GGML_LOG_INFO("%s: ZDNN_INVALID_SHAPE\n", __func__);
+        return;
+    } else if (status == ZDNN_INVALID_STATE) {
+        GGML_LOG_INFO("%s: ZDNN_INVALID_STATE\n", __func__);
+        GGML_LOG_INFO("%s: ===================================", __func__);
+        GGML_LOG_INFO("%s: ctx->pre_transform_desc.layout = %d", __func__, ctx->pre_transform_desc.layout);
+        GGML_LOG_INFO("%s: ctx->pre_transform_desc.format = %d", __func__, ctx->pre_transform_desc.format);
+        GGML_LOG_INFO("%s: ctx->pre_transform_desc.type = %d", __func__, ctx->pre_transform_desc.type);
+        GGML_LOG_INFO("%s: ctx->pre_transform_desc.dim4 = %d", __func__, ctx->pre_transform_desc.dim4);
+        GGML_LOG_INFO("%s: ctx->pre_transform_desc.dim3 = %d", __func__, ctx->pre_transform_desc.dim3);
+        GGML_LOG_INFO("%s: ctx->pre_transform_desc.dim2 = %d", __func__, ctx->pre_transform_desc.dim2);
+        GGML_LOG_INFO("%s: ctx->pre_transform_desc.dim1 = %d", __func__, ctx->pre_transform_desc.dim1);
+        GGML_LOG_INFO("%s: ===================================", __func__);
+        GGML_LOG_INFO("%s: ctx->transform_desc.layout = %d", __func__, ctx->transform_desc.layout);
+        GGML_LOG_INFO("%s: ctx->transform_desc.format = %d", __func__, ctx->transform_desc.format);
+        GGML_LOG_INFO("%s: ctx->transform_desc.type = %d", __func__, ctx->transform_desc.type);
+        GGML_LOG_INFO("%s: ctx->transform_desc.dim4 = %d", __func__, ctx->transform_desc.dim4);
+        GGML_LOG_INFO("%s: ctx->transform_desc.dim3 = %d", __func__, ctx->transform_desc.dim3);
+        GGML_LOG_INFO("%s: ctx->transform_desc.dim2 = %d", __func__, ctx->transform_desc.dim2);
+        GGML_LOG_INFO("%s: ctx->transform_desc.dim1 = %d", __func__, ctx->transform_desc.dim1);
+        GGML_LOG_INFO("%s: ===================================", __func__);
+        GGML_LOG_INFO("%s: ctx->ztensor.buffer_size = %" PRIu64, __func__, ctx->ztensor.buffer_size);
+        GGML_LOG_INFO("%s: ctx->ztensor.buffer = %p", __func__, ctx->ztensor.buffer);
+        GGML_LOG_INFO("%s: ctx->ztensor.is_transformed = %d", __func__, ctx->ztensor.is_transformed);
+        GGML_LOG_INFO("%s: ctx->ztensor.rec_scale = %f", __func__, ctx->ztensor.rec_scale);
+        GGML_LOG_INFO("%s: ctx->ztensor.offset = %f", __func__, ctx->ztensor.offset);
+        GGML_LOG_INFO("%s: ===================================", __func__);
+        return;
+    } else if (status == ZDNN_CONVERT_FAILURE) {
+        GGML_LOG_INFO("%s: ZDNN_CONVERT_FAILURE\n", __func__);
+        return;
+    } else if (status == ZDNN_FUNC_RC_F000) {
+        GGML_LOG_INFO("%s: ZDNN_FUNC_RC_F000, unsupported transformation function\n", __func__);
+        return;
+    }
 }
 
 static void ggml_backend_zdnn_buffer_get_tensor(ggml_backend_buffer_t buffer, const ggml_tensor * tensor, void * data, size_t offset, size_t size) {

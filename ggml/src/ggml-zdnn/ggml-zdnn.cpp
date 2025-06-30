@@ -87,6 +87,20 @@ static void ggml_backend_zdnn_buffer_init_tensor(ggml_backend_buffer_t buffer, g
 
     switch (tensor->op) {
         case GGML_OP_MUL_MAT:
+            for (int i = 0; i < GGML_MAX_SRC; ++i) {
+                if (tensor->src[i] != nullptr && tensor->src[i]->extra == nullptr) {
+                    ggml_backend_zdnn_buffer_context * src_ctx = new ggml_backend_zdnn_buffer_context{};
+                    zdnn_init_pre_transformed_desc(
+                        ZDNN_2D,
+                        ggml_zdnn_type_mapping(tensor->src[i]->type),
+                        &src_ctx->pre_transform_desc,
+                        1, 1, tensor->src[i]->ne[1], tensor->src[i]->ne[0]
+                    );
+
+                    tensor->src[i]->extra = src_ctx;
+                }
+            }
+
             zdnn_init_pre_transformed_desc(
                 ZDNN_2D,
                 ggml_zdnn_type_mapping(tensor->type),

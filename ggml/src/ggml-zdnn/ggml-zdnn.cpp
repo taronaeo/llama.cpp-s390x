@@ -104,7 +104,7 @@ static void ggml_backend_zdnn_buffer_init_tensor(ggml_backend_buffer_t buffer, g
                 for (int i = 0; i < GGML_MAX_SRC; ++i) {
                     if (tensor->src[i] != nullptr
                         && tensor->src[i]->extra == nullptr
-                        && tensor->buffer->buft == ggml_backend_cpu_buffer_type()) {
+                        && tensor->src[i]->buffer->buft == ggml_backend_cpu_buffer_type()) {
                         ggml_backend_zdnn_buffer_context * src_ctx = new ggml_backend_zdnn_buffer_context{};
                         zdnn_init_pre_transformed_desc(
                             ZDNN_2D,

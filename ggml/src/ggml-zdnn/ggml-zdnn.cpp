@@ -87,98 +87,45 @@ inline void ggml_zdnn_op_mul_mat(ggml_backend_zdnn_context & ctx,
     GGML_ASSERT(nb1 <= nb2);
     GGML_ASSERT(nb2 <= nb3);
 
-    const ggml_tensor * weights = src0;
     const ggml_tensor * inputs  = src1;
+    const ggml_tensor * weights = src0;
           ggml_tensor * output  = dst;
 
-    const int64_t weights_rows = ne01;
-    const int64_t weights_cols = ne00;
+    zdnn_tensor_desc pre_tfm_desc_inputs,  tfm_desc_inputs;
+    zdnn_tensor_desc pre_tfm_desc_weights, tfm_desc_weights;
+    zdnn_tensor_desc pre_tfm_desc_bias,    tfm_desc_bias;
+    zdnn_tensor_desc pre_tfm_desc_output,  tfm_desc_output;
+    zdnn_ztensor     ztensor_weights,      ztensor_inputs,
+                     ztensor_bias,         ztensor_output;
+
     const int64_t inputs_rows  = ne11;
     const int64_t inputs_cols  = ne10;
+    const int64_t weights_rows = ne01;
+    const int64_t weights_cols = ne00;
 
     assert(inputs_cols == weights_cols);
 
     const int64_t output_rows = ne1;
     const int64_t output_cols = ne0;
 
-    // GGML_LOG_INFO("%s: =================================================\n", __func__);
-    // GGML_LOG_INFO("%s: inputs:                                    %p\n", __func__, (void *)inputs);
-    // GGML_LOG_INFO("%s: inputs->type:                              %s\n", __func__, ggml_type_name(inputs->type));
-    // GGML_LOG_INFO("%s: inputs->buffer:                            %p\n", __func__, (void *)inputs->buffer);
-    // GGML_LOG_INFO("%s: inputs->op:                                %s\n", __func__, ggml_op_name(inputs->op));
-    // GGML_LOG_INFO("%s: inputs->extra:                             %p\n", __func__, (void *)inputs->extra);
-    // GGML_LOG_INFO("%s: inputs->buffer->buft == cpu                %d\n", __func__, inputs->buffer->buft == ggml_backend_cpu_buffer_type());
-    // GGML_LOG_INFO("%s: inputs_ctx->extra:                         %p\n", __func__, (void *)inputs_ctx->extra);
-    // GGML_LOG_INFO("%s: inputs_ctx->ztensor.pre_transformed_desc:  %p\n", __func__, (void *)inputs_ctx->ztensor.pre_transformed_desc);
-    // GGML_LOG_INFO("%s: inputs_ctx->ztensor.transformed_desc:      %p\n", __func__, (void *)inputs_ctx->ztensor.transformed_desc);
-    // GGML_LOG_INFO("%s: inputs_ctx->ztensor.buffer_size:           %" PRIu64 "\n", __func__, inputs_ctx->ztensor.buffer_size);
-    // GGML_LOG_INFO("%s: inputs_ctx->ztensor.buffer:                %p\n", __func__, inputs_ctx->ztensor.buffer);
-    // GGML_LOG_INFO("%s: inputs_ctx->ztensor.is_transformed:        %d\n", __func__, inputs_ctx->ztensor.is_transformed);
-    // GGML_LOG_INFO("%s: =================================================\n", __func__);
-    // GGML_LOG_INFO("%s: weights:                                   %p\n", __func__, (void *)weights);
-    // GGML_LOG_INFO("%s: weights->type:                             %s\n", __func__, ggml_type_name(weights->type));
-    // GGML_LOG_INFO("%s: weights->buffer:                           %p\n", __func__, (void *)weights->buffer);
-    // GGML_LOG_INFO("%s: weights->op:                               %s\n", __func__, ggml_op_name(weights->op));
-    // GGML_LOG_INFO("%s: weights->extra:                            %p\n", __func__, (void *)weights->extra);
-    // GGML_LOG_INFO("%s: weights->buffer->buft == cpu               %d\n", __func__, weights->buffer->buft == ggml_backend_cpu_buffer_type());
-    // GGML_LOG_INFO("%s: weights_ctx->extra:                        %p\n", __func__, (void *)weights_ctx->extra);
-    // GGML_LOG_INFO("%s: weights_ctx->ztensor.pre_transformed_desc: %p\n", __func__, (void *)weights_ctx->ztensor.pre_transformed_desc);
-    // GGML_LOG_INFO("%s: weights_ctx->ztensor.transformed_desc:     %p\n", __func__, (void *)weights_ctx->ztensor.transformed_desc);
-    // GGML_LOG_INFO("%s: weights_ctx->ztensor.buffer_size:          %" PRIu64 "\n", __func__, weights_ctx->ztensor.buffer_size);
-    // GGML_LOG_INFO("%s: weights_ctx->ztensor.buffer:               %p\n", __func__, weights_ctx->ztensor.buffer);
-    // GGML_LOG_INFO("%s: weights_ctx->ztensor.is_transformed:       %d\n", __func__, weights_ctx->ztensor.is_transformed);
-    // GGML_LOG_INFO("%s: =================================================\n", __func__);
-    // GGML_LOG_INFO("%s: output:                                    %p\n", __func__, (void *)output);
-    // GGML_LOG_INFO("%s: output->type:                              %s\n", __func__, ggml_type_name(output->type));
-    // GGML_LOG_INFO("%s: output->buffer:                            %p\n", __func__, (void *)output->buffer);
-    // GGML_LOG_INFO("%s: output->op:                                %s\n", __func__, ggml_op_name(output->op));
-    // GGML_LOG_INFO("%s: output->extra:                             %p\n", __func__, (void *)output->extra);
-    // GGML_LOG_INFO("%s: output->buffer->buft == cpu                %d\n", __func__, output->buffer->buft == ggml_backend_cpu_buffer_type());
-    // GGML_LOG_INFO("%s: output_ctx->extra:                         %p\n", __func__, (void *)output_ctx->extra);
-    // GGML_LOG_INFO("%s: output_ctx->ztensor.pre_transformed_desc:  %p\n", __func__, (void *)output_ctx->ztensor.pre_transformed_desc);
-    // GGML_LOG_INFO("%s: output_ctx->ztensor.transformed_desc:      %p\n", __func__, (void *)output_ctx->ztensor.transformed_desc);
-    // GGML_LOG_INFO("%s: output_ctx->ztensor.buffer_size:           %" PRIu64 "\n", __func__, output_ctx->ztensor.buffer_size);
-    // GGML_LOG_INFO("%s: output_ctx->ztensor.buffer:                %p\n", __func__, output_ctx->ztensor.buffer);
-    // GGML_LOG_INFO("%s: output_ctx->ztensor.is_transformed:        %d\n", __func__, output_ctx->ztensor.is_transformed);
-    // GGML_LOG_INFO("%s: =================================================\n", __func__);
-    // if (output_ctx->extra != nullptr) {
-    //     GGML_LOG_INFO("%s: output_ctx->extra->ztensor.pre_transformed_desc:  %p\n", __func__, (void *)output_ctx->extra->ztensor.pre_transformed_desc);
-    //     GGML_LOG_INFO("%s: output_ctx->extra->ztensor.transformed_desc:      %p\n", __func__, (void *)output_ctx->extra->ztensor.transformed_desc);
-    //     GGML_LOG_INFO("%s: output_ctx->extra->ztensor.buffer_size:           %" PRIu64 "\n", __func__, output_ctx->extra->ztensor.buffer_size);
-    //     GGML_LOG_INFO("%s: output_ctx->extra->ztensor.buffer:                %p\n", __func__, output_ctx->extra->ztensor.buffer);
-    //     GGML_LOG_INFO("%s: output_ctx->extra->ztensor.is_transformed:        %d\n", __func__, output_ctx->extra->ztensor.is_transformed);
-    // }
-
+    const int64_t inputs_dim [GGML_MAX_DIMS] = { 1, 1, inputs_cols, inputs_rows };
     const int64_t weights_dim[GGML_MAX_DIMS] = { 1, 1, weights_cols, weights_rows };
-    const int64_t inputs_dim [GGML_MAX_DIMS] = { 1, 1, inputs_cols,  inputs_rows };
     const int64_t bias_dim   [GGML_MAX_DIMS] = { 1, 1, 1, output_cols };
     const int64_t output_dim [GGML_MAX_DIMS] = { 1, 1, output_cols, output_rows };
 
-    zdnn_tensor_desc pre_weights_desc, tfm_weights_desc;
-    zdnn_tensor_desc pre_inputs_desc,  tfm_inputs_desc;
-    zdnn_tensor_desc pre_bias_desc,    tfm_bias_desc;
-    zdnn_tensor_desc pre_output_desc,  tfm_output_desc;
-    zdnn_ztensor     ztensor_weights,  ztensor_inputs,
-                     ztensor_bias,     ztensor_output;
+    ggml_zdnn_create_tensor(pre_tfm_desc_inputs,  tfm_desc_inputs,  ztensor_inputs,  inputs,  inputs_dim,  ZDNN_2D);
+    ggml_zdnn_create_tensor(pre_tfm_desc_weights, tfm_desc_weights, ztensor_weights, weights, weights_dim, ZDNN_2D);
+    ggml_zdnn_create_tensor(pre_tfm_desc_bias,    tfm_desc_bias,    ztensor_bias,    output,  bias_dim,    ZDNN_1D);
+    ggml_zdnn_create_tensor(pre_tfm_desc_output,  tfm_desc_output,  ztensor_output,  output,  output_dim,  ZDNN_2D);
 
-    ggml_zdnn_create_tensor(pre_weights_desc, tfm_weights_desc, ztensor_weights, weights, weights_dim, ZDNN_2D);
-    ggml_zdnn_create_tensor(pre_inputs_desc,  tfm_inputs_desc,  ztensor_inputs,  inputs,  inputs_dim,  ZDNN_2D);
-    ggml_zdnn_create_tensor(pre_bias_desc,    tfm_bias_desc,    ztensor_bias,    output,  bias_dim,    ZDNN_1D);
-    ggml_zdnn_create_tensor(pre_output_desc,  tfm_output_desc,  ztensor_output,  output,  output_dim,  ZDNN_2D);
+    void * bias_data = (void *)calloc(output_cols, sizeof(ggml_element_size(dst)));
 
-    const size_t weights_size = ggml_element_size(weights);
-    void * bias_data = (void *)calloc(output_cols, sizeof(ggml_element_size(output)));
-
+    ZDNN_CHECK(zdnn_transform_ztensor(&ztensor_inputs,  inputs->data));
     ZDNN_CHECK(zdnn_transform_ztensor(&ztensor_weights, weights->data));
-    ZDNN_CHECK(zdnn_transform_ztensor(&ztensor_inputs, inputs->data));
-    ZDNN_CHECK(zdnn_transform_ztensor(&ztensor_bias, bias_data));
+    ZDNN_CHECK(zdnn_transform_ztensor(&ztensor_bias,    bias_data));
 
-    ZDNN_CHECK(zdnn_matmul_transpose_op(&ztensor_inputs,
-                                        &ztensor_weights,
-                                        &ztensor_bias,
-                                        false, true, MATMUL_OP_ADDITION,
-                                        &ztensor_output));
-
+    ZDNN_CHECK(zdnn_matmul_transpose_op(&ztensor_inputs, &ztensor_weights, &ztensor_bias,
+                                        false, true, MATMUL_OP_ADDITION, &ztensor_output));
     ZDNN_CHECK(zdnn_transform_origtensor(&ztensor_output, output->data));
 
     ZDNN_CHECK(zdnn_free_ztensor_buffer(&ztensor_weights));

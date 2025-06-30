@@ -65,11 +65,21 @@ struct ggml_backend_zdnn_buffer_context {
     zdnn_tensor_desc pre_transform_desc;
     zdnn_tensor_desc transform_desc;
     zdnn_ztensor ztensor;
+
+    ggml_backend_zdnn_buffer_context * src[GGML_MAX_SRC];  // for src tensors that went through CPU instead of zDNN
+    ggml_backend_zdnn_buffer_context * extra;  // for bias, etc.
 };
 
 static void ggml_backend_zdnn_buffer_free(ggml_backend_buffer_t buffer) {
     ggml_backend_zdnn_buffer_context * ctx = (ggml_backend_zdnn_buffer_context *)buffer->context;
     if (ctx->ztensor.pre_transformed_desc != nullptr) ZDNN_CHECK(zdnn_free_ztensor_buffer(&ctx->ztensor));
+
+    for (int i = 0; i < GGML_MAX_SRC; ++i) {
+        if (ctx->src[i] != nullptr) {
+            ZDNN_CHECK(zdnn_free_ztensor_buffer(&ctx->src[i]->ztensor));
+            delete ctx->src[i];
+        }
+    }
 
     delete ctx;
 }
@@ -90,28 +100,31 @@ static void ggml_backend_zdnn_buffer_init_tensor(ggml_backend_buffer_t buffer, g
 
     switch (tensor->op) {
         case GGML_OP_MUL_MAT:
-            for (int i = 0; i < GGML_MAX_SRC; ++i) {
-                if (tensor->src[i] != nullptr && tensor->src[i]->extra == nullptr) {
-                    ggml_backend_zdnn_buffer_context * src_ctx = new ggml_backend_zdnn_buffer_context{};
-                    zdnn_init_pre_transformed_desc(
-                        ZDNN_2D,
-                        ggml_zdnn_type_mapping(tensor->src[i]->type),
-                        &src_ctx->pre_transform_desc,
-                        1, 1, tensor->src[i]->ne[1], tensor->src[i]->ne[0]
-                    );
+            {
+                for (int i = 0; i < GGML_MAX_SRC; ++i) {
+                    if (tensor->src[i] != nullptr
+                        && tensor->src[i]->extra == nullptr
+                        && tensor->buffer->buft == ggml_backend_cpu_buffer_type()) {
+                        ggml_backend_zdnn_buffer_context * src_ctx = new ggml_backend_zdnn_buffer_context{};
+                        zdnn_init_pre_transformed_desc(
+                            ZDNN_2D,
+                            ggml_zdnn_type_mapping(tensor->src[i]->type),
+                            &src_ctx->pre_transform_desc,
+                            1, 1, tensor->src[i]->ne[1], tensor->src[i]->ne[0]
+                        );
 
-                    tensor->src[i]->extra = src_ctx;
+                        ctx->src[i] = src_ctx;
+                        tensor->src[i]->extra = src_ctx;
+                    }
                 }
-            }
 
-            zdnn_init_pre_transformed_desc(
-                ZDNN_2D,
-                ggml_zdnn_type_mapping(tensor->type),
-                &ctx->pre_transform_desc,
-                1, 1, tensor->ne[1], tensor->ne[0]
-            );
-            break;
-
+                zdnn_init_pre_transformed_desc(
+                    ZDNN_2D,
+                    ggml_zdnn_type_mapping(tensor->type),
+                    &ctx->pre_transform_desc,
+                    1, 1, tensor->ne[1], tensor->ne[0]
+                );
+            } break;
         default:
             zdnn_init_pre_transformed_desc(
                 ZDNN_NCHW,

@@ -68,7 +68,9 @@ struct ggml_backend_zdnn_buffer_context {
 };
 
 static void ggml_backend_zdnn_buffer_free(ggml_backend_buffer_t buffer) {
-    // ggml_aligned_free(buffer->context, buffer->size);
+    ggml_backend_zdnn_buffer_context * ctx = (ggml_backend_zdnn_buffer_context *)buffer->context;
+    ZDNN_CHECK(zdnn_free_ztensor_buffer(&ctx->ztensor));
+    delete ctx;
 }
 
 static void * ggml_backend_zdnn_buffer_get_base(ggml_backend_buffer_t buffer) {
@@ -135,14 +137,14 @@ static void ggml_backend_zdnn_buffer_memset_tensor(ggml_backend_buffer_t buffer,
 
 static void ggml_backend_zdnn_buffer_set_tensor(ggml_backend_buffer_t buffer, ggml_tensor * tensor, const void * data, size_t offset, size_t size) {
     // memcpy((char *)tensor->data + offset, data, size);
-
-    GGML_UNUSED(buffer);
+    ggml_backend_zdnn_buffer_context * ctx = (ggml_backend_zdnn_buffer_context *)buffer->context;
+    ZDNN_CHECK(zdnn_transform_ztensor(&ctx->ztensor, (char *)data + offset));
 }
 
 static void ggml_backend_zdnn_buffer_get_tensor(ggml_backend_buffer_t buffer, const ggml_tensor * tensor, void * data, size_t offset, size_t size) {
     // memcpy(data, (const char *)tensor->data + offset, size);
-
-    GGML_UNUSED(buffer);
+    ggml_backend_zdnn_buffer_context * ctx = (ggml_backend_zdnn_buffer_context *)buffer->context;
+    ZDNN_CHECK(zdnn_transform_origtensor(&ctx->ztensor, (char *)data + offset));
 }
 
 static bool ggml_backend_zdnn_buffer_cpy_tensor(ggml_backend_buffer_t buffer, const ggml_tensor * src, ggml_tensor * dst) {
@@ -163,11 +165,11 @@ static const ggml_backend_buffer_i ggml_backend_zdnn_buffer_i = {
     /* .free_buffer   = */ ggml_backend_zdnn_buffer_free,
     /* .get_base      = */ ggml_backend_zdnn_buffer_get_base,
     /* .init_tensor   = */ ggml_backend_zdnn_buffer_init_tensor,
-    /* .memset_tensor = */ ggml_backend_zdnn_buffer_memset_tensor,
+    /* .memset_tensor = */ nullptr,
     /* .set_tensor    = */ ggml_backend_zdnn_buffer_set_tensor,
     /* .get_tensor    = */ ggml_backend_zdnn_buffer_get_tensor,
-    /* .cpy_tensor    = */ ggml_backend_zdnn_buffer_cpy_tensor,
-    /* .clear         = */ ggml_backend_zdnn_buffer_clear,
+    /* .cpy_tensor    = */ nullptr,
+    /* .clear         = */ nullptr,
     /* .reset         = */ nullptr,
 };
 
@@ -175,11 +177,11 @@ static const ggml_backend_buffer_i ggml_backend_zdnn_buffer_from_ptr_i = {
     /* .free_buffer   = */ nullptr, // ptr is not owned by the buffer, so it does not need to be freed
     /* .get_base      = */ ggml_backend_zdnn_buffer_get_base,
     /* .init_tensor   = */ ggml_backend_zdnn_buffer_init_tensor,
-    /* .memset_tensor = */ ggml_backend_zdnn_buffer_memset_tensor,
+    /* .memset_tensor = */ nullptr,
     /* .set_tensor    = */ ggml_backend_zdnn_buffer_set_tensor,
     /* .get_tensor    = */ ggml_backend_zdnn_buffer_get_tensor,
-    /* .cpy_tensor    = */ ggml_backend_zdnn_buffer_cpy_tensor,
-    /* .clear         = */ ggml_backend_zdnn_buffer_clear,
+    /* .cpy_tensor    = */ nullptr,
+    /* .clear         = */ nullptr,
     /* .reset         = */ nullptr,
 };
 

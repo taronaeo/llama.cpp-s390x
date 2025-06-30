@@ -84,12 +84,25 @@ static void * ggml_backend_zdnn_buffer_get_base(ggml_backend_buffer_t buffer) {
 
 static void ggml_backend_zdnn_buffer_init_tensor(ggml_backend_buffer_t buffer, struct ggml_tensor * tensor) {
     ggml_zdnn_tensor_extra * extra = new ggml_zdnn_tensor_extra;
-    zdnn_init_pre_transformed_desc(
-        ZDNN_2D,
-        ggml_zdnn_type_mapping(tensor->type),
-        &extra->pre_transform_desc,
-        1, 1, tensor->ne[1], tensor->ne[0]
-    );
+
+    switch (tensor->op) {
+        case GGML_OP_MUL_MAT:
+            zdnn_init_pre_transformed_desc(
+                ZDNN_2D,
+                ggml_zdnn_type_mapping(tensor->type),
+                &extra->pre_transform_desc,
+                1, 1, tensor->ne[1], tensor->ne[0]
+            );
+            break;
+        default:
+            zdnn_init_pre_transformed_desc(
+                ZDNN_NCHW,
+                ggml_zdnn_type_mapping(tensor->type),
+                &extra->pre_transform_desc,
+                tensor->ne[3], tensor->ne[2],
+                tensor->ne[1], tensor->ne[0]
+            );
+    }
 
     ZDNN_CHECK(zdnn_generate_transformed_desc(&extra->pre_transform_desc, &extra->transform_desc));
     ZDNN_CHECK(zdnn_init_ztensor_with_malloc(&extra->pre_transform_desc, &extra->transform_desc, &extra->ztensor));

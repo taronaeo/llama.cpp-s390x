@@ -185,22 +185,6 @@ static void ggml_backend_zdnn_buffer_set_tensor(ggml_backend_buffer_t buffer, gg
     } else if (status == ZDNN_INVALID_STATE) {
         GGML_LOG_INFO("%s: ZDNN_INVALID_STATE\n", __func__);
         GGML_LOG_INFO("%s: ===================================\n", __func__);
-        GGML_LOG_INFO("%s: ctx->pre_transform_desc.layout = %d\n", __func__, ctx->pre_transform_desc.layout);
-        GGML_LOG_INFO("%s: ctx->pre_transform_desc.format = %d\n", __func__, ctx->pre_transform_desc.format);
-        GGML_LOG_INFO("%s: ctx->pre_transform_desc.type = %d\n", __func__, ctx->pre_transform_desc.type);
-        GGML_LOG_INFO("%s: ctx->pre_transform_desc.dim4 = %d\n", __func__, ctx->pre_transform_desc.dim4);
-        GGML_LOG_INFO("%s: ctx->pre_transform_desc.dim3 = %d\n", __func__, ctx->pre_transform_desc.dim3);
-        GGML_LOG_INFO("%s: ctx->pre_transform_desc.dim2 = %d\n", __func__, ctx->pre_transform_desc.dim2);
-        GGML_LOG_INFO("%s: ctx->pre_transform_desc.dim1 = %d\n", __func__, ctx->pre_transform_desc.dim1);
-        GGML_LOG_INFO("%s: ===================================\n", __func__);
-        GGML_LOG_INFO("%s: ctx->transform_desc.layout = %d\n", __func__, ctx->transform_desc.layout);
-        GGML_LOG_INFO("%s: ctx->transform_desc.format = %d\n", __func__, ctx->transform_desc.format);
-        GGML_LOG_INFO("%s: ctx->transform_desc.type = %d\n", __func__, ctx->transform_desc.type);
-        GGML_LOG_INFO("%s: ctx->transform_desc.dim4 = %d\n", __func__, ctx->transform_desc.dim4);
-        GGML_LOG_INFO("%s: ctx->transform_desc.dim3 = %d\n", __func__, ctx->transform_desc.dim3);
-        GGML_LOG_INFO("%s: ctx->transform_desc.dim2 = %d\n", __func__, ctx->transform_desc.dim2);
-        GGML_LOG_INFO("%s: ctx->transform_desc.dim1 = %d\n", __func__, ctx->transform_desc.dim1);
-        GGML_LOG_INFO("%s: ===================================\n", __func__);
         GGML_LOG_INFO("%s: ctx->ztensor.buffer_size = %" PRIu64 "\n", __func__, ctx->ztensor.buffer_size);
         GGML_LOG_INFO("%s: ctx->ztensor.buffer = %p\n", __func__, ctx->ztensor.buffer);
         GGML_LOG_INFO("%s: ctx->ztensor.is_transformed = %d\n", __func__, ctx->ztensor.is_transformed);

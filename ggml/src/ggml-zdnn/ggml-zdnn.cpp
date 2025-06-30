@@ -149,7 +149,7 @@ inline void ggml_zdnn_op_mul_mat(ggml_backend_zdnn_context & ctx,
     //     GGML_LOG_INFO("%s: output_ctx->extra->ztensor.is_transformed:        %d\n", __func__, output_ctx->extra->ztensor.is_transformed);
     // }
 
-    const int64_t weights_dim[GGML_MAX_DIMS] = { 1, 1, weights_rows, weights_cols };
+    const int64_t weights_dim[GGML_MAX_DIMS] = { 1, 1, weights_cols, weights_rows };
     const int64_t inputs_dim [GGML_MAX_DIMS] = { 1, 1, inputs_cols,  inputs_rows };
     const int64_t bias_dim   [GGML_MAX_DIMS] = { 1, 1, 1, output_cols };
     const int64_t output_dim [GGML_MAX_DIMS] = { 1, 1, output_cols, output_rows };

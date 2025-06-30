@@ -89,6 +89,7 @@ inline void ggml_zdnn_op_mul_mat(ggml_backend_zdnn_context & ctx,
     GGML_LOG_INFO("%s: inputs->buffer:                            %p\n", __func__, (void *)inputs->buffer);
     GGML_LOG_INFO("%s: inputs->op:                                %s\n", __func__, ggml_op_name(inputs->op));
     GGML_LOG_INFO("%s: inputs->extra:                             %p\n", __func__, (void *)inputs->extra);
+    GGML_LOG_INFO("%s: inputs->buffer->buft == cpu                %d\n", __func__, inputs->buffer->buft == ggml_backend_cpu_buffer_type());
     GGML_LOG_INFO("%s: inputs_ctx->extra:                         %p\n", __func__, (void *)inputs_ctx->extra);
     GGML_LOG_INFO("%s: inputs_ctx->ztensor.pre_transformed_desc:  %p\n", __func__, (void *)inputs_ctx->ztensor.pre_transformed_desc);
     GGML_LOG_INFO("%s: inputs_ctx->ztensor.transformed_desc:      %p\n", __func__, (void *)inputs_ctx->ztensor.transformed_desc);
@@ -101,6 +102,7 @@ inline void ggml_zdnn_op_mul_mat(ggml_backend_zdnn_context & ctx,
     GGML_LOG_INFO("%s: weights->buffer:                           %p\n", __func__, (void *)weights->buffer);
     GGML_LOG_INFO("%s: weights->op:                               %s\n", __func__, ggml_op_name(weights->op));
     GGML_LOG_INFO("%s: weights->extra:                            %p\n", __func__, (void *)weights->extra);
+    GGML_LOG_INFO("%s: weights->buffer->buft == cpu               %d\n", __func__, weights->buffer->buft == ggml_backend_cpu_buffer_type());
     GGML_LOG_INFO("%s: weights_ctx->extra:                        %p\n", __func__, (void *)weights_ctx->extra);
     GGML_LOG_INFO("%s: weights_ctx->ztensor.pre_transformed_desc: %p\n", __func__, (void *)weights_ctx->ztensor.pre_transformed_desc);
     GGML_LOG_INFO("%s: weights_ctx->ztensor.transformed_desc:     %p\n", __func__, (void *)weights_ctx->ztensor.transformed_desc);
@@ -113,6 +115,7 @@ inline void ggml_zdnn_op_mul_mat(ggml_backend_zdnn_context & ctx,
     GGML_LOG_INFO("%s: output->buffer:                            %p\n", __func__, (void *)output->buffer);
     GGML_LOG_INFO("%s: output->op:                                %s\n", __func__, ggml_op_name(output->op));
     GGML_LOG_INFO("%s: output->extra:                             %p\n", __func__, (void *)output->extra);
+    GGML_LOG_INFO("%s: output->buffer->buft == cpu                %d\n", __func__, output->buffer->buft == ggml_backend_cpu_buffer_type());
     GGML_LOG_INFO("%s: output_ctx->extra:                         %p\n", __func__, (void *)output_ctx->extra);
     GGML_LOG_INFO("%s: output_ctx->ztensor.pre_transformed_desc:  %p\n", __func__, (void *)output_ctx->ztensor.pre_transformed_desc);
     GGML_LOG_INFO("%s: output_ctx->ztensor.transformed_desc:      %p\n", __func__, (void *)output_ctx->ztensor.transformed_desc);

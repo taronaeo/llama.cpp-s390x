@@ -169,7 +169,7 @@ static void ggml_backend_zdnn_buffer_init_tensor(ggml_backend_buffer_t buffer, g
     switch (tensor->op) {
         case GGML_OP_MUL_MAT:
             {
-                if (tensor->extra != nullptr) {
+                if (ctx->extra != nullptr) {
                     ggml_backend_zdnn_buffer_context * bias_ctx = (ggml_backend_zdnn_buffer_context *)tensor->extra;
                     zdnn_init_pre_transformed_desc(
                         ZDNN_1D,
@@ -180,7 +180,7 @@ static void ggml_backend_zdnn_buffer_init_tensor(ggml_backend_buffer_t buffer, g
                     ZDNN_CHECK(zdnn_generate_transformed_desc(&bias_ctx->pre_transform_desc, &bias_ctx->transform_desc));
                     ZDNN_CHECK(zdnn_init_ztensor_with_malloc(&bias_ctx->pre_transform_desc, &bias_ctx->transform_desc, &bias_ctx->ztensor));
 
-                    tensor->extra = bias_ctx;
+                    ctx->extra = bias_ctx;
                 }
 
                 zdnn_init_pre_transformed_desc(

@@ -164,6 +164,10 @@ static void ggml_backend_zdnn_buffer_set_tensor(ggml_backend_buffer_t buffer, gg
     GGML_LOG_INFO("%s: ctx->ztensor.offset = %f\n", __func__, ctx->ztensor.offset);
     GGML_LOG_INFO("%s: ===================================\n", __func__);
 
+    if (ctx->ztensor.is_transformed) {
+        zdnn_reset_ztensor(&ctx->ztensor);
+    }
+
     status = zdnn_transform_ztensor(&ctx->ztensor, (char *)data + offset);
     if (status == ZDNN_OK) {
         return;

@@ -217,7 +217,7 @@ static void ggml_backend_zdnn_buffer_init_tensor(ggml_backend_buffer_t buffer, g
     switch (tensor->op) {
         case GGML_OP_MUL_MAT:
             {
-                if (ctx->extra != nullptr) {
+                if (ctx->extra == nullptr) {
                     ggml_backend_zdnn_buffer_context * bias_ctx = new ggml_backend_zdnn_buffer_context{};
                     zdnn_init_pre_transformed_desc(
                         ZDNN_1D,
@@ -250,6 +250,8 @@ static void ggml_backend_zdnn_buffer_init_tensor(ggml_backend_buffer_t buffer, g
 
     ZDNN_CHECK(zdnn_generate_transformed_desc(&ctx->pre_transform_desc, &ctx->transform_desc));
     ZDNN_CHECK(zdnn_init_ztensor_with_malloc(&ctx->pre_transform_desc, &ctx->transform_desc, &ctx->ztensor));
+
+    tensor->extra = ctx;
 
     GGML_UNUSED(buffer);
 }
@@ -303,7 +305,6 @@ static void ggml_backend_zdnn_buffer_set_tensor(ggml_backend_buffer_t buffer, gg
 static void ggml_backend_zdnn_buffer_get_tensor(ggml_backend_buffer_t buffer, const ggml_tensor * tensor, void * data, size_t offset, size_t size) {
     // memcpy(data, (const char *)tensor->data + offset, size);
     ggml_backend_zdnn_buffer_context * ctx = (ggml_backend_zdnn_buffer_context *)buffer->context;
-    ZDNN_CHECK(zdnn_transform_origtensor(&ctx->ztensor, (char *)data + offset));
 }
 
 static bool ggml_backend_zdnn_buffer_cpy_tensor(ggml_backend_buffer_t buffer, const ggml_tensor * src, ggml_tensor * dst) {

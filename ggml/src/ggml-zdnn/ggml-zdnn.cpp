@@ -35,12 +35,88 @@ inline zdnn_data_types ggml_zdnn_type_mapping(ggml_type type) {
 // Kernels
 // --------------------------------------------------------------------------
 
+inline void ggml_zdnn_op_mul_mat(ggml_backend_zdnn_context & ctx,
+                                         const ggml_tensor * src0,
+                                         const ggml_tensor * src1,
+                                               ggml_tensor * dst) {
+    const ggml_backend_zdnn_buffer_context * weights_ctx = (ggml_backend_zdnn_buffer_context *)src0->buffer->context;
+    const ggml_backend_zdnn_buffer_context * inputs_ctx  = (ggml_backend_zdnn_buffer_context *)src1->buffer->context;
+          ggml_backend_zdnn_buffer_context * output_ctx  = (ggml_backend_zdnn_buffer_context *)dst->buffer->context;
+
+    GGML_TENSOR_BINARY_OP_LOCALS;
+
+    const enum ggml_type type = src0->type;
+
+    GGML_ASSERT(ne0 == ne01);
+    GGML_ASSERT(ne1 == ne11);
+    GGML_ASSERT(ne2 == ne12);
+    GGML_ASSERT(ne3 == ne13);
+
+    GGML_ASSERT(nb00 == ggml_type_size(type));
+    GGML_ASSERT(nb10 == ggml_type_size(src1->type));
+
+    GGML_ASSERT(nb0 == sizeof(float));
+    GGML_ASSERT(nb0 <= nb1);
+    GGML_ASSERT(nb1 <= nb2);
+    GGML_ASSERT(nb2 <= nb3);
+
+    const ggml_tensor * weights = src0;
+    const ggml_tensor * inputs  = src1;
+          ggml_tensor * output  = dst;
+
+    const int64_t weights_rows = ne01;
+    const int64_t weights_cols = ne00;
+    const int64_t inputs_rows  = ne11;
+    const int64_t inputs_cols  = ne10;
+
+    assert(inputs_cols == weights_cols);
+
+    const int64_t output_rows = ne1;
+    const int64_t output_cols = ne0;
+
+    ZDNN_CHECK(zdnn_matmul_transpose_op(&inputs_ctx->ztensor,
+                                        &weights_ctx->ztensor,
+                                        &output_ctx->extra->ztensor,
+                                        false, true, MATMUL_OP_ADDITION,
+                                        &output_ctx->ztensor));
+}
+
 inline void ggml_zdnn_mul_mat_dispatch(ggml_backend_zdnn_context & ctx,
                                                const ggml_tensor * src0,
                                                const ggml_tensor * src1,
                                                      ggml_tensor * dst) {
     GGML_UNUSED(ctx);
-    std::raise(SIGINT);
+
+    bool use_mul_mat_vec =
+        (src0->type == GGML_TYPE_F16 || src0->type == GGML_TYPE_BF16)
+        && src1->type == GGML_TYPE_F32 && dst->type == GGML_TYPE_F32
+        && src0->ne[0] % 2 == 0 && src1->ne[1] == 1;
+    bool use_mul_mat_vec_q =
+        ggml_is_quantized(src0->type)
+        && src1->type == GGML_TYPE_F32 && dst->type == GGML_TYPE_F32;
+    bool use_mul_mat_q =
+        ggml_is_quantized(src0->type)
+        && src1->type == GGML_TYPE_F32 && dst->type == GGML_TYPE_F32;
+
+    if (src0->type == GGML_TYPE_F16 && src1->type == GGML_TYPE_F16
+        && !ggml_is_transposed(src0) && !ggml_is_transposed(src1)
+        && src1->ne[2] * src1->ne[3] > 1) {
+        // general KQ + KQV multi-batch
+        GGML_LOG_INFO("%s: using zdnn_mul_mat_batched for KQ + KQV multi-batch\n", __func__);
+        // ggml_zdnn_mul_mat_batched(ctx, src0, src1, dst);
+    } else if (use_mul_mat_vec) {
+        GGML_LOG_INFO("%s: using zdnn_op_mul_mat_vec for vector multiplication\n", __func__);
+        // ggml_zdnn_op_mul_mat(ctx, src0, src1, dst, ggml_zdnn_op_mul_mat_vec, nullptr);
+    } else if (use_mul_mat_vec_q) {
+        GGML_LOG_INFO("%s: using zdnn_op_mul_mat_vec_q for quantized vector multiplication\n", __func__);
+        // ggml_zdnn_op_mul_mat(ctx, src0, src1, dst, ggml_zdnn_op_mul_mat_vec_q, ggml_zdnn_quantize_row_q8_1);
+    } else if (use_mul_mat_q) {
+        GGML_LOG_INFO("%s: using zdnn_op_mul_mat_q for quantized matrix multiplication\n", __func__);
+        // ggml_zdnn_op_mul_mat(ctx, src0, src1, dst, ggml_zdnn_op_mul_mat_q, ggml_zdnn_quantize_mmq_q8_1);
+    } else {
+        // GGML_LOG_INFO("%s: using zdnn_op_mul_mat for general matrix multiplication\n", __func__);
+        ggml_zdnn_op_mul_mat(ctx, src0, src1, dst);
+    }
 }
 
 inline bool ggml_zdnn_compute_forward(ggml_backend_zdnn_context & ctx,
@@ -101,11 +177,14 @@ static void ggml_backend_zdnn_buffer_init_tensor(ggml_backend_buffer_t buffer, g
     switch (tensor->op) {
         case GGML_OP_MUL_MAT:
             {
+                // needed because some buffers are CPU and zDNN requires all tensors to be transformed
                 for (int i = 0; i < GGML_MAX_SRC; i++) {
                     if (tensor->src[i] != nullptr
-                        && tensor->src[i]->extra == nullptr
                         && tensor->src[i]->buffer->buft == ggml_backend_cpu_buffer_type()) {
                         ggml_backend_zdnn_buffer_context * src_ctx = new ggml_backend_zdnn_buffer_context{};
+                        if (!src_ctx) {
+                            GGML_ABORT("%s: fatal: memory allocation for src_ctx failed", __func__);
+                        }
                         zdnn_init_pre_transformed_desc(
                             ZDNN_2D,
                             ggml_zdnn_type_mapping(tensor->src[i]->type),
@@ -113,9 +192,35 @@ static void ggml_backend_zdnn_buffer_init_tensor(ggml_backend_buffer_t buffer, g
                             1, 1, tensor->src[i]->ne[1], tensor->src[i]->ne[0]
                         );
 
+                        ZDNN_CHECK(zdnn_generate_transformed_desc(&src_ctx->pre_transform_desc, &src_ctx->transform_desc));
+                        if (tensor->src[i]->buffer->context != nullptr) {
+                            delete (ggml_backend_zdnn_buffer_context *)tensor->src[i]->buffer->context;
+                        }
+                        tensor->src[i]->buffer->context = src_ctx;
+
                         ctx->src[i] = src_ctx;
-                        tensor->src[i]->extra = src_ctx;
                     }
+                }
+
+                if (tensor->extra != nullptr) {
+                    ggml_backend_zdnn_buffer_context * bias_ctx = (ggml_backend_zdnn_buffer_context *)tensor->extra;
+                    zdnn_init_pre_transformed_desc(
+                        ZDNN_1D,
+                        ggml_zdnn_type_mapping(tensor->type),
+                        &bias_ctx->pre_transform_desc,
+                        1, 1, 1, tensor->ne[0]
+                    );
+                    ZDNN_CHECK(zdnn_generate_transformed_desc(&bias_ctx->pre_transform_desc, &bias_ctx->transform_desc));
+                    ZDNN_CHECK(zdnn_init_ztensor_with_malloc(&bias_ctx->pre_transform_desc, &bias_ctx->transform_desc, &bias_ctx->ztensor));
+
+                    if (tensor->extra != nullptr) {
+                        ggml_backend_zdnn_buffer_context * old_ctx = (ggml_backend_zdnn_buffer_context *)tensor->extra;
+                        ZDNN_CHECK(zdnn_free_ztensor_buffer(&old_ctx->ztensor));
+                        delete old_ctx;
+                    }
+
+                    tensor->extra = bias_ctx;
+                    ZDNN_CHECK(zdnn_init_ztensor_with_malloc(&bias_ctx->pre_transform_desc, &bias_ctx->transform_desc, &bias_ctx->ztensor));
                 }
 
                 zdnn_init_pre_transformed_desc(
@@ -137,8 +242,6 @@ static void ggml_backend_zdnn_buffer_init_tensor(ggml_backend_buffer_t buffer, g
 
     ZDNN_CHECK(zdnn_generate_transformed_desc(&ctx->pre_transform_desc, &ctx->transform_desc));
     ZDNN_CHECK(zdnn_init_ztensor_with_malloc(&ctx->pre_transform_desc, &ctx->transform_desc, &ctx->ztensor));
-
-    tensor->extra = ctx;
 
     GGML_UNUSED(buffer);
 }

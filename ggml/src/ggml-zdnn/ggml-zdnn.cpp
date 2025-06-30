@@ -69,9 +69,8 @@ struct ggml_backend_zdnn_buffer_context {
 
 static void ggml_backend_zdnn_buffer_free(ggml_backend_buffer_t buffer) {
     ggml_backend_zdnn_buffer_context * ctx = (ggml_backend_zdnn_buffer_context *)buffer->context;
-    if (ctx->ztensor.pre_transformed_desc == nullptr) return;
+    if (ctx->ztensor.pre_transformed_desc != nullptr) ZDNN_CHECK(zdnn_free_ztensor_buffer(&ctx->ztensor));
 
-    ZDNN_CHECK(zdnn_free_ztensor_buffer(&ctx->ztensor));
     delete ctx;
 }
 
@@ -143,8 +142,8 @@ static void ggml_backend_zdnn_buffer_set_tensor(ggml_backend_buffer_t buffer, gg
     ggml_backend_zdnn_buffer_context * ctx = (ggml_backend_zdnn_buffer_context *)buffer->context;
 
     if (ctx->ztensor.is_transformed) {
-        // zdnn_reset_ztensor(&ctx->ztensor);
-        return;  // TODO: Check if we should reset the ztensor or return
+        zdnn_reset_ztensor(&ctx->ztensor);
+        // return;  // TODO: Check if we should reset the ztensor or return
     }
 
     status = zdnn_transform_ztensor(&ctx->ztensor, (char *)data + offset);

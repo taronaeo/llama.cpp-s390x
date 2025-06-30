@@ -69,16 +69,8 @@ struct ggml_backend_zdnn_buffer_context {
 
 static void ggml_backend_zdnn_buffer_free(ggml_backend_buffer_t buffer) {
     ggml_backend_zdnn_buffer_context * ctx = (ggml_backend_zdnn_buffer_context *)buffer->context;
-    GGML_LOG_INFO("\n");
-    GGML_LOG_INFO("%s: ===================================\n", __func__);
-    GGML_LOG_INFO("%s: ctx->ztensor == nullptr = %d\n", __func__, ctx->ztensor.pre_transformed_desc == nullptr);
-    GGML_LOG_INFO("%s: ctx->ztensor.buffer_size = %" PRIu64 "\n", __func__, ctx->ztensor.buffer_size);
-    GGML_LOG_INFO("%s: ctx->ztensor.buffer = %p\n", __func__, ctx->ztensor.buffer);
-    GGML_LOG_INFO("%s: ctx->ztensor.is_transformed = %d\n", __func__, ctx->ztensor.is_transformed);
-    GGML_LOG_INFO("%s: ctx->ztensor.rec_scale = %f\n", __func__, ctx->ztensor.rec_scale);
-    GGML_LOG_INFO("%s: ctx->ztensor.offset = %f\n", __func__, ctx->ztensor.offset);
-    GGML_LOG_INFO("%s: ===================================\n", __func__);
-    GGML_LOG_INFO("\n");
+    if (ctx->ztensor.pre_transformed_desc == nullptr) return;
+
     ZDNN_CHECK(zdnn_free_ztensor_buffer(&ctx->ztensor));
     delete ctx;
 }

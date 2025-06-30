@@ -66,8 +66,8 @@ struct ggml_backend_zdnn_buffer_context {
     zdnn_tensor_desc transform_desc;
     zdnn_ztensor ztensor;
 
-    ggml_backend_zdnn_buffer_context * src[GGML_MAX_SRC];  // for src tensors that went through CPU instead of zDNN
-    ggml_backend_zdnn_buffer_context * extra;  // for bias, etc.
+    struct ggml_backend_zdnn_buffer_context * src[GGML_MAX_SRC];  // for src tensors that went through CPU instead of zDNN
+    struct ggml_backend_zdnn_buffer_context * extra;  // for bias, etc.
 };
 
 static void ggml_backend_zdnn_buffer_free(ggml_backend_buffer_t buffer) {
@@ -101,7 +101,7 @@ static void ggml_backend_zdnn_buffer_init_tensor(ggml_backend_buffer_t buffer, g
     switch (tensor->op) {
         case GGML_OP_MUL_MAT:
             {
-                for (int i = 0; i < GGML_MAX_SRC; ++i) {
+                for (int i = 0; i < GGML_MAX_SRC; i++) {
                     if (tensor->src[i] != nullptr
                         && tensor->src[i]->extra == nullptr
                         && tensor->src[i]->buffer->buft == ggml_backend_cpu_buffer_type()) {

@@ -149,14 +149,6 @@ inline bool ggml_zdnn_compute_forward(ggml_backend_zdnn_context & ctx,
 static void ggml_backend_zdnn_buffer_free(ggml_backend_buffer_t buffer) {
     ggml_backend_zdnn_buffer_context * ctx = (ggml_backend_zdnn_buffer_context *)buffer->context;
     if (ctx->ztensor.pre_transformed_desc != nullptr) ZDNN_CHECK(zdnn_free_ztensor_buffer(&ctx->ztensor));
-
-    for (int i = 0; i < GGML_MAX_SRC; ++i) {
-        if (ctx->src[i] != nullptr) {
-            ZDNN_CHECK(zdnn_free_ztensor_buffer(&ctx->src[i]->ztensor));
-            delete ctx->src[i];
-        }
-    }
-
     delete ctx;
 }
 
@@ -177,31 +169,6 @@ static void ggml_backend_zdnn_buffer_init_tensor(ggml_backend_buffer_t buffer, g
     switch (tensor->op) {
         case GGML_OP_MUL_MAT:
             {
-                // needed because some buffers are CPU and zDNN requires all tensors to be transformed
-                for (int i = 0; i < GGML_MAX_SRC; i++) {
-                    if (tensor->src[i] != nullptr
-                        && tensor->src[i]->buffer->buft == ggml_backend_cpu_buffer_type()) {
-                        ggml_backend_zdnn_buffer_context * src_ctx = new ggml_backend_zdnn_buffer_context{};
-                        if (!src_ctx) {
-                            GGML_ABORT("%s: fatal: memory allocation for src_ctx failed", __func__);
-                        }
-                        zdnn_init_pre_transformed_desc(
-                            ZDNN_2D,
-                            ggml_zdnn_type_mapping(tensor->src[i]->type),
-                            &src_ctx->pre_transform_desc,
-                            1, 1, tensor->src[i]->ne[1], tensor->src[i]->ne[0]
-                        );
-
-                        ZDNN_CHECK(zdnn_generate_transformed_desc(&src_ctx->pre_transform_desc, &src_ctx->transform_desc));
-                        if (tensor->src[i]->buffer->context != nullptr) {
-                            delete (ggml_backend_zdnn_buffer_context *)tensor->src[i]->buffer->context;
-                        }
-                        tensor->src[i]->buffer->context = src_ctx;
-
-                        ctx->src[i] = src_ctx;
-                    }
-                }
-
                 if (tensor->extra != nullptr) {
                     ggml_backend_zdnn_buffer_context * bias_ctx = (ggml_backend_zdnn_buffer_context *)tensor->extra;
                     zdnn_init_pre_transformed_desc(
@@ -213,14 +180,7 @@ static void ggml_backend_zdnn_buffer_init_tensor(ggml_backend_buffer_t buffer, g
                     ZDNN_CHECK(zdnn_generate_transformed_desc(&bias_ctx->pre_transform_desc, &bias_ctx->transform_desc));
                     ZDNN_CHECK(zdnn_init_ztensor_with_malloc(&bias_ctx->pre_transform_desc, &bias_ctx->transform_desc, &bias_ctx->ztensor));
 
-                    if (tensor->extra != nullptr) {
-                        ggml_backend_zdnn_buffer_context * old_ctx = (ggml_backend_zdnn_buffer_context *)tensor->extra;
-                        ZDNN_CHECK(zdnn_free_ztensor_buffer(&old_ctx->ztensor));
-                        delete old_ctx;
-                    }
-
                     tensor->extra = bias_ctx;
-                    ZDNN_CHECK(zdnn_init_ztensor_with_malloc(&bias_ctx->pre_transform_desc, &bias_ctx->transform_desc, &bias_ctx->ztensor));
                 }
 
                 zdnn_init_pre_transformed_desc(

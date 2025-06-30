@@ -61,7 +61,7 @@ inline bool ggml_zdnn_compute_forward(ggml_backend_zdnn_context & ctx,
 // Backend Buffer
 // --------------------------------------------------------------------------
 
-struct ggml_zdnn_tensor_extra {
+struct ggml_backend_zdnn_buffer_context {
     zdnn_tensor_desc pre_transform_desc;
     zdnn_tensor_desc transform_desc;
     zdnn_ztensor ztensor;
@@ -82,55 +82,56 @@ static void * ggml_backend_zdnn_buffer_get_base(ggml_backend_buffer_t buffer) {
     return (void *)data;
 }
 
-static void ggml_backend_zdnn_buffer_init_tensor(ggml_backend_buffer_t buffer, struct ggml_tensor * tensor) {
-    ggml_zdnn_tensor_extra * extra = new ggml_zdnn_tensor_extra;
+static void ggml_backend_zdnn_buffer_init_tensor(ggml_backend_buffer_t buffer, ggml_tensor * tensor) {
+    ggml_backend_zdnn_buffer_context * ctx = (ggml_backend_zdnn_buffer_context *)buffer->context;
 
     switch (tensor->op) {
         case GGML_OP_MUL_MAT:
             zdnn_init_pre_transformed_desc(
                 ZDNN_2D,
                 ggml_zdnn_type_mapping(tensor->type),
-                &extra->pre_transform_desc,
+                &ctx->pre_transform_desc,
                 1, 1, tensor->ne[1], tensor->ne[0]
             );
             break;
+
         default:
             zdnn_init_pre_transformed_desc(
                 ZDNN_NCHW,
                 ggml_zdnn_type_mapping(tensor->type),
-                &extra->pre_transform_desc,
+                &ctx->pre_transform_desc,
                 tensor->ne[3], tensor->ne[2],
                 tensor->ne[1], tensor->ne[0]
             );
     }
 
-    ZDNN_CHECK(zdnn_generate_transformed_desc(&extra->pre_transform_desc, &extra->transform_desc));
-    ZDNN_CHECK(zdnn_init_ztensor_with_malloc(&extra->pre_transform_desc, &extra->transform_desc, &extra->ztensor));
+    ZDNN_CHECK(zdnn_generate_transformed_desc(&ctx->pre_transform_desc, &ctx->transform_desc));
+    ZDNN_CHECK(zdnn_init_ztensor_with_malloc(&ctx->pre_transform_desc, &ctx->transform_desc, &ctx->ztensor));
 
-    tensor->extra = extra;
+    tensor->extra = ctx;
 
     GGML_UNUSED(buffer);
 }
 
-static void ggml_backend_zdnn_buffer_memset_tensor(ggml_backend_buffer_t buffer, struct ggml_tensor * tensor, uint8_t value, size_t offset, size_t size) {
+static void ggml_backend_zdnn_buffer_memset_tensor(ggml_backend_buffer_t buffer, ggml_tensor * tensor, uint8_t value, size_t offset, size_t size) {
     // memset((char *)tensor->data + offset, value, size);
 
     GGML_UNUSED(buffer);
 }
 
-static void ggml_backend_zdnn_buffer_set_tensor(ggml_backend_buffer_t buffer, struct ggml_tensor * tensor, const void * data, size_t offset, size_t size) {
+static void ggml_backend_zdnn_buffer_set_tensor(ggml_backend_buffer_t buffer, ggml_tensor * tensor, const void * data, size_t offset, size_t size) {
     // memcpy((char *)tensor->data + offset, data, size);
 
     GGML_UNUSED(buffer);
 }
 
-static void ggml_backend_zdnn_buffer_get_tensor(ggml_backend_buffer_t buffer, const struct ggml_tensor * tensor, void * data, size_t offset, size_t size) {
+static void ggml_backend_zdnn_buffer_get_tensor(ggml_backend_buffer_t buffer, const ggml_tensor * tensor, void * data, size_t offset, size_t size) {
     // memcpy(data, (const char *)tensor->data + offset, size);
 
     GGML_UNUSED(buffer);
 }
 
-static bool ggml_backend_zdnn_buffer_cpy_tensor(ggml_backend_buffer_t buffer, const struct ggml_tensor * src, struct ggml_tensor * dst) {
+static bool ggml_backend_zdnn_buffer_cpy_tensor(ggml_backend_buffer_t buffer, const ggml_tensor * src, ggml_tensor * dst) {
     // if (ggml_backend_buffer_is_host(src->buffer)) {
     //     memcpy(dst->data, src->data, ggml_nbytes(src));
     //     return true;
@@ -172,6 +173,8 @@ static const ggml_backend_buffer_i ggml_backend_zdnn_buffer_from_ptr_i = {
 // Backend Buffer Type
 // --------------------------------------------------------------------------
 
+struct ggml_backend_zdnn_buffer_type_context {};
+
 static const char * ggml_backend_zdnn_buffer_type_get_name(ggml_backend_buffer_type_t buft) {
     return GGML_ZDNN_BACKEND_NAME;
 
@@ -179,13 +182,16 @@ static const char * ggml_backend_zdnn_buffer_type_get_name(ggml_backend_buffer_t
 }
 
 static ggml_backend_buffer_t ggml_backend_zdnn_buffer_type_alloc_buffer(ggml_backend_buffer_type_t buft, size_t size) {
-    void * data = ggml_aligned_malloc(size);
-    if (data == NULL) {
-        GGML_LOG_ERROR("%s: failed to allocate buffer of size %zu\n", __func__, size);
-        return NULL;
-    }
+    ggml_backend_zdnn_buffer_type_context * ctx = (ggml_backend_zdnn_buffer_type_context *)buft->context;
 
-    return ggml_backend_buffer_init(buft, ggml_backend_zdnn_buffer_i, data, size);
+    ggml_backend_buffer_t buffer = ggml_backend_buffer_init(
+        buft,
+        ggml_backend_zdnn_buffer_i,
+        new ggml_backend_zdnn_buffer_context{},
+        size
+    );
+
+    return buffer;
 }
 
 static size_t ggml_backend_zdnn_buffer_type_get_alignment(ggml_backend_buffer_type_t buft) {

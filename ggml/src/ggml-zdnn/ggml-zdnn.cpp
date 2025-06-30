@@ -6,6 +6,15 @@
 
 #include <csignal>
 
+struct ggml_backend_zdnn_buffer_context {
+    zdnn_tensor_desc pre_transform_desc;
+    zdnn_tensor_desc transform_desc;
+    zdnn_ztensor ztensor;
+
+    struct ggml_backend_zdnn_buffer_context * src[GGML_MAX_SRC];  // for src tensors that went through CPU instead of zDNN
+    struct ggml_backend_zdnn_buffer_context * extra;  // for bias, etc.
+};
+
 // --------------------------------------------------------------------------
 // Utilities
 // --------------------------------------------------------------------------
@@ -136,15 +145,6 @@ inline bool ggml_zdnn_compute_forward(ggml_backend_zdnn_context & ctx,
 // --------------------------------------------------------------------------
 // Backend Buffer
 // --------------------------------------------------------------------------
-
-struct ggml_backend_zdnn_buffer_context {
-    zdnn_tensor_desc pre_transform_desc;
-    zdnn_tensor_desc transform_desc;
-    zdnn_ztensor ztensor;
-
-    struct ggml_backend_zdnn_buffer_context * src[GGML_MAX_SRC];  // for src tensors that went through CPU instead of zDNN
-    struct ggml_backend_zdnn_buffer_context * extra;  // for bias, etc.
-};
 
 static void ggml_backend_zdnn_buffer_free(ggml_backend_buffer_t buffer) {
     ggml_backend_zdnn_buffer_context * ctx = (ggml_backend_zdnn_buffer_context *)buffer->context;

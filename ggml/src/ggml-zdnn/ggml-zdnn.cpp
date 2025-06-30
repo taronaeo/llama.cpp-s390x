@@ -83,6 +83,33 @@ inline void ggml_zdnn_op_mul_mat(ggml_backend_zdnn_context & ctx,
     const int64_t output_rows = ne1;
     const int64_t output_cols = ne0;
 
+    GGML_LOG_INFO("%s: =================================================\n", __func__);
+    GGML_LOG_INFO("%s: inputs_ctx->ztensor.pre_transformed_desc: %p\n", __func__, (void *)inputs_ctx->ztensor.pre_transformed_desc);
+    GGML_LOG_INFO("%s: inputs_ctx->ztensor.transformed_desc:     %p\n", __func__, (void *)inputs_ctx->ztensor.transformed_desc);
+    GGML_LOG_INFO("%s: inputs_ctx->ztensor.buffer_size:          %" PRIu64 "\n", __func__, inputs_ctx->ztensor.buffer_size);
+    GGML_LOG_INFO("%s: inputs_ctx->ztensor.buffer:               %p\n", __func__, inputs_ctx->ztensor.buffer);
+    GGML_LOG_INFO("%s: inputs_ctx->ztensor.is_transformed:       %d\n", __func__, inputs);
+    GGML_LOG_INFO("%s: =================================================\n", __func__);
+    GGML_LOG_INFO("%s: weights_ctx->ztensor.pre_transformed_desc: %p\n", __func__, (void *)weights_ctx->ztensor.pre_transformed_desc);
+    GGML_LOG_INFO("%s: weights_ctx->ztensor.transformed_desc:     %p\n", __func__, (void *)weights_ctx->ztensor.transformed_desc);
+    GGML_LOG_INFO("%s: weights_ctx->ztensor.buffer_size:          %" PRIu64 "\n", __func__, weights_ctx->ztensor.buffer_size);
+    GGML_LOG_INFO("%s: weights_ctx->ztensor.buffer:               %p\n", __func__, weights_ctx->ztensor.buffer);
+    GGML_LOG_INFO("%s: weights_ctx->ztensor.is_transformed:       %d\n", __func__, inputs);
+    GGML_LOG_INFO("%s: =================================================\n", __func__);
+    GGML_LOG_INFO("%s: output_ctx->ztensor.pre_transformed_desc:  %p\n", __func__, (void *)output_ctx->ztensor.pre_transformed_desc);
+    GGML_LOG_INFO("%s: output_ctx->ztensor.transformed_desc:      %p\n", __func__, (void *)output_ctx->ztensor.transformed_desc);
+    GGML_LOG_INFO("%s: output_ctx->ztensor.buffer_size:           %" PRIu64 "\n", __func__, output_ctx->ztensor.buffer_size);
+    GGML_LOG_INFO("%s: output_ctx->ztensor.buffer:                %p\n", __func__, output_ctx->ztensor.buffer);
+    GGML_LOG_INFO("%s: output_ctx->ztensor.is_transformed:        %d\n", __func__, inputs);
+    GGML_LOG_INFO("%s: =================================================\n", __func__);
+    if (output_ctx->extra != nullptr) {
+        GGML_LOG_INFO("%s: output_ctx->extra->ztensor.pre_transformed_desc:  %p\n", __func__, (void *)output_ctx->extra->ztensor.pre_transformed_desc);
+        GGML_LOG_INFO("%s: output_ctx->extra->ztensor.transformed_desc:      %p\n", __func__, (void *)output_ctx->extra->ztensor.transformed_desc);
+        GGML_LOG_INFO("%s: output_ctx->extra->ztensor.buffer_size:           %" PRIu64 "\n", __func__, output_ctx->extra->ztensor.buffer_size);
+        GGML_LOG_INFO("%s: output_ctx->extra->ztensor.buffer:                %p\n", __func__, output_ctx->extra->ztensor.buffer);
+        GGML_LOG_INFO("%s: output_ctx->extra->ztensor.is_transformed:        %d\n", __func__, inputs);
+    }
+
     ZDNN_CHECK(zdnn_matmul_transpose_op(&inputs_ctx->ztensor,
                                         &weights_ctx->ztensor,
                                         &output_ctx->extra->ztensor,

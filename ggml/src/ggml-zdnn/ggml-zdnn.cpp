@@ -198,8 +198,8 @@ inline bool ggml_zdnn_compute_forward(ggml_backend_zdnn_context & ctx,
 static void * ggml_backend_zdnn_buffer_get_base(ggml_backend_buffer_t buffer) {
     uintptr_t data = (uintptr_t)buffer->context;
 
-    if (data & GGML_ZDNN_TENSOR_ALIGNMENT != 0) {
-        data = GGML_PAD(data, GGML_ZDNN_TENSOR_ALIGNMENT);
+    if (data & 256 != 0) {
+        data = GGML_PAD(data, 256);
     }
 
     return (void *)data;
@@ -282,7 +282,7 @@ static ggml_backend_buffer_t ggml_backend_zdnn_buffer_type_alloc_buffer(ggml_bac
 }
 
 static size_t ggml_backend_zdnn_buffer_type_get_alignment(ggml_backend_buffer_type_t buft) {
-    return GGML_ZDNN_TENSOR_ALIGNMENT;
+    return 256;
     GGML_UNUSED(buft);
 }
 

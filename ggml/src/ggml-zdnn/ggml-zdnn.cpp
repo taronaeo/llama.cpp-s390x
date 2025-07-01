@@ -248,8 +248,10 @@ static void ggml_backend_zdnn_buffer_set_tensor(ggml_backend_buffer_t   buffer,
                                                            const void * data,
                                                                size_t   offset,
                                                                size_t   size) {
-    // memcpy((char *)tensor->data + offset, data, size);
-    tensor->data = nullptr;
+    zdnn_extra * extra = (zdnn_extra *)tensor->extra;
+    ZDNN_CHECK(zdnn_transform_ztensor(&extra->ztensor, tensor->data));
+
+    memcpy((char *)tensor->data + offset, data, size);
     GGML_UNUSED(buffer);
 }
 
@@ -258,6 +260,9 @@ static void ggml_backend_zdnn_buffer_get_tensor(ggml_backend_buffer_t   buffer,
                                                                  void * data,
                                                                size_t   offset,
                                                                size_t   size) {
+    zdnn_extra * extra = (zdnn_extra *)tensor->extra;
+    ZDNN_CHECK(zdnn_transform_origtensor(&extra->ztensor, tensor->data));
+
     memcpy(data, (const char *)tensor->data + offset, size);
     GGML_UNUSED(buffer);
 }

@@ -210,31 +210,31 @@ static void ggml_backend_zdnn_buffer_free_buffer(ggml_backend_buffer_t buffer) {
 }
 
 static void ggml_backend_zdnn_buffer_memset_tensor(ggml_backend_buffer_t buffer, ggml_tensor * tensor, uint8_t value, size_t offset, size_t size) {
-    // memset((char *)tensor->data + offset, value, size);
+    memset((char *)tensor->data + offset, value, size);
     GGML_UNUSED(buffer);
 }
 
 static void ggml_backend_zdnn_buffer_set_tensor(ggml_backend_buffer_t buffer, ggml_tensor * tensor, const void * data, size_t offset, size_t size) {
-    // memcpy((char *)tensor->data + offset, data, size);
+    memcpy((char *)tensor->data + offset, data, size);
     GGML_UNUSED(buffer);
 }
 
 static void ggml_backend_zdnn_buffer_get_tensor(ggml_backend_buffer_t buffer, const ggml_tensor * tensor, void * data, size_t offset, size_t size) {
-    // memcpy(data, (const char *)tensor->data + offset, size);
+    memcpy(data, (const char *)tensor->data + offset, size);
     GGML_UNUSED(buffer);
 }
 
 static bool ggml_backend_zdnn_buffer_cpy_tensor(ggml_backend_buffer_t buffer, const ggml_tensor * src, ggml_tensor * dst) {
-    // if (ggml_backend_buffer_is_host(src->buffer)) {
-    //     memcpy(dst->data, src->data, ggml_nbytes(src));
-    //     return true;
-    // }
+    if (ggml_backend_buffer_is_host(src->buffer)) {
+        memcpy(dst->data, src->data, ggml_nbytes(src));
+        return true;
+    }
     return false;
     GGML_UNUSED(buffer);
 }
 
 static void ggml_backend_zdnn_buffer_clear(ggml_backend_buffer_t buffer, uint8_t value) {
-    // memset(buffer->context, value, buffer->size);
+    memset(buffer->context, value, buffer->size);
 }
 
 static const struct ggml_backend_buffer_i ggml_backend_zdnn_buffer_i = {

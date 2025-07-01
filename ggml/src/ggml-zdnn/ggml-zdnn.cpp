@@ -6,15 +6,12 @@
 
 #include <csignal>
 
-struct ggml_backend_zdnn_buffer_context {
+struct zdnn_extra {
     zdnn_tensor_desc pre_tfm_desc;
     zdnn_tensor_desc tfm_desc;
     zdnn_ztensor ztensor;
 
-    void * buffer = nullptr;
-    size_t buffer_size = 0;
-
-    struct ggml_backend_zdnn_buffer_context * extra;  // for bias, etc.
+    struct zdnn_extra * extra;  // for bias, etc.
 };
 
 // --------------------------------------------------------------------------
@@ -215,19 +212,19 @@ static void * ggml_backend_zdnn_buffer_get_base(ggml_backend_buffer_t buffer) {
 }
 
 static void ggml_backend_zdnn_buffer_init_tensor(ggml_backend_buffer_t buffer, ggml_tensor * tensor) {
-    ggml_backend_zdnn_buffer_context * ctx = (ggml_backend_zdnn_buffer_context *)buffer->context;
+    zdnn_extra * extra = new zdnn_extra{};
 
     zdnn_init_pre_transformed_desc(
         ZDNN_2D,
         ggml_zdnn_type_mapping(tensor->type),
-        &ctx->pre_tfm_desc,
+        &extra->pre_tfm_desc,
         1, 1, tensor->ne[1], tensor->ne[0]
     );
 
-    ZDNN_CHECK(zdnn_generate_transformed_desc(&ctx->pre_tfm_desc, &ctx->tfm_desc));
-    ZDNN_CHECK(zdnn_init_ztensor_with_malloc(&ctx->pre_tfm_desc, &ctx->tfm_desc, &ctx->ztensor));
+    ZDNN_CHECK(zdnn_generate_transformed_desc(&extra->pre_tfm_desc, &extra->tfm_desc));
+    ZDNN_CHECK(zdnn_init_ztensor_with_malloc(&extra->pre_tfm_desc, &extra->tfm_desc, &extra->ztensor));
 
-    tensor->extra = ctx;
+    tensor->extra = extra;
 }
 
 static void ggml_backend_zdnn_buffer_free_buffer(ggml_backend_buffer_t buffer) {
@@ -302,11 +299,7 @@ static ggml_backend_buffer_t ggml_backend_zdnn_buffer_type_alloc_buffer(ggml_bac
         return NULL;
     }
 
-    ggml_backend_zdnn_buffer_context * ctx = new ggml_backend_zdnn_buffer_context;
-    ctx->buffer = data;
-    ctx->buffer_size = sizeof(data);
-
-    return ggml_backend_buffer_init(buft, ggml_backend_zdnn_buffer_i, ctx, size);
+    return ggml_backend_buffer_init(buft, ggml_backend_zdnn_buffer_i, data, size);
 }
 
 static size_t ggml_backend_zdnn_buffer_type_get_alignment(ggml_backend_buffer_type_t buft) {

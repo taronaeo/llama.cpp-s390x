@@ -120,8 +120,6 @@ inline void ggml_zdnn_op_mul_mat(ggml_backend_zdnn_context & ctx,
     ggml_zdnn_create_tensor(pre_tfm_desc_bias,    tfm_desc_bias,    ztensor_bias,    dst,  bias_dim,    ZDNN_1D);
     ggml_zdnn_create_tensor(pre_tfm_desc_output,  tfm_desc_output,  ztensor_output,  dst,  output_dim,  ZDNN_2D);
 
-    const size_t weights_size = ggml_element_size(src0);
-
     void * bias_data = (void *)calloc(output_cols, sizeof(ggml_element_size(dst)));
 
     ZDNN_CHECK(zdnn_transform_ztensor(&ztensor_weights, weights->data));
@@ -209,7 +207,7 @@ inline bool ggml_zdnn_compute_forward(ggml_backend_zdnn_context & ctx,
 static void * ggml_backend_zdnn_buffer_get_base(ggml_backend_buffer_t buffer) {
     uintptr_t data = (uintptr_t)buffer->context;
 
-    if (data & 256 != 0) {
+    if ((data & 256) != 0) {
         data = GGML_PAD(data, 256);
     }
 
@@ -431,7 +429,7 @@ static struct ggml_backend_i ggml_backend_zdnn_i = {
     /* .event_wait          = */ NULL,
 };
 
-static const ggml_guid_t ggml_backend_zdnn_guid(void) {
+static ggml_guid_t ggml_backend_zdnn_guid(void) {
     // guid spells out IBM-NNPA-ACCELER
     static ggml_guid guid = { 0x49, 0x42, 0x4D, 0x2D, 0x4E, 0x4E, 0x50, 0x41,
                               0x2D, 0x41, 0x43, 0x43, 0x45, 0x4C, 0x45, 0x52 };

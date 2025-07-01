@@ -65,6 +65,13 @@ inline void ggml_zdnn_load_tensor(zdnn_ztensor & ztensor,
 // Kernels
 // --------------------------------------------------------------------------
 
+inline void ggml_zdnn_op_mul(ggml_backend_zdnn_context & ctx,
+                                     const ggml_tensor * src0,
+                                     const ggml_tensor * src1,
+                                           ggml_tensor * dst) {
+    std::raise(SIGINT);
+}
+
 inline void ggml_zdnn_op_mul_mat(ggml_backend_zdnn_context & ctx,
                                         const ggml_tensor * src0,
                                         const ggml_tensor * src1,
@@ -180,9 +187,14 @@ inline void ggml_zdnn_mul_mat_dispatch(ggml_backend_zdnn_context & ctx,
 inline bool ggml_zdnn_compute_forward(ggml_backend_zdnn_context & ctx,
                                                     ggml_tensor * dst) {
     switch (dst->op) {
+        case GGML_OP_MUL:
+            ggml_zdnn_op_mul(ctx, dst->src[0], dst->src[1], dst);
+            break;
+
         case GGML_OP_MUL_MAT:
             ggml_zdnn_mul_mat_dispatch(ctx, dst->src[0], dst->src[1], dst);
             break;
+
         default:
             return false;
     }
@@ -517,6 +529,11 @@ static bool ggml_backend_zdnn_device_supports_op(ggml_backend_dev_t dev, const g
         case GGML_OP_PERMUTE:
         case GGML_OP_TRANSPOSE:
             break;
+
+        case GGML_OP_MUL:
+        {
+            if (!ggml_is_contiguous(src0) || !ggml_is_contiguous(src1)) return false;
+        } break;
 
         case GGML_OP_MUL_MAT:
         {

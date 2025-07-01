@@ -211,7 +211,8 @@ static void * ggml_backend_zdnn_buffer_get_base(ggml_backend_buffer_t buffer) {
     return (void *)data;
 }
 
-static void ggml_backend_zdnn_buffer_init_tensor(ggml_backend_buffer_t buffer, ggml_tensor * tensor) {
+static void ggml_backend_zdnn_buffer_init_tensor(ggml_backend_buffer_t   buffer,
+                                                           ggml_tensor * tensor) {
     zdnn_extra * extra = new zdnn_extra{};
 
     zdnn_init_pre_transformed_desc(
@@ -231,22 +232,36 @@ static void ggml_backend_zdnn_buffer_free_buffer(ggml_backend_buffer_t buffer) {
     ggml_aligned_free(buffer->context, buffer->size);
 }
 
-static void ggml_backend_zdnn_buffer_memset_tensor(ggml_backend_buffer_t buffer, ggml_tensor * tensor, uint8_t value, size_t offset, size_t size) {
+static void ggml_backend_zdnn_buffer_memset_tensor(ggml_backend_buffer_t   buffer,
+                                                             ggml_tensor * tensor,
+                                                                 uint8_t   value,
+                                                                  size_t   offset,
+                                                                  size_t   size) {
     memset((char *)tensor->data + offset, value, size);
     GGML_UNUSED(buffer);
 }
 
-static void ggml_backend_zdnn_buffer_set_tensor(ggml_backend_buffer_t buffer, ggml_tensor * tensor, const void * data, size_t offset, size_t size) {
+static void ggml_backend_zdnn_buffer_set_tensor(ggml_backend_buffer_t   buffer,
+                                                          ggml_tensor * tensor,
+                                                           const void * data,
+                                                               size_t   offset,
+                                                               size_t   size) {
     memcpy((char *)tensor->data + offset, data, size);
     GGML_UNUSED(buffer);
 }
 
-static void ggml_backend_zdnn_buffer_get_tensor(ggml_backend_buffer_t buffer, const ggml_tensor * tensor, void * data, size_t offset, size_t size) {
+static void ggml_backend_zdnn_buffer_get_tensor(ggml_backend_buffer_t   buffer,
+                                                    const ggml_tensor * tensor,
+                                                                 void * data,
+                                                               size_t   offset,
+                                                               size_t   size) {
     memcpy(data, (const char *)tensor->data + offset, size);
     GGML_UNUSED(buffer);
 }
 
-static bool ggml_backend_zdnn_buffer_cpy_tensor(ggml_backend_buffer_t buffer, const ggml_tensor * src, ggml_tensor * dst) {
+static bool ggml_backend_zdnn_buffer_cpy_tensor(ggml_backend_buffer_t   buffer,
+                                                    const ggml_tensor * src,
+                                                          ggml_tensor * dst) {
     if (ggml_backend_buffer_is_host(src->buffer)) {
         memcpy(dst->data, src->data, ggml_nbytes(src));
         return true;
@@ -480,7 +495,7 @@ static ggml_backend_buffer_type_t ggml_backend_zdnn_device_get_buffer_type(ggml_
 }
 
 static ggml_backend_buffer_t ggml_backend_zdnn_device_buffer_from_host_ptr(ggml_backend_dev_t dev, void * ptr, size_t size, size_t max_tensor_size) {
-    return ggml_backend_zdnn_buffer_from_ptr(ptr, size);
+    return ggml_backend_cpu_buffer_from_ptr(ptr, size);
     GGML_UNUSED(dev);
     GGML_UNUSED(max_tensor_size);
 }

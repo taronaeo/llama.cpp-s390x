@@ -65,13 +65,6 @@ inline void ggml_zdnn_load_tensor(zdnn_ztensor & ztensor,
 // Kernels
 // --------------------------------------------------------------------------
 
-inline void ggml_zdnn_op_mul(ggml_backend_zdnn_context & ctx,
-                                     const ggml_tensor * src0,
-                                     const ggml_tensor * src1,
-                                           ggml_tensor * dst) {
-    std::raise(SIGINT);
-}
-
 inline void ggml_zdnn_op_mul_mat(ggml_backend_zdnn_context & ctx,
                                         const ggml_tensor * src0,
                                         const ggml_tensor * src1,
@@ -97,12 +90,12 @@ inline void ggml_zdnn_op_mul_mat(ggml_backend_zdnn_context & ctx,
     const ggml_tensor * inputs  = src1;
           ggml_tensor * output  = dst;
 
-    zdnn_tensor_desc pre_tfm_desc_inputs, tfm_desc_inputs;
-    zdnn_tensor_desc pre_tfm_desc_bias, tfm_desc_bias;
-    zdnn_ztensor ztensor_inputs, ztensor_bias;
-
-    zdnn_extra * weights_extra = (zdnn_extra *)weights->extra;
-    zdnn_extra * output_extra = (zdnn_extra *)output->extra;
+    zdnn_tensor_desc pre_tfm_desc_weights, tfm_desc_weights;
+    zdnn_tensor_desc pre_tfm_desc_inputs,  tfm_desc_inputs;
+    zdnn_tensor_desc pre_tfm_desc_bias,    tfm_desc_bias;
+    zdnn_tensor_desc pre_tfm_desc_output,  tfm_desc_output;
+    zdnn_ztensor     ztensor_weights,      ztensor_inputs,
+                     ztensor_bias,         ztensor_output;
 
     const int64_t weights_rows = ne01;
     const int64_t weights_cols = ne00;
@@ -119,18 +112,22 @@ inline void ggml_zdnn_op_mul_mat(ggml_backend_zdnn_context & ctx,
     const int64_t bias_dim   [GGML_MAX_DIMS] = { 1, 1, 1, output_cols };
     const int64_t output_dim [GGML_MAX_DIMS] = { 1, 1, output_cols, output_rows };
 
+    ggml_zdnn_create_tensor(pre_tfm_desc_weights, tfm_desc_weights, ztensor_weights, weights, weights_dim, ZDNN_2D);
     ggml_zdnn_create_tensor(pre_tfm_desc_inputs, tfm_desc_inputs, ztensor_inputs, inputs, inputs_dim, ZDNN_2D);
     ggml_zdnn_create_tensor(pre_tfm_desc_bias, tfm_desc_bias, ztensor_bias, dst, bias_dim, ZDNN_1D);
 
     void * bias_data = (void *)calloc(output_cols, sizeof(ggml_element_size(dst)));
+    ZDNN_CHECK(zdnn_transform_ztensor(&ztensor_weights, weights->data));
     ZDNN_CHECK(zdnn_transform_ztensor(&ztensor_inputs, inputs->data));
     ZDNN_CHECK(zdnn_transform_ztensor(&ztensor_bias, bias_data));
 
-    ZDNN_CHECK(zdnn_matmul_transpose_op(&ztensor_inputs, &weights_extra->ztensor, &ztensor_bias,
-                                        false, true, MATMUL_OP_ADDITION, &output_extra->ztensor));
+    ZDNN_CHECK(zdnn_matmul_transpose_op(&ztensor_inputs, &ztensor_weights, &ztensor_bias,
+                                        false, true, MATMUL_OP_ADDITION, &ztensor_output));
 
+    ZDNN_CHECK(zdnn_free_ztensor_buffer(&ztensor_weights));
     ZDNN_CHECK(zdnn_free_ztensor_buffer(&ztensor_inputs));
     ZDNN_CHECK(zdnn_free_ztensor_buffer(&ztensor_bias));
+    ZDNN_CHECK(zdnn_free_ztensor_buffer(&ztensor_output));
 
     free(bias_data);
 }
@@ -187,10 +184,6 @@ inline void ggml_zdnn_mul_mat_dispatch(ggml_backend_zdnn_context & ctx,
 inline bool ggml_zdnn_compute_forward(ggml_backend_zdnn_context & ctx,
                                                     ggml_tensor * dst) {
     switch (dst->op) {
-        case GGML_OP_MUL:
-            ggml_zdnn_op_mul(ctx, dst->src[0], dst->src[1], dst);
-            break;
-
         case GGML_OP_MUL_MAT:
             ggml_zdnn_mul_mat_dispatch(ctx, dst->src[0], dst->src[1], dst);
             break;
@@ -529,11 +522,6 @@ static bool ggml_backend_zdnn_device_supports_op(ggml_backend_dev_t dev, const g
         case GGML_OP_PERMUTE:
         case GGML_OP_TRANSPOSE:
             break;
-
-        case GGML_OP_MUL:
-        {
-            if (!ggml_is_contiguous(src0) || !ggml_is_contiguous(src1)) return false;
-        } break;
 
         case GGML_OP_MUL_MAT:
         {

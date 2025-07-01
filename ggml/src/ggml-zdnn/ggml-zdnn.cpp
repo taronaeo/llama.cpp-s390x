@@ -116,6 +116,8 @@ inline void ggml_zdnn_op_mul_mat(ggml_backend_zdnn_context & ctx,
     ggml_zdnn_create_tensor(pre_tfm_desc_inputs, tfm_desc_inputs, ztensor_inputs, inputs, inputs_dim, ZDNN_2D);
     ggml_zdnn_create_tensor(pre_tfm_desc_bias, tfm_desc_bias, ztensor_bias, dst, bias_dim, ZDNN_1D);
 
+    std::raise(SIGINT);
+
     void * bias_data = (void *)calloc(output_cols, sizeof(ggml_element_size(dst)));
     ZDNN_CHECK(zdnn_transform_ztensor(&ztensor_weights, weights->data));
     ZDNN_CHECK(zdnn_transform_ztensor(&ztensor_inputs, inputs->data));
@@ -564,7 +566,12 @@ static bool ggml_backend_zdnn_device_supports_op(ggml_backend_dev_t dev, const g
 }
 
 static bool ggml_backend_zdnn_device_supports_buft(ggml_backend_dev_t dev, ggml_backend_buffer_type_t buft) {
-    return ggml_backend_buft_is_host(buft);
+    if (buft->iface.get_name != ggml_backend_zdnn_buffer_type_get_name) {
+        return false;
+    }
+
+    return true;
+
     GGML_UNUSED(dev);
 }
 

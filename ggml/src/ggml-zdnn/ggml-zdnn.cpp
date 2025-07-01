@@ -116,6 +116,7 @@ inline void ggml_zdnn_op_mul_mat(ggml_backend_zdnn_context & ctx,
     ggml_zdnn_create_tensor(pre_tfm_desc_bias, tfm_desc_bias, ztensor_bias, dst, bias_dim, ZDNN_1D);
 
     void * bias_data = (void *)calloc(output_cols, sizeof(ggml_element_size(dst)));
+    ZDNN_CHECK(zdnn_transform_ztensor(&ztensor_inputs, inputs->data));
     ZDNN_CHECK(zdnn_transform_ztensor(&ztensor_bias, bias_data));
 
     ZDNN_CHECK(zdnn_matmul_transpose_op(&ztensor_inputs, &weights_extra->ztensor, &ztensor_bias,

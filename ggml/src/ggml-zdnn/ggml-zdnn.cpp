@@ -112,6 +112,8 @@ inline void ggml_zdnn_op_mul_mat(ggml_backend_zdnn_context & ctx,
     const int64_t bias_dim   [GGML_MAX_DIMS] = { 1, 1, 1, output_cols };
     const int64_t output_dim [GGML_MAX_DIMS] = { 1, 1, output_cols, output_rows };
 
+    std::raise(SIGINT);
+
     ggml_zdnn_create_tensor(pre_tfm_desc_weights, tfm_desc_weights, ztensor_weights, src0, weights_dim, ZDNN_2D);
     ggml_zdnn_create_tensor(pre_tfm_desc_inputs,  tfm_desc_inputs,  ztensor_inputs,  src1, inputs_dim,  ZDNN_2D);
     ggml_zdnn_create_tensor(pre_tfm_desc_bias,    tfm_desc_bias,    ztensor_bias,    dst,  bias_dim,    ZDNN_1D);
@@ -246,7 +248,8 @@ static void ggml_backend_zdnn_buffer_set_tensor(ggml_backend_buffer_t   buffer,
                                                            const void * data,
                                                                size_t   offset,
                                                                size_t   size) {
-    memcpy((char *)tensor->data + offset, data, size);
+    // memcpy((char *)tensor->data + offset, data, size);
+    tensor->data = nullptr;
     GGML_UNUSED(buffer);
 }
 
@@ -367,7 +370,7 @@ static ggml_backend_buffer_type_t ggml_backend_zdnn_buffer_from_ptr_type(void) {
 }
 
 ggml_backend_buffer_t ggml_backend_zdnn_buffer_from_ptr(void * ptr, size_t size) {
-    GGML_ASSERT((uintptr_t)ptr % TENSOR_ALIGNMENT == 0 && "buffer pointer must be aligned");
+    GGML_ASSERT((uintptr_t)ptr % 256 == 0 && "buffer pointer must be aligned");
     return ggml_backend_buffer_init(ggml_backend_zdnn_buffer_from_ptr_type(), ggml_backend_zdnn_buffer_from_ptr_i, ptr, size);
 }
 
@@ -495,7 +498,7 @@ static ggml_backend_buffer_type_t ggml_backend_zdnn_device_get_buffer_type(ggml_
 }
 
 static ggml_backend_buffer_t ggml_backend_zdnn_device_buffer_from_host_ptr(ggml_backend_dev_t dev, void * ptr, size_t size, size_t max_tensor_size) {
-    return ggml_backend_cpu_buffer_from_ptr(ptr, size);
+    return ggml_backend_zdnn_buffer_from_ptr(ptr, size);
     GGML_UNUSED(dev);
     GGML_UNUSED(max_tensor_size);
 }

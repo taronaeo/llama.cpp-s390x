@@ -6,6 +6,14 @@
 
 #include <csignal>
 
+struct zdnn_extra {
+    zdnn_tensor_desc pre_tfm_desc;
+    zdnn_tensor_desc tfm_desc;
+    zdnn_ztensor ztensor;
+
+    struct zdnn_extra * extra;  // for bias, etc.
+};
+
 // --------------------------------------------------------------------------
 // Utilities
 // --------------------------------------------------------------------------
@@ -58,9 +66,9 @@ inline void ggml_zdnn_load_tensor(zdnn_ztensor & ztensor,
 // --------------------------------------------------------------------------
 
 inline void ggml_zdnn_op_mul_mat(ggml_backend_zdnn_context & ctx,
-                          const ggml_tensor * src0,
-                          const ggml_tensor * src1,
-                                ggml_tensor * dst) {
+                                         const ggml_tensor * src0,
+                                         const ggml_tensor * src1,
+                                               ggml_tensor * dst) {
     GGML_TENSOR_BINARY_OP_LOCALS;
 
     const enum ggml_type type = src0->type;
@@ -209,13 +217,29 @@ static void * ggml_backend_zdnn_buffer_get_base(ggml_backend_buffer_t buffer) {
 }
 
 static void ggml_backend_zdnn_buffer_init_tensor(ggml_backend_buffer_t   buffer,
-                                                           ggml_tensor * tensor) {}
+                                                           ggml_tensor * tensor) {
+    zdnn_extra * extra = new zdnn_extra;
+
+    // TODO: Change to switch case to determine the layout
+    zdnn_init_pre_transformed_desc(
+        ZDNN_2D,
+        ggml_zdnn_type_mapping(tensor->type),
+        &extra->pre_tfm_desc,
+        1, 1, tensor->ne[1], tensor->ne[0]
+    );
+
+    ZDNN_CHECK(zdnn_generate_transformed_desc(&extra->pre_tfm_desc, &extra->tfm_desc));
+    ZDNN_CHECK(zdnn_init_ztensor_with_malloc(&extra->pre_tfm_desc, &extra->tfm_desc, &extra->ztensor));
+
+    tensor->extra = extra;
+}
 
 static void ggml_backend_zdnn_buffer_memset_tensor(ggml_backend_buffer_t   buffer,
                                                              ggml_tensor * tensor,
                                                                  uint8_t   value,
                                                                   size_t   offset,
                                                                   size_t   size) {
+    zdnn_extra * extra = (zdnn_extra *)tensor->extra;
     memset((char *)tensor->data + offset, value, size);
     GGML_UNUSED(buffer);
 }

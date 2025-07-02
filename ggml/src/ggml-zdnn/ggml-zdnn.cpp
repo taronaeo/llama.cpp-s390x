@@ -457,6 +457,10 @@ static ggml_guid_t ggml_backend_zdnn_guid(void) {
 }
 
 ggml_backend_t ggml_backend_zdnn_init(void) {
+#ifdef STATIC_LIB
+    zdnn_init();
+#endif
+
     ggml_backend_zdnn_context * ctx = new ggml_backend_zdnn_context;
 
     ggml_backend_t backend = new ggml_backend{

@@ -227,7 +227,7 @@ static void ggml_backend_zdnn_buffer_init_tensor(ggml_backend_buffer_t   buffer,
         ZDNN_2D,
         ggml_zdnn_type_mapping(tensor->type),
         &extra->pre_tfm_desc,
-        tensor->ne[3], tensor->ne[2], tensor->ne[1], tensor->ne[0]
+        tensor->ne[0], tensor->ne[1], tensor->ne[2], tensor->ne[3]
     );
 
     ZDNN_CHECK(zdnn_generate_transformed_desc(&extra->pre_tfm_desc, &extra->tfm_desc));

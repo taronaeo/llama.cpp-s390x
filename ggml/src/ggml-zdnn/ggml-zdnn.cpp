@@ -222,13 +222,15 @@ static void ggml_backend_zdnn_buffer_init_tensor(ggml_backend_buffer_t   buffer,
                                                            ggml_tensor * tensor) {
     zdnn_extra * extra = new zdnn_extra;
 
+    const int64_t dims[GGML_MAX_DIMS] = { 1, 1, tensor->ne[0], tensor->ne[1] };
+
     // TODO: Change to switch case to determine the layout
     // .     We don't need to change the way the tensor shape is described
     zdnn_init_pre_transformed_desc(
         ZDNN_2D,
         ggml_zdnn_type_mapping(tensor->type),
         &extra->pre_tfm_desc,
-        tensor->ne[0], tensor->ne[1], tensor->ne[3], tensor->ne[2]
+        dims[3], dims[2], dims[1], dims[0]
     );
 
     ZDNN_CHECK(zdnn_generate_transformed_desc(&extra->pre_tfm_desc, &extra->tfm_desc));

@@ -12,6 +12,9 @@ struct zdnn_extra {
     zdnn_ztensor ztensor;
 
     struct zdnn_extra * extra;  // for bias, etc.
+
+    zdnn_extra() :
+        extra(nullptr) {}
 };
 
 // --------------------------------------------------------------------------
@@ -235,19 +238,22 @@ static void ggml_backend_zdnn_buffer_init_tensor(ggml_backend_buffer_t   buffer,
     ZDNN_CHECK(zdnn_generate_transformed_desc(&extra->pre_tfm_desc, &extra->tfm_desc));
     ZDNN_CHECK(zdnn_init_ztensor_with_malloc(&extra->pre_tfm_desc, &extra->tfm_desc, &extra->ztensor));
 
-    zdnn_extra * bias_extra = new zdnn_extra;
-    const int64_t bias_dims[GGML_MAX_DIMS] = { 1, 1, 1, tensor->ne[0] };
+    if (tensor->op == GGML_OP_MUL_MAT) {
+        zdnn_extra * bias_extra = new zdnn_extra;
+        const int64_t bias_dims[GGML_MAX_DIMS] = { 1, 1, 1, tensor->ne[0] };
 
-    zdnn_init_pre_transformed_desc(
-        ZDNN_1D,
-        ggml_zdnn_type_mapping(tensor->type),
-        &bias_extra->pre_tfm_desc,
-        bias_dims[3], bias_dims[2], bias_dims[1], bias_dims[0]
-    );
-    ZDNN_CHECK(zdnn_generate_transformed_desc(&bias_extra->pre_tfm_desc, &bias_extra->tfm_desc));
-    ZDNN_CHECK(zdnn_init_ztensor_with_malloc(&bias_extra->pre_tfm_desc, &bias_extra->tfm_desc, &bias_extra->ztensor));
+        zdnn_init_pre_transformed_desc(
+            ZDNN_1D,
+            ggml_zdnn_type_mapping(tensor->type),
+            &bias_extra->pre_tfm_desc,
+            bias_dims[3], bias_dims[2], bias_dims[1], bias_dims[0]
+        );
+        ZDNN_CHECK(zdnn_generate_transformed_desc(&bias_extra->pre_tfm_desc, &bias_extra->tfm_desc));
+        ZDNN_CHECK(zdnn_init_ztensor_with_malloc(&bias_extra->pre_tfm_desc, &bias_extra->tfm_desc, &bias_extra->ztensor));
 
-    extra->extra = bias_extra;
+        extra->extra = bias_extra;
+    }
+
     tensor->extra = extra;
 }
 

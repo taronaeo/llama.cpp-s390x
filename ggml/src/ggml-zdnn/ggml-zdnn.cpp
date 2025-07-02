@@ -270,7 +270,7 @@ static void ggml_backend_zdnn_buffer_set_tensor(ggml_backend_buffer_t   buffer,
     if (extra->extra != nullptr) {
         zdnn_extra * bias_extra = (zdnn_extra *)extra->extra;
         void * bias_data = (void *)calloc(tensor->ne[0], sizeof(ggml_element_size(tensor)));
-        ZDNN_CHECK(zdnn_transform_origtensor(&bias_extra->ztensor, bias_data));
+        ZDNN_CHECK(zdnn_transform_ztensor(&bias_extra->ztensor, bias_data));
     }
 
     // memcpy((char *)tensor->data + offset, data, size);

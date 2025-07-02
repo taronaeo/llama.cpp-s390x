@@ -194,6 +194,11 @@ static void * ggml_backend_zdnn_buffer_get_base(ggml_backend_buffer_t buffer) {
 
 static void ggml_backend_zdnn_buffer_init_tensor(ggml_backend_buffer_t   buffer,
                                                            ggml_tensor * tensor) {
+    if (tensor->view_src != NULL) {
+        assert(tensor->view_src->buffer->buft == buffer->buft);
+        return;
+    }
+
     zdnn_extra * extra = new zdnn_extra;
 
     const int64_t dims[GGML_MAX_DIMS] = { 1, 1, tensor->ne[0], tensor->ne[1] };
@@ -265,15 +270,15 @@ static void ggml_backend_zdnn_buffer_get_tensor(ggml_backend_buffer_t   buffer,
     // memcpy(data, (const char *)tensor->data + offset, size);
 }
 
-static bool ggml_backend_zdnn_buffer_cpy_tensor(ggml_backend_buffer_t   buffer,
-                                                    const ggml_tensor * src,
-                                                          ggml_tensor * dst) {
-    if (buffer->iface.free_buffer == ggml_backend_zdnn_buffer_free_buffer) {
-        memcpy(dst->data, src->data, ggml_nbytes(src));
-        return true;
-    }
-    return false;
-}
+// static bool ggml_backend_zdnn_buffer_cpy_tensor(ggml_backend_buffer_t   buffer,
+//                                                     const ggml_tensor * src,
+//                                                           ggml_tensor * dst) {
+//     if (buffer->iface.free_buffer == ggml_backend_zdnn_buffer_free_buffer) {
+//         memcpy(dst->data, src->data, ggml_nbytes(src));
+//         return true;
+//     }
+//     return false;
+// }
 
 static void ggml_backend_zdnn_buffer_clear(ggml_backend_buffer_t buffer,
                                                          uint8_t value) {
@@ -287,7 +292,7 @@ static const ggml_backend_buffer_i ggml_backend_zdnn_buffer_i = {
     /* .memset_tensor   = */ ggml_backend_zdnn_buffer_memset_tensor,
     /* .set_tensor      = */ ggml_backend_zdnn_buffer_set_tensor,
     /* .get_tensor      = */ ggml_backend_zdnn_buffer_get_tensor,
-    /* .cpy_tensor      = */ ggml_backend_zdnn_buffer_cpy_tensor,
+    /* .cpy_tensor      = */ NULL,
     /* .clear           = */ ggml_backend_zdnn_buffer_clear,
     /* .reset           = NULL, */
 };
@@ -299,7 +304,7 @@ static const ggml_backend_buffer_i ggml_backend_zdnn_buffer_from_ptr_i = {
     /* .memset_tensor   = */ ggml_backend_zdnn_buffer_memset_tensor,
     /* .set_tensor      = */ ggml_backend_zdnn_buffer_set_tensor,
     /* .get_tensor      = */ ggml_backend_zdnn_buffer_get_tensor,
-    /* .cpy_tensor      = */ ggml_backend_zdnn_buffer_cpy_tensor,
+    /* .cpy_tensor      = */ NULL,
     /* .clear           = */ ggml_backend_zdnn_buffer_clear,
     /* .reset           = */ NULL,
 };

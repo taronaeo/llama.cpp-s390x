@@ -268,7 +268,7 @@ static void ggml_backend_zdnn_buffer_get_tensor(ggml_backend_buffer_t   buffer,
 static bool ggml_backend_zdnn_buffer_cpy_tensor(ggml_backend_buffer_t   buffer,
                                                     const ggml_tensor * src,
                                                           ggml_tensor * dst) {
-    if (ggml_backend_buffer_is_host(src->buffer)) {
+    if (buffer->iface.free_buffer == ggml_backend_zdnn_buffer_free_buffer) {
         memcpy(dst->data, src->data, ggml_nbytes(src));
         return true;
     }

@@ -134,7 +134,22 @@ inline void ggml_zdnn_op_mul_mat(ggml_backend_zdnn_context & ctx,
     ZDNN_CHECK(zdnn_matmul_transpose_op(&inputs_extra->ztensor, &weights_extra->ztensor, &output_extra->extra->ztensor,
                                         false, true, MATMUL_OP_ADDITION, &output_extra->ztensor));
 
+    void * temp_output_buffer = malloc(ggml_nbytes(output));
+    ZDNN_CHECK(zdnn_transform_origtensor(&output_extra->ztensor, temp_output_buffer));
     ZDNN_CHECK(zdnn_transform_origtensor(&ztensor_output, output->data));
+
+    // Compare the first 10 elements of the two buffers
+    GGML_LOG_INFO("%s: Comparing output buffers:\n", __func__);
+    GGML_LOG_INFO("Index | temp_output_buffer | output->data\n");
+    GGML_LOG_INFO("------|--------------------|-------------\n");
+    for (int i = 0; i < 10 && i < output->ne[0] * output->ne[1]; i++) {
+        GGML_LOG_INFO("%5d | %18.6f | %12.6f\n",
+                        i,
+                        ((float *)temp_output_buffer)[i],
+                        ((float *)output->data)[i]);
+    }
+
+    std::raise(SIGINT);
 
     ZDNN_CHECK(zdnn_free_ztensor_buffer(&ztensor_weights));
     ZDNN_CHECK(zdnn_free_ztensor_buffer(&ztensor_inputs));
@@ -142,6 +157,7 @@ inline void ggml_zdnn_op_mul_mat(ggml_backend_zdnn_context & ctx,
     ZDNN_CHECK(zdnn_free_ztensor_buffer(&ztensor_output));
 
     free(bias_data);
+    free(temp_output_buffer);
 }
 
 inline void ggml_zdnn_mul_mat_dispatch(ggml_backend_zdnn_context & ctx,

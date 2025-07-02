@@ -223,6 +223,7 @@ static void ggml_backend_zdnn_buffer_init_tensor(ggml_backend_buffer_t   buffer,
     zdnn_extra * extra = new zdnn_extra;
 
     // TODO: Change to switch case to determine the layout
+    // .     We don't need to change the way the tensor shape is described
     zdnn_init_pre_transformed_desc(
         ZDNN_2D,
         ggml_zdnn_type_mapping(tensor->type),
@@ -241,7 +242,6 @@ static void ggml_backend_zdnn_buffer_memset_tensor(ggml_backend_buffer_t   buffe
                                                                  uint8_t   value,
                                                                   size_t   offset,
                                                                   size_t   size) {
-    zdnn_extra * extra = (zdnn_extra *)tensor->extra;
     memset((char *)tensor->data + offset, value, size);
     GGML_UNUSED(buffer);
 }
@@ -251,6 +251,9 @@ static void ggml_backend_zdnn_buffer_set_tensor(ggml_backend_buffer_t   buffer,
                                                            const void * data,
                                                                size_t   offset,
                                                                size_t   size) {
+    zdnn_extra * extra = (zdnn_extra *)tensor->extra;
+    ZDNN_CHECK(zdnn_transform_ztensor(&extra->ztensor, (void *)data));
+
     memcpy((char *)tensor->data + offset, data, size);
     GGML_UNUSED(buffer);
 }
@@ -260,6 +263,8 @@ static void ggml_backend_zdnn_buffer_get_tensor(ggml_backend_buffer_t   buffer,
                                                                  void * data,
                                                                size_t   offset,
                                                                size_t   size) {
+    zdnn_extra * extra = (zdnn_extra *)tensor->extra;
+    ZDNN_CHECK(zdnn_transform_origtensor(&extra->ztensor, (void *)data));
     memcpy(data, (const char *)tensor->data + offset, size);
 }
 

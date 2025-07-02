@@ -194,9 +194,148 @@ inline bool ggml_zdnn_compute_forward(ggml_backend_zdnn_context & ctx,
 // Backend Buffer
 // --------------------------------------------------------------------------
 
+static void ggml_backend_zdnn_buffer_free_buffer(ggml_backend_buffer_t buffer) {
+    ggml_aligned_free(buffer->context, buffer->size);
+}
+
+static void * ggml_backend_zdnn_buffer_get_base(ggml_backend_buffer_t buffer) {
+    uintptr_t data = (uintptr_t)buffer->context;
+
+    if (data % 256 != 0) {
+        data = GGML_PAD(data, 256);
+    }
+
+    return (void *)data;
+}
+
+static void ggml_backend_zdnn_buffer_init_tensor(ggml_backend_buffer_t   buffer,
+                                                           ggml_tensor * tensor) {}
+
+static void ggml_backend_zdnn_buffer_memset_tensor(ggml_backend_buffer_t   buffer,
+                                                             ggml_tensor * tensor,
+                                                                 uint8_t   value,
+                                                                  size_t   offset,
+                                                                  size_t   size) {}
+
+static void ggml_backend_zdnn_buffer_set_tensor(ggml_backend_buffer_t   buffer,
+                                                          ggml_tensor * tensor,
+                                                           const void * data,
+                                                               size_t   offset,
+                                                               size_t   size) {}
+
+static void ggml_backend_zdnn_buffer_get_tensor(ggml_backend_buffer_t   buffer,
+                                                    const ggml_tensor * tensor,
+                                                                 void * data,
+                                                               size_t   offset,
+                                                               size_t   size) {}
+
+static bool ggml_backend_zdnn_buffer_cpy_tensor(ggml_backend_buffer_t   buffer,
+                                                    const ggml_tensor * src,
+                                                          ggml_tensor * dst) {
+    if (ggml_backend_buffer_is_host(src->buffer)) {
+        return true;
+    }
+    return false;
+}
+
+static void ggml_backend_zdnn_buffer_clear(ggml_backend_buffer_t buffer, uint8_t value) {}
+
+static const ggml_backend_buffer_i ggml_backend_zdnn_buffer_i = {
+    /* .free_buffer     = */ ggml_backend_zdnn_buffer_free_buffer,
+    /* .get_base        = */ ggml_backend_zdnn_buffer_get_base,
+    /* .init_tensor     = */ ggml_backend_zdnn_buffer_init_tensor,
+    /* .memset_tensor   = */ ggml_backend_zdnn_buffer_memset_tensor,
+    /* .set_tensor      = */ ggml_backend_zdnn_buffer_set_tensor,
+    /* .get_tensor      = */ ggml_backend_zdnn_buffer_get_tensor,
+    /* .cpy_tensor      = */ ggml_backend_zdnn_buffer_cpy_tensor,
+    /* .clear           = */ ggml_backend_zdnn_buffer_clear,
+    /* .reset           = NULL, */
+};
+
+static const ggml_backend_buffer_i ggml_backend_zdnn_buffer_from_ptr_i = {
+    /* .free_buffer     = */ NULL,
+    /* .get_base        = */ ggml_backend_zdnn_buffer_get_base,
+    /* .init_tensor     = */ ggml_backend_zdnn_buffer_init_tensor,
+    /* .memset_tensor   = */ ggml_backend_zdnn_buffer_memset_tensor,
+    /* .set_tensor      = */ ggml_backend_zdnn_buffer_set_tensor,
+    /* .get_tensor      = */ ggml_backend_zdnn_buffer_get_tensor,
+    /* .cpy_tensor      = */ ggml_backend_zdnn_buffer_cpy_tensor,
+    /* .clear           = */ ggml_backend_zdnn_buffer_clear,
+    /* .reset           = */ NULL,
+};
+
 // --------------------------------------------------------------------------
 // Backend Buffer Type
 // --------------------------------------------------------------------------
+
+static const char * ggml_backend_zdnn_buffer_type_get_name(ggml_backend_buffer_type_t buft) {
+    return GGML_ZDNN_BACKEND_NAME;
+    GGML_UNUSED(buft);
+}
+
+static ggml_backend_buffer_t ggml_backend_zdnn_buffer_type_alloc_buffer(ggml_backend_buffer_type_t buft, size_t size) {
+    void * data = ggml_aligned_malloc(size);
+    if (data == NULL) {
+        GGML_LOG_ERROR("%s: failed to allocate buffer of size %zu\n", __func__, size);
+        return NULL;
+    }
+
+    return ggml_backend_buffer_init(buft, ggml_backend_zdnn_buffer_i, data, size);
+}
+
+static size_t ggml_backend_zdnn_buffer_type_get_alignment(ggml_backend_buffer_type_t buft) {
+    return 256;
+    GGML_UNUSED(buft);
+}
+
+static bool ggml_backend_zdnn_buffer_type_is_host(ggml_backend_buffer_type_t buft) {
+    return true;
+    GGML_UNUSED(buft);
+}
+
+ggml_backend_buffer_type_t ggml_backend_zdnn_buffer_type(void) {
+    static ggml_backend_buffer_type ggml_backend_zdnn_buffer_type = {
+        /* .iface   = */ {
+            /*. get_name        = */ ggml_backend_zdnn_buffer_type_get_name,
+            /*. alloc_buffer    = */ ggml_backend_zdnn_buffer_type_alloc_buffer,
+            /*. get_alignment   = */ ggml_backend_zdnn_buffer_type_get_alignment,
+            /*. get_max_size    = */ NULL,
+            /*. get_alloc_size  = */ NULL,
+            /*. is_host         = */ ggml_backend_zdnn_buffer_type_is_host,
+        },
+        /* .device  = */ NULL,
+        /* .context = */ NULL,
+    };
+
+    return &ggml_backend_zdnn_buffer_type;
+}
+
+static const char * ggml_backend_zdnn_buffer_from_ptr_type_get_name(ggml_backend_buffer_type_t buft) {
+    return GGML_ZDNN_BACKEND_NAME "_Mapped";
+    GGML_UNUSED(buft);
+}
+
+static ggml_backend_buffer_type_t ggml_backend_zdnn_buffer_from_ptr_type(void) {
+    static ggml_backend_buffer_type ggml_backend_zdnn_buffer_type = {
+        /* .iface   = */ {
+            /* .get_name        = */ ggml_backend_zdnn_buffer_from_ptr_type_get_name,
+            /* .alloc_buffer    = */ ggml_backend_zdnn_buffer_type_alloc_buffer,
+            /* .get_alignment   = */ ggml_backend_zdnn_buffer_type_get_alignment,
+            /* .get_max_size    = */ NULL,
+            /* .get_alloc_size  = */ NULL,
+            /* .is_host         = */ ggml_backend_zdnn_buffer_type_is_host,
+        },
+        /* .device  = */ NULL,
+        /* .context = */ NULL,
+    };
+
+    return &ggml_backend_zdnn_buffer_type;
+}
+
+ggml_backend_buffer_t ggml_backend_zdnn_buffer_from_ptr(void * ptr, size_t size) {
+    GGML_ASSERT(((uintptr_t)ptr % 256) == 0 && "buffer pointer must be 256-byte aligned");
+    return ggml_backend_buffer_init(ggml_backend_zdnn_buffer_from_ptr_type(), ggml_backend_zdnn_buffer_from_ptr_i, ptr, size);
+}
 
 // --------------------------------------------------------------------------
 // Backend Interface
@@ -348,7 +487,7 @@ static ggml_backend_t ggml_backend_zdnn_device_init_backend(ggml_backend_dev_t  
 
 static ggml_backend_buffer_type_t ggml_backend_zdnn_device_get_buffer_type(ggml_backend_dev_t dev) {
     // TODO: Change this to zDNN buffer type
-    return ggml_backend_cpu_buffer_type();
+    return ggml_backend_zdnn_buffer_type();
 
     GGML_UNUSED(dev);
 }
@@ -358,7 +497,7 @@ static ggml_backend_buffer_t ggml_backend_zdnn_device_buffer_from_host_ptr(ggml_
                                                                                        size_t   size,
                                                                                        size_t   max_tensor_size) {
     // TODO: Change this to zDNN buffer type
-    return ggml_backend_cpu_buffer_from_ptr(ptr, size);
+    return ggml_backend_zdnn_buffer_from_ptr(ptr, size);
 
     GGML_UNUSED(dev);
     GGML_UNUSED(max_tensor_size);

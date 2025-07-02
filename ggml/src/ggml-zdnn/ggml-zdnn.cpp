@@ -117,6 +117,8 @@ inline void ggml_zdnn_op_mul_mat(ggml_backend_zdnn_context & ctx,
     ggml_zdnn_create_tensor(pre_tfm_desc_bias,    tfm_desc_bias,    ztensor_bias,    dst,  bias_dim,    ZDNN_1D);
     ggml_zdnn_create_tensor(pre_tfm_desc_output,  tfm_desc_output,  ztensor_output,  dst,  output_dim,  ZDNN_2D);
 
+    std::raise(SIGINT);
+
     void * bias_data = (void *)calloc(output_cols, sizeof(ggml_element_size(dst)));
 
     ZDNN_CHECK(zdnn_transform_ztensor(&ztensor_weights, weights->data));
@@ -225,7 +227,7 @@ static void ggml_backend_zdnn_buffer_init_tensor(ggml_backend_buffer_t   buffer,
         ZDNN_2D,
         ggml_zdnn_type_mapping(tensor->type),
         &extra->pre_tfm_desc,
-        1, 1, tensor->ne[1], tensor->ne[0]
+        tensor->ne[3], tensor->ne[2], tensor->ne[1], tensor->ne[0]
     );
 
     ZDNN_CHECK(zdnn_generate_transformed_desc(&extra->pre_tfm_desc, &extra->tfm_desc));

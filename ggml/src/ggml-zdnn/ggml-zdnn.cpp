@@ -215,30 +215,42 @@ static void ggml_backend_zdnn_buffer_memset_tensor(ggml_backend_buffer_t   buffe
                                                              ggml_tensor * tensor,
                                                                  uint8_t   value,
                                                                   size_t   offset,
-                                                                  size_t   size) {}
+                                                                  size_t   size) {
+    memset((char *)tensor->data + offset, value, size);
+    GGML_UNUSED(buffer);
+}
 
 static void ggml_backend_zdnn_buffer_set_tensor(ggml_backend_buffer_t   buffer,
                                                           ggml_tensor * tensor,
                                                            const void * data,
                                                                size_t   offset,
-                                                               size_t   size) {}
+                                                               size_t   size) {
+    memcpy((char *)tensor->data + offset, data, size);
+    GGML_UNUSED(buffer);
+}
 
 static void ggml_backend_zdnn_buffer_get_tensor(ggml_backend_buffer_t   buffer,
                                                     const ggml_tensor * tensor,
                                                                  void * data,
                                                                size_t   offset,
-                                                               size_t   size) {}
+                                                               size_t   size) {
+    memcpy(data, (const char *)tensor->data + offset, size);
+}
 
 static bool ggml_backend_zdnn_buffer_cpy_tensor(ggml_backend_buffer_t   buffer,
                                                     const ggml_tensor * src,
                                                           ggml_tensor * dst) {
     if (ggml_backend_buffer_is_host(src->buffer)) {
+        memcpy(dst->data, src->data, ggml_nbytes(src));
         return true;
     }
     return false;
 }
 
-static void ggml_backend_zdnn_buffer_clear(ggml_backend_buffer_t buffer, uint8_t value) {}
+static void ggml_backend_zdnn_buffer_clear(ggml_backend_buffer_t buffer,
+                                                         uint8_t value) {
+    memset(buffer->context, value, buffer->size);
+}
 
 static const ggml_backend_buffer_i ggml_backend_zdnn_buffer_i = {
     /* .free_buffer     = */ ggml_backend_zdnn_buffer_free_buffer,
@@ -557,10 +569,10 @@ static bool ggml_backend_zdnn_device_supports_op(ggml_backend_dev_t   dev,
 
 static bool ggml_backend_zdnn_device_supports_buft(ggml_backend_dev_t dev,
                                            ggml_backend_buffer_type_t buft) {
-    // return buft->iface.get_name == ggml_backend_zdnn_buffer_type_get_name;
+    return buft->iface.get_name == ggml_backend_zdnn_buffer_type_get_name;
 
     // TODO: Change this so that only zDNN buffer types are supported
-    return ggml_backend_buft_is_host(buft);
+    // return ggml_backend_buft_is_host(buft);
 }
 
 static const ggml_backend_device_i ggml_backend_zdnn_device_i = {

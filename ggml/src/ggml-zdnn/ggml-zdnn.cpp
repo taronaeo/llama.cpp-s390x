@@ -225,7 +225,6 @@ static void ggml_backend_zdnn_buffer_init_tensor(ggml_backend_buffer_t   buffer,
     const int64_t dims[GGML_MAX_DIMS] = { 1, 1, tensor->ne[0], tensor->ne[1] };
 
     // TODO: Change to switch case to determine the layout
-    // .     We don't need to change the way the tensor shape is described
     zdnn_init_pre_transformed_desc(
         ZDNN_2D,
         ggml_zdnn_type_mapping(tensor->type),
@@ -235,6 +234,18 @@ static void ggml_backend_zdnn_buffer_init_tensor(ggml_backend_buffer_t   buffer,
 
     ZDNN_CHECK(zdnn_generate_transformed_desc(&extra->pre_tfm_desc, &extra->tfm_desc));
     ZDNN_CHECK(zdnn_init_ztensor_with_malloc(&extra->pre_tfm_desc, &extra->tfm_desc, &extra->ztensor));
+
+    zdnn_extra * bias_extra = new zdnn_extra;
+    const int64_t bias_dims[GGML_MAX_DIMS] = { 1, 1, 1, tensor->ne[0] };
+
+    zdnn_init_pre_transformed_desc(
+        ZDNN_1D,
+        ggml_zdnn_type_mapping(tensor->type),
+        &bias_extra->pre_tfm_desc,
+        bias_dims[3], bias_dims[2], bias_dims[1], bias_dims[0]
+    );
+    ZDNN_CHECK(zdnn_generate_transformed_desc(&bias_extra->pre_tfm_desc, &bias_extra->tfm_desc));
+    ZDNN_CHECK(zdnn_init_ztensor_with_malloc(&bias_extra->pre_tfm_desc, &bias_extra->tfm_desc, &bias_extra->ztensor));
 
     tensor->extra = extra;
 }
@@ -255,6 +266,12 @@ static void ggml_backend_zdnn_buffer_set_tensor(ggml_backend_buffer_t   buffer,
                                                                size_t   size) {
     zdnn_extra * extra = (zdnn_extra *)tensor->extra;
     ZDNN_CHECK(zdnn_transform_ztensor(&extra->ztensor, (char *)(data + offset)));
+
+    if (extra->extra != nullptr) {
+        zdnn_extra * bias_extra = (zdnn_extra *)extra->extra;
+        void * bias_data = (void *)calloc(tensor->ne[0], sizeof(ggml_element_size(tensor)));
+        ZDNN_CHECK(zdnn_transform_origtensor(&bias_extra->ztensor, bias_data));
+    }
 
     // memcpy((char *)tensor->data + offset, data, size);
     GGML_UNUSED(buffer);

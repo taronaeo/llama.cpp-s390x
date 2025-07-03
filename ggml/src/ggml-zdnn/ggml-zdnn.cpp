@@ -149,6 +149,17 @@ inline void ggml_zdnn_op_mul_mat(ggml_backend_zdnn_context & ctx,
                         ((float *)output->data)[i]);
     }
 
+    GGML_LOG_INFO("... (snip) ...\n");
+    GGML_LOG_INFO("Index | temp_output_buffer | output->data\n");
+    GGML_LOG_INFO("------|--------------------|-------------\n");
+    const int64_t num_elements = output->ne[0] * output->ne[1];
+    for (int64_t i = (num_elements > 10 ? num_elements - 10 : 0); i < num_elements; i++) {
+        GGML_LOG_INFO("%5lld | %18.6f | %12.6f\n",
+                        (long long) i,
+                        ((float *)temp_output_buffer)[i],
+                        ((float *)output->data)[i]);
+    }
+
     std::raise(SIGINT);
 
     ZDNN_CHECK(zdnn_free_ztensor_buffer(&ztensor_weights));

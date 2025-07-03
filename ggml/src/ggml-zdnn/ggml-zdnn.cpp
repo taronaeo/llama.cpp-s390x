@@ -394,7 +394,7 @@ static size_t ggml_backend_zdnn_buffer_type_get_alignment(ggml_backend_buffer_ty
 }
 
 static bool ggml_backend_zdnn_buffer_type_is_host(ggml_backend_buffer_type_t buft) {
-    return true;
+    return buft->iface.get_name == ggml_backend_zdnn_buffer_type_get_name;
     GGML_UNUSED(buft);
 }
 

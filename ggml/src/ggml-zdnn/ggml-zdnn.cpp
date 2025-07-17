@@ -139,28 +139,26 @@ inline void ggml_zdnn_op_mul_mat(ggml_backend_zdnn_context & ctx,
     ZDNN_CHECK(zdnn_transform_origtensor(&ztensor_output, output->data));
 
     // Compare the first 10 elements of the two buffers
-    GGML_LOG_INFO("%s: Comparing output buffers:\n", __func__);
-    GGML_LOG_INFO("Index | temp_output_buffer | output->data\n");
-    GGML_LOG_INFO("------|--------------------|-------------\n");
-    for (int i = 0; i < 10 && i < output->ne[0] * output->ne[1]; i++) {
-        GGML_LOG_INFO("%5d | %18.6f | %12.6f\n",
-                        i,
-                        ((float *)temp_output_buffer)[i],
-                        ((float *)output->data)[i]);
-    }
+    // GGML_LOG_INFO("%s: Comparing output buffers:\n", __func__);
+    // GGML_LOG_INFO("Index | temp_output_buffer | output->data\n");
+    // GGML_LOG_INFO("------|--------------------|-------------\n");
+    // for (int i = 0; i < 10 && i < output->ne[0] * output->ne[1]; i++) {
+    //     GGML_LOG_INFO("%5d | %18.6f | %12.6f\n",
+    //                     i,
+    //                     ((float *)temp_output_buffer)[i],
+    //                     ((float *)output->data)[i]);
+    // }
 
-    GGML_LOG_INFO("... (snip) ...\n");
-    GGML_LOG_INFO("Index | temp_output_buffer | output->data\n");
-    GGML_LOG_INFO("------|--------------------|-------------\n");
-    const int64_t num_elements = output->ne[0] * output->ne[1];
-    for (int64_t i = (num_elements > 10 ? num_elements - 10 : 0); i < num_elements; i++) {
-        GGML_LOG_INFO("%5lld | %18.6f | %12.6f\n",
-                        (long long) i,
-                        ((float *)temp_output_buffer)[i],
-                        ((float *)output->data)[i]);
-    }
-
-    std::raise(SIGINT);
+    // GGML_LOG_INFO("... (snip) ...\n");
+    // GGML_LOG_INFO("Index | temp_output_buffer | output->data\n");
+    // GGML_LOG_INFO("------|--------------------|-------------\n");
+    // const int64_t num_elements = output->ne[0] * output->ne[1];
+    // for (int64_t i = (num_elements > 10 ? num_elements - 10 : 0); i < num_elements; i++) {
+    //     GGML_LOG_INFO("%5lld | %18.6f | %12.6f\n",
+    //                     (long long) i,
+    //                     ((float *)temp_output_buffer)[i],
+    //                     ((float *)output->data)[i]);
+    // }
 
     ZDNN_CHECK(zdnn_free_ztensor_buffer(&ztensor_weights));
     ZDNN_CHECK(zdnn_free_ztensor_buffer(&ztensor_inputs));
@@ -327,7 +325,7 @@ static void ggml_backend_zdnn_buffer_get_tensor(ggml_backend_buffer_t   buffer,
                                                                size_t   size) {
     zdnn_extra * extra = (zdnn_extra *)tensor->extra;
     ZDNN_CHECK(zdnn_transform_origtensor(&extra->ztensor, (char *)(data + offset)));
-    memcpy(data, (const char *)tensor->data + offset, size);
+    // memcpy(data, (const char *)tensor->data + offset, size);
 }
 
 // static bool ggml_backend_zdnn_buffer_cpy_tensor(ggml_backend_buffer_t   buffer,

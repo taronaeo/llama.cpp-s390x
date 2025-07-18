@@ -457,7 +457,7 @@ function(ggml_add_cpu_backend_variant_impl tag_name)
         elseif (${S390X_M} MATCHES "9175|9176")
             # NOTE: Only available from GCC 15.1.0 onwards. Any z17 machine with compile issues must first verify their GCC version.
             message(STATUS "z17 target")
-            list(APPEND ARCH_FLAGS -march=z17)
+            list(APPEND ARCH_FLAGS -march=arch15)
         else()
             message(STATUS "Unknown target")
             message(WARNING "Unknown target. If you are compiling for z14 and earlier, you might have to add -DGGML_VXE=OFF.")

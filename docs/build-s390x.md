@@ -84,7 +84,7 @@ All models need to be converted to Big-Endian. You can achieve this in three cas
 
     ![File Type - gguf](https://img.shields.io/badge/File_Type-gguf-fff)
 
-    You can find popular models pre-converted and verified at [s390x Ready Models](https://huggingface.co/collections/taronaeo/s390x-ready-models-672765393af438d0ccb72a08).
+    You can find popular models pre-converted and verified at [s390x Verified Models](https://huggingface.co/collections/taronaeo/s390x-verified-models-672765393af438d0ccb72a08) or [s390x Runnable Models](https://huggingface.co/collections/taronaeo/s390x-runnable-models-686e951824198df12416017e).
 
     These models have already been converted from `safetensors` to `GGUF Big-Endian` and their respective tokenizers verified to run correctly on IBM z15 and later system.
 
@@ -151,11 +151,11 @@ Only available in IBM z16 or later system with the `-DGGML_NNPA=ON` (turned on w
 
 ### 3. zDNN Accelerator
 
-_Only available in IBM z16 or later system. No direction at the moment._
+_Only available in IBM z16 / LinuxONE 4 or later system. No support currently available._
 
 ### 4. Spyre Accelerator
 
-_No direction at the moment._
+_Only available with IBM z17 / LinuxONE 5 or later system. No support currently available._
 
 ## Performance Tuning
 

@@ -91,75 +91,15 @@ static void ggml_backend_zdnn_mul_mat(ggml_backend_zdnn_context * ctx, const ggm
     const ggml_tensor * inputs  = src1;
           ggml_tensor * output  = dst;
 
-    const char * zdnn_layouts[] = {"ZDNN_1D", "ZDNN_2D", "ZDNN_2DS", "ZDNN_3D", "ZDNN_3DS", "ZDNN_ZRH", "ZDNN_4D", "ZDNN_4DS", "ZDNN_NHWC", "ZDNN_NCHW", "ZDNN_FICO", "ZDNN_HWCK", "ZDNN_BIDIR_ZRH", "ZDNN_BIDIR_FICO"};
-
-    // Log tensor extra information if available
-    if (weights->extra) {
-        zdnn_extra * weights_extra = (zdnn_extra *)weights->extra;
-        GGML_LOG_INFO("%s: weights               shape=[%ld, %ld, %ld, %ld] type=%s\n",
-              __func__, weights->ne[0], weights->ne[1], weights->ne[2], weights->ne[3],
-              ggml_type_name(weights->type));
-        GGML_LOG_INFO("%s: weights->pre_tfm_desc shape=[%ld, %ld, %ld, %ld] layout=%s type=%d\n",
-              __func__, weights_extra->pre_tfm_desc.dim1, weights_extra->pre_tfm_desc.dim2, weights_extra->pre_tfm_desc.dim3, weights_extra->pre_tfm_desc.dim4,
-              zdnn_layouts[weights_extra->pre_tfm_desc.layout], weights_extra->pre_tfm_desc.type);
-        GGML_LOG_INFO("%s: weights->tfm_desc     shape=[%ld, %ld, %ld, %ld] layout=%s type=%d\n",
-              __func__, weights_extra->tfm_desc.dim1, weights_extra->tfm_desc.dim2, weights_extra->tfm_desc.dim3, weights_extra->tfm_desc.dim4,
-              zdnn_layouts[weights_extra->tfm_desc.layout], weights_extra->tfm_desc.type);
-        GGML_LOG_INFO("%s: weights->ztensor      buffer_size=%zu is_transformed=%d rec_scale=%f\n",
-              __func__, weights_extra->ztensor.buffer_size, weights_extra->ztensor.is_transformed,
-              weights_extra->ztensor.rec_scale);
-    }
-    if (inputs->extra) {
-        zdnn_extra * inputs_extra = (zdnn_extra *)inputs->extra;
-        GGML_LOG_INFO("%s: inputs                shape=[%ld, %ld, %ld, %ld] type=%s\n",
-              __func__, inputs->ne[0], inputs->ne[1], inputs->ne[2], inputs->ne[3],
-              ggml_type_name(inputs->type));
-        GGML_LOG_INFO("%s: inputs->pre_tfm_desc  shape=[%ld, %ld, %ld, %ld] layout=%s type=%d\n",
-              __func__, inputs_extra->pre_tfm_desc.dim1, inputs_extra->pre_tfm_desc.dim2, inputs_extra->pre_tfm_desc.dim3, inputs_extra->pre_tfm_desc.dim4,
-              zdnn_layouts[inputs_extra->pre_tfm_desc.layout], inputs_extra->pre_tfm_desc.type);
-        GGML_LOG_INFO("%s: inputs->tfm_desc      shape=[%ld, %ld, %ld, %ld] layout=%s type=%d\n",
-              __func__, inputs_extra->tfm_desc.dim1, inputs_extra->tfm_desc.dim2, inputs_extra->tfm_desc.dim3, inputs_extra->tfm_desc.dim4,
-              zdnn_layouts[inputs_extra->tfm_desc.layout], inputs_extra->tfm_desc.type);
-        GGML_LOG_INFO("%s: inputs->ztensor       buffer_size=%zu is_transformed=%d rec_scale=%f\n",
-              __func__, inputs_extra->ztensor.buffer_size, inputs_extra->ztensor.is_transformed,
-              inputs_extra->ztensor.rec_scale);
-    }
-
-    if (output->extra) {
-        zdnn_extra * output_extra = (zdnn_extra *)output->extra;
-        GGML_LOG_INFO("%s: output                shape=[%ld, %ld, %ld, %ld] type=%s\n",
-              __func__, output->ne[0], output->ne[1], output->ne[2], output->ne[3],
-              ggml_type_name(output->type));
-        GGML_LOG_INFO("%s: output->pre_tfm_desc  shape=[%ld, %ld, %ld, %ld] layout=%s type=%d\n",
-              __func__, output_extra->pre_tfm_desc.dim1, output_extra->pre_tfm_desc.dim2, output_extra->pre_tfm_desc.dim3, output_extra->pre_tfm_desc.dim4,
-              zdnn_layouts[output_extra->pre_tfm_desc.layout], output_extra->pre_tfm_desc.type);
-        GGML_LOG_INFO("%s: output->tfm_desc      shape=[%ld, %ld, %ld, %ld] layout=%s type=%d\n",
-              __func__, output_extra->tfm_desc.dim1, output_extra->tfm_desc.dim2, output_extra->tfm_desc.dim3, output_extra->tfm_desc.dim4,
-              zdnn_layouts[output_extra->tfm_desc.layout], output_extra->tfm_desc.type);
-        GGML_LOG_INFO("%s: output->ztensor       buffer_size=%zu is_transformed=%d rec_scale=%f\n",
-              __func__, output_extra->ztensor.buffer_size, output_extra->ztensor.is_transformed,
-              output_extra->ztensor.rec_scale);
-
-        if (output_extra->extra) {
-            zdnn_extra * output_bias_extra = (zdnn_extra *)output_extra->extra;
-            GGML_LOG_INFO("%s: output_bias->pre_tfm_desc  shape=[%ld, %ld, %ld, %ld] layout=%s type=%d\n",
-                  __func__, output_bias_extra->pre_tfm_desc.dim1, output_bias_extra->pre_tfm_desc.dim2, output_bias_extra->pre_tfm_desc.dim3, output_bias_extra->pre_tfm_desc.dim4,
-                  zdnn_layouts[output_bias_extra->pre_tfm_desc.layout], output_bias_extra->pre_tfm_desc.type);
-            GGML_LOG_INFO("%s: output_bias->tfm_desc      shape=[%ld, %ld, %ld, %ld] layout=%s type=%d\n",
-                  __func__, output_bias_extra->tfm_desc.dim1, output_bias_extra->tfm_desc.dim2, output_bias_extra->tfm_desc.dim3, output_bias_extra->tfm_desc.dim4,
-                  zdnn_layouts[output_bias_extra->tfm_desc.layout], output_bias_extra->tfm_desc.type);
-            GGML_LOG_INFO("%s: output_bias->ztensor       buffer_size=%zu is_transformed=%d rec_scale=%f\n",
-                  __func__, output_bias_extra->ztensor.buffer_size, output_bias_extra->ztensor.is_transformed,
-                  output_bias_extra->ztensor.rec_scale);
-        }
-    }
+    const zdnn_extra * inputs_extra 	 = (const zdnn_extra *)inputs->extra;
+    const zdnn_extra * weights_extra 	 = (const zdnn_extra *)weights->extra;
+    	  zdnn_extra * output_extra 	 = (	  zdnn_extra *)output->extra;
+    	  zdnn_extra * output_bias_extra = (	  zdnn_extra *)output_extra->extra;
 
     zdnn_tensor_desc pre_tfm_desc_weights, tfm_desc_weights;
-    zdnn_tensor_desc pre_tfm_desc_inputs,  tfm_desc_inputs;
     zdnn_tensor_desc pre_tfm_desc_bias,    tfm_desc_bias;
-    zdnn_tensor_desc pre_tfm_desc_output,  tfm_desc_output;
 
-    zdnn_ztensor ztensor_weights, ztensor_inputs, ztensor_bias, ztensor_output;
+    zdnn_ztensor ztensor_weights, ztensor_bias;
 
     const int64_t weights_rows = ne01;
     const int64_t weights_cols = ne00;
@@ -168,63 +108,26 @@ static void ggml_backend_zdnn_mul_mat(ggml_backend_zdnn_context * ctx, const ggm
 
     assert(inputs_cols == weights_cols);
 
-    const int64_t output_rows = dst->ne[1];
-    const int64_t output_cols = dst->ne[0];
+    const int64_t output_rows = ne1;
+    const int64_t output_cols = ne0;
 
-    const int64_t inputs_dim [GGML_MAX_DIMS] = { 1, 1, inputs_cols, inputs_rows };
     const int64_t weights_dim[GGML_MAX_DIMS] = { 1, 1, weights_cols, weights_rows };
     const int64_t bias_dim   [GGML_MAX_DIMS] = { 1, 1, 1, output_cols };
-    const int64_t output_dim [GGML_MAX_DIMS] = { 1, 1, output_cols, output_rows };
 
-    ggml_zdnn_create_tensor(pre_tfm_desc_inputs,  tfm_desc_inputs,  ztensor_inputs,  src1, inputs_dim,  ZDNN_2D);
     ggml_zdnn_create_tensor(pre_tfm_desc_weights, tfm_desc_weights, ztensor_weights, src0, weights_dim, ZDNN_2D);
     ggml_zdnn_create_tensor(pre_tfm_desc_bias,    tfm_desc_bias,    ztensor_bias,    dst,  bias_dim,    ZDNN_1D);
-    ggml_zdnn_create_tensor(pre_tfm_desc_output,  tfm_desc_output,  ztensor_output,  dst,  output_dim,  ZDNN_2D);
 
-    const size_t weights_size = ggml_element_size(src0);
+    void * bias_data = (void *)calloc(ne0, sizeof(ggml_element_size(output)));
+    ZDNN_CHECK(zdnn_transform_ztensor(&output_bias_extra->ztensor, bias_data));
 
-    void * bias_data = (void *)calloc(output_cols, sizeof(ggml_element_size(dst)));
-
-    ZDNN_CHECK(zdnn_transform_ztensor(&ztensor_weights, weights->data));
-    ZDNN_CHECK(zdnn_transform_ztensor(&ztensor_inputs,  inputs->data));
-    ZDNN_CHECK(zdnn_transform_ztensor(&ztensor_bias,    bias_data));
-
-    zdnn_extra * inputs_extra = (zdnn_extra *)inputs->extra;
-    zdnn_extra * weights_extra = (zdnn_extra *)weights->extra;
-    zdnn_extra * output_extra = (zdnn_extra *)output->extra;
-
-    ZDNN_CHECK(zdnn_matmul_transpose_op(&inputs_extra->ztensor, &weights_extra->ztensor, &output_extra->extra->ztensor,
+    ZDNN_CHECK(zdnn_matmul_transpose_op(&inputs_extra->ztensor, &weights_extra->ztensor, &ztensor_bias,
                                         false, true, MATMUL_OP_ADDITION, &output_extra->ztensor));
-    ZDNN_CHECK(zdnn_matmul_transpose_op(&ztensor_inputs, &ztensor_weights, &ztensor_bias,
-                                        false, true, MATMUL_OP_ADDITION, &ztensor_output));
-
-    void * check_output_buffer = malloc(ggml_nbytes(output));
-
-    ZDNN_CHECK(zdnn_transform_origtensor(&output_extra->ztensor, check_output_buffer));
-    ZDNN_CHECK(zdnn_transform_origtensor(&ztensor_output, output->data));
-
-    // Silently compare buffers and only log if there's a difference
-    const int64_t num_elements = output->ne[0] * output->ne[1];
-    for (int64_t i = 0; i < num_elements; i++) {
-        float output_val = ((float *)output->data)[i];
-        float check_val = ((float *)check_output_buffer)[i];
-
-        if (output_val != check_val) {
-            GGML_LOG_INFO("%s: Difference found at index %lld: output->data = %12.6f, check_output_buffer = %12.6f\n",
-                          __func__, (long long)i, output_val, check_val);
-            break;
-        }
-    }
-
-    std::raise(SIGINT);
+    ZDNN_CHECK(zdnn_transform_origtensor(&output_extra->ztensor, output->data));
 
     ZDNN_CHECK(zdnn_free_ztensor_buffer(&ztensor_weights));
-    ZDNN_CHECK(zdnn_free_ztensor_buffer(&ztensor_inputs));
     ZDNN_CHECK(zdnn_free_ztensor_buffer(&ztensor_bias));
-    ZDNN_CHECK(zdnn_free_ztensor_buffer(&ztensor_output));
 
     free(bias_data);
-    free(check_output_buffer);
 }
 
 static void ggml_backend_zdnn_mul_mat_dispatch(ggml_backend_zdnn_context * ctx, const ggml_tensor * src0, const ggml_tensor * src1, ggml_tensor * dst) {
@@ -483,19 +386,6 @@ static void ggml_backend_zdnn_buffer_memset_tensor(ggml_backend_buffer_t buffer,
 static void ggml_backend_zdnn_buffer_set_tensor(ggml_backend_buffer_t buffer, ggml_tensor * tensor, const void * data, size_t offset, size_t size) {
     zdnn_extra * extra = (zdnn_extra *)tensor->extra;
     ZDNN_CHECK(zdnn_transform_ztensor(&extra->ztensor, (void *)((char *)data + offset)));
-    // Log operation type and extra->extra status
-    if (tensor->op == GGML_OP_MUL_MAT) {
-        GGML_LOG_INFO("%s: tensor op = %s, has extra->extra = %s\n",
-                    __func__,
-                    ggml_op_name(tensor->op),
-                    (extra->extra != nullptr) ? "true" : "false");
-    }
-
-    // if (extra->extra != nullptr) {
-    //     zdnn_extra * bias_extra = (zdnn_extra *)extra->extra;
-    //     void * bias_data = (void *)calloc(tensor->ne[0], ggml_element_size(tensor));
-    //     ZDNN_CHECK(zdnn_transform_ztensor(&bias_extra->ztensor, bias_data));
-    // }
 
     memcpy((char *)tensor->data + offset, data, size);
 
@@ -503,6 +393,9 @@ static void ggml_backend_zdnn_buffer_set_tensor(ggml_backend_buffer_t buffer, gg
 }
 
 static void ggml_backend_zdnn_buffer_get_tensor(ggml_backend_buffer_t buffer, const ggml_tensor * tensor, void * data, size_t offset, size_t size) {
+    zdnn_extra * extra = (zdnn_extra *)tensor->extra;
+    ZDNN_CHECK(zdnn_transform_origtensor(&extra->ztensor, (void *)((char *)data + offset)));
+
     memcpy(data, (const char *)tensor->data + offset, size);
 
     GGML_UNUSED(buffer);

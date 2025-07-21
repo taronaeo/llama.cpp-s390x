@@ -484,14 +484,13 @@ static void ggml_backend_zdnn_buffer_set_tensor(ggml_backend_buffer_t buffer, gg
     zdnn_extra * extra = (zdnn_extra *)tensor->extra;
     ZDNN_CHECK(zdnn_transform_ztensor(&extra->ztensor, (void *)((char *)data + offset)));
     // Log operation type and extra->extra status
-    GGML_LOG_INFO("%s: tensor op = %s, has extra->extra = %s\n",
-                  __func__,
-                  ggml_op_name(tensor->op),
-                  (extra->extra != nullptr) ? "true" : "false");
-
-    if (tensor->op == GGML_OP_MUL_MAT && extra->extra == nullptr) {
-        GGML_LOG_WARN("%s: MUL_MAT operation detected but extra->extra is nullptr\n", __func__);
+    if (tensor->op == GGML_OP_MUL_MAT) {
+        GGML_LOG_INFO("%s: tensor op = %s, has extra->extra = %s\n",
+                    __func__,
+                    ggml_op_name(tensor->op),
+                    (extra->extra != nullptr) ? "true" : "false");
     }
+
     // if (extra->extra != nullptr) {
     //     zdnn_extra * bias_extra = (zdnn_extra *)extra->extra;
     //     void * bias_data = (void *)calloc(tensor->ne[0], ggml_element_size(tensor));

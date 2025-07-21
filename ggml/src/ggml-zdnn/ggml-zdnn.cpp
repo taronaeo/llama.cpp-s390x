@@ -172,29 +172,42 @@ static void ggml_backend_zdnn_mul_mat(ggml_backend_zdnn_context * ctx, const ggm
     ZDNN_CHECK(zdnn_transform_ztensor(&ztensor_inputs,  inputs->data));
     ZDNN_CHECK(zdnn_transform_ztensor(&ztensor_bias,    bias_data));
 
+    zdnn_extra * inputs_extra = (zdnn_extra *)inputs->extra;
+    zdnn_extra * weights_extra = (zdnn_extra *)weights->extra;
+    zdnn_extra * output_extra = (zdnn_extra *)output->extra;
+
+    ZDNN_CHECK(zdnn_matmul_transpose_op(&inputs_extra->ztensor, &weights_extra->ztensor, &output_extra->extra->ztensor,
+                                        false, true, MATMUL_OP_ADDITION, &output_extra->ztensor));
     ZDNN_CHECK(zdnn_matmul_transpose_op(&ztensor_inputs, &ztensor_weights, &ztensor_bias,
                                         false, true, MATMUL_OP_ADDITION, &ztensor_output));
+
+    void * check_output_buffer = malloc(ggml_nbytes(output));
+
+    ZDNN_CHECK(zdnn_transform_origtensor(&output_extra->ztensor, check_output_buffer));
     ZDNN_CHECK(zdnn_transform_origtensor(&ztensor_output, output->data));
 
-    // Compare the first 10 elements of the two buffers
-    GGML_LOG_INFO("%s: Comparing output buffers:\n", __func__);
-    GGML_LOG_INFO("Index | output->data\n");
-    GGML_LOG_INFO("------|-------------\n");
-    for (int i = 0; i < 10 && i < output->ne[0] * output->ne[1]; i++) {
-        GGML_LOG_INFO("%5d | %12.6f\n",
-                        i,
-                        ((float *)output->data)[i]);
-    }
+        // Compare the first 10 elements of the two buffers
+        GGML_LOG_INFO("%s: Comparing output buffers:\n", __func__);
+        GGML_LOG_INFO("Index | output->data | check_output_buffer\n");
+        GGML_LOG_INFO("------|--------------|--------------------\n");
+        for (int i = 0; i < 10 && i < output->ne[0] * output->ne[1]; i++) {
+            GGML_LOG_INFO("%5d | %12.6f | %18.6f\n",
+                            i,
+                            ((float *)output->data)[i],
+                            ((float *)check_output_buffer)[i]);
+        }
 
-    GGML_LOG_INFO("... (snip) ...\n");
-    GGML_LOG_INFO("Index | output->data\n");
-    GGML_LOG_INFO("------|-------------\n");
-    const int64_t num_elements = output->ne[0] * output->ne[1];
-    for (int64_t i = (num_elements > 10 ? num_elements - 10 : 0); i < num_elements; i++) {
-        GGML_LOG_INFO("%5lld | %12.6f\n",
-                        (long long) i,
-                        ((float *)output->data)[i]);
-    }
+        GGML_LOG_INFO("... (snip) ...\n");
+        GGML_LOG_INFO("Index | output->data | check_output_buffer\n");
+        GGML_LOG_INFO("------|--------------|--------------------\n");
+        const int64_t num_elements = output->ne[0] * output->ne[1];
+        for (int64_t i = (num_elements > 10 ? num_elements - 10 : 0); i < num_elements; i++) {
+            GGML_LOG_INFO("%5lld | %12.6f | %18.6f\n",
+                            (long long) i,
+                            ((float *)output->data)[i],
+                            ((float *)check_output_buffer)[i]);
+        }
+
 
     std::raise(SIGINT);
 
@@ -204,6 +217,7 @@ static void ggml_backend_zdnn_mul_mat(ggml_backend_zdnn_context * ctx, const ggm
     ZDNN_CHECK(zdnn_free_ztensor_buffer(&ztensor_output));
 
     free(bias_data);
+    free(check_output_buffer);
 }
 
 static void ggml_backend_zdnn_mul_mat_dispatch(ggml_backend_zdnn_context * ctx, const ggml_tensor * src0, const ggml_tensor * src1, ggml_tensor * dst) {

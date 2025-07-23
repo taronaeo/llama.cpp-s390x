@@ -10,6 +10,10 @@
 
 static bool ggml_backend_zdnn_compute_forward(struct ggml_backend_zdnn_context * ctx, struct ggml_tensor * dst) {
     switch (dst->op) {
+        case GGML_OP_MUL_MAT:
+            {
+                std::raise(SIGINT);
+            } break;
         default:
             return false;
     }
@@ -152,6 +156,9 @@ static bool ggml_zdnn_supports_op(const struct ggml_backend_zdnn_device_context 
         case GGML_OP_TRANSPOSE:
         case GGML_OP_PERMUTE:
         case GGML_OP_CONCAT:
+            return true;
+
+        case GGML_OP_MUL_MAT:
             return true;
 
         default:

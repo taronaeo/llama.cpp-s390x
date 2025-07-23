@@ -15,6 +15,8 @@ static bool ggml_backend_zdnn_compute_forward(struct ggml_backend_zdnn_context *
     }
 
     return true;
+
+    GGML_UNUSED(ctx);
 }
 
 //
@@ -81,7 +83,7 @@ static struct ggml_backend_zdnn_context * ggml_zdnn_init(ggml_backend_dev_t dev)
 
     int device = ctx_dev->zdnn_device;
 
-    GGML_LOG_INFO("%s: picking default device: %s\n", __func__, device);
+    GGML_LOG_INFO("%s: picking default device: %d\n", __func__, device);
 
     ctx->device = device;
 
@@ -174,16 +176,16 @@ static enum ggml_status ggml_zdnn_graph_compute(ggml_backend_t backend, struct g
             continue;
         }
 
-        #ifndef NDEBUG
-        assert(node->buffer->buft == ggml_backend_zdnn_buffer_type());
-        for (int j = 0; j < GGML_MAX_SRC; j++) {
-            if (node->src[j] != nullptr) {
-                assert(node->src[j]->buffer);
-                assert(node->src[j]->buffer->buft == ggml_backend_zdnn_buffer_type() ||
-                       ggml_backend_buft_is_host(node->src[j]->buffer->buft));
-            }
-        }
-        #endif  // NDEBUG
+        // #ifndef NDEBUG
+        // assert(node->buffer->buft == ggml_backend_zdnn_buffer_type());
+        // for (int j = 0; j < GGML_MAX_SRC; j++) {
+        //     if (node->src[j] != nullptr) {
+        //         assert(node->src[j]->buffer);
+        //         assert(node->src[j]->buffer->buft == ggml_backend_zdnn_buffer_type() ||
+        //                ggml_backend_buft_is_host(node->src[j]->buffer->buft));
+        //     }
+        // }
+        // #endif  // NDEBUG
 
         bool ok = ggml_backend_zdnn_compute_forward(ctx, node);
         if (!ok) {

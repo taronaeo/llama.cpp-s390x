@@ -119,7 +119,7 @@ struct ggml_backend_zdnn_buffer_context {
     bool owned;
 
     int n_buffers;
-    struct ggml_backend_zdnn_buffer buffers[64];
+    std::vector<struct ggml_backend_zdnn_buffer> buffers;
 };
 
 // finds the zTensor that contains the tensor data
@@ -246,11 +246,6 @@ static enum ggml_status ggml_backend_zdnn_buffer_init_tensor(ggml_backend_buffer
 
     // Create a dedicated buffer entry for this tensor
     const int64_t tsize = ggml_nbytes(tensor);
-
-    if (ctx->n_buffers >= 64) {
-        GGML_LOG_ERROR("%s: too many tensors, maximum 64 supported\n", __func__);
-        return GGML_STATUS_FAILED;
-    }
 
     int buffer_idx = ctx->n_buffers;
 

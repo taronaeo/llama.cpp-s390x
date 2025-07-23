@@ -266,6 +266,8 @@ static enum ggml_status ggml_backend_zdnn_buffer_init_tensor(ggml_backend_buffer
         return GGML_STATUS_FAILED;
     }
 
+    tensor->extra = &ctx->buffers[buffer_idx];
+
     return GGML_STATUS_SUCCESS;
 }
 

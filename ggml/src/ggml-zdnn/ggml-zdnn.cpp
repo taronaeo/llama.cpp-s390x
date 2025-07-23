@@ -114,6 +114,9 @@ static void ggml_backend_zdnn_mul_mat(ggml_backend_zdnn_context * ctx, const ggm
     const int64_t weights_dim[GGML_MAX_DIMS] = { 1, 1, weights_cols, weights_rows };
     const int64_t bias_dim   [GGML_MAX_DIMS] = { 1, 1, 1, output_cols };
 
+    //! Something to do with these 2 lines that we can't remove
+    //! If we remove it, the entire computation will throw an error
+    //! Even though we don't use these tensors lol
     ggml_zdnn_create_tensor(pre_tfm_desc_weights, tfm_desc_weights, ztensor_weights, src0, weights_dim, ZDNN_2D);
     ggml_zdnn_create_tensor(pre_tfm_desc_bias,    tfm_desc_bias,    ztensor_bias,    dst,  bias_dim,    ZDNN_1D);
 

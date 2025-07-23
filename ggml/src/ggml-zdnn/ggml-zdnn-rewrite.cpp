@@ -230,11 +230,36 @@ static void * ggml_backend_zdnn_buffer_get_base(ggml_backend_buffer_t buffer) {
 }
 
 static enum ggml_status ggml_backend_zdnn_buffer_init_tensor(ggml_backend_buffer_t buffer, struct ggml_tensor * tensor) {
-    // TODO: init tensor here
-    return GGML_STATUS_SUCCESS;
+    struct ggml_backend_zdnn_buffer_context * ctx = (struct ggml_backend_zdnn_buffer_context *)buffer->context;
 
-    GGML_UNUSED(buffer);
-    GGML_UNUSED(tensor);
+    // Find which buffer entry this tensor belongs to
+    const int64_t tsize = ggml_nbytes(tensor);
+    size_t offset = 0;
+    int buffer_idx = -1;
+
+    for (int i = 0; i < ctx->n_buffers; ++i) {
+        const int64_t ioffs = (int64_t)tensor->data - (int64_t)ctx->buffers[i].data;
+        if (ioffs >= 0 && ioffs + tsize <= (int64_t)ctx->buffers[i].size) {
+            buffer_idx = i;
+            offset = (size_t)ioffs;
+            break;
+        }
+    }
+
+    if (buffer_idx >= 0) {
+        // Copy tensor name to buffer for logging
+        strncpy(ctx->buffers[buffer_idx].name, tensor->name, sizeof(ctx->buffers[buffer_idx].name) - 1);
+        ctx->buffers[buffer_idx].name[sizeof(ctx->buffers[buffer_idx].name) - 1] = '\0';
+
+        GGML_LOG_INFO("%s: initialized tensor '%s' in buffer %d, size = %8.2f MiB, offset = %zu\n",
+                      __func__, ctx->buffers[buffer_idx].name, buffer_idx,
+                      (float)tsize / (1024.0f * 1024.0f), offset);
+    } else {
+        GGML_LOG_WARN("%s: could not find buffer for tensor '%s'\n", __func__, tensor->name);
+        return GGML_STATUS_FAILED;
+    }
+
+    return GGML_STATUS_SUCCESS;
 }
 
 static void ggml_backend_zdnn_buffer_memset_tensor(ggml_backend_buffer_t buffer, struct ggml_tensor * tensor, uint8_t value, size_t offset, size_t size) {
@@ -400,7 +425,7 @@ static struct ggml_backend_i ggml_backend_zdnn_i = {
 };
 
 static ggml_guid_t ggml_backend_zdnn_guid(void) {
-    static char * guid_str = "IBM-ZDNN_ACCELER";
+    static const char * guid_str = "IBM-ZDNN_ACCELER";
     return reinterpret_cast<ggml_guid_t>((void *)guid_str);
 }
 

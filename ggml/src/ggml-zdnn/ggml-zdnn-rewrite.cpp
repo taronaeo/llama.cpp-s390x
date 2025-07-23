@@ -237,6 +237,11 @@ static void * ggml_backend_zdnn_buffer_get_base(ggml_backend_buffer_t buffer) {
 }
 
 static enum ggml_status ggml_backend_zdnn_buffer_init_tensor(ggml_backend_buffer_t buffer, struct ggml_tensor * tensor) {
+    if (tensor->view_src != NULL) {
+        assert(tensor->view_src->buffer->buft == buffer->buft);
+        return GGML_STATUS_SUCCESS;
+    }
+
     struct ggml_backend_zdnn_buffer_context * ctx = (struct ggml_backend_zdnn_buffer_context *)buffer->context;
 
     // Find which buffer entry this tensor belongs to

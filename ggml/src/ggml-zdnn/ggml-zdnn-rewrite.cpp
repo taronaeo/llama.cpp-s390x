@@ -119,7 +119,7 @@ struct ggml_backend_zdnn_buffer_context {
     bool owned;
 
     int n_buffers;
-    std::vector<struct ggml_backend_zdnn_buffer> buffers;
+    struct ggml_backend_zdnn_buffer buffers[999999];
 };
 
 // finds the zTensor that contains the tensor data

@@ -54,7 +54,8 @@ static int ggml_backend_zdnn_device_acq(struct ggml_backend_zdnn_device_context 
     if (ctx->zdnn_device) {
         // ctx->has_nnpa_parmblkformat_1 = zdnn_has_nnpa_parmblkformat_1(ctx->zdnn_device);
 
-        strncpy(ctx->name, GGML_ZDNN_NAME, sizeof(GGML_ZDNN_NAME) - 1);
+        strncpy(ctx->name, GGML_ZDNN_NAME, sizeof(ctx->name) - 1);
+        ctx->name[sizeof(ctx->name) - 1] = '\0';
     }
 
     ctx->zdnn_device_ref_count++;
@@ -156,6 +157,8 @@ static bool ggml_zdnn_supports_op(const struct ggml_backend_zdnn_device_context 
         default:
             return false;
     }
+
+    GGML_UNUSED(ctx_dev);
 }
 
 static enum ggml_status ggml_zdnn_graph_compute(ggml_backend_t backend, struct ggml_cgraph * gf) {
@@ -227,7 +230,11 @@ static void * ggml_backend_zdnn_buffer_get_base(ggml_backend_buffer_t buffer) {
 }
 
 static enum ggml_status ggml_backend_zdnn_buffer_init_tensor(ggml_backend_buffer_t buffer, struct ggml_tensor * tensor) {
+    // TODO: init tensor here
     return GGML_STATUS_SUCCESS;
+
+    GGML_UNUSED(buffer);
+    GGML_UNUSED(tensor);
 }
 
 static void ggml_backend_zdnn_buffer_memset_tensor(ggml_backend_buffer_t buffer, struct ggml_tensor * tensor, uint8_t value, size_t offset, size_t size) {
@@ -284,8 +291,8 @@ static ggml_backend_buffer_t ggml_backend_zdnn_buffer_type_alloc_buffer(ggml_bac
 
     struct ggml_backend_zdnn_device_context * ctx_dev = (struct ggml_backend_zdnn_device_context *)buft->device->context;
 
-    GGML_ASSERT(ctx_dev->zdnn_device != NULL);
-    int device = ctx_dev->zdnn_device;
+    GGML_ASSERT(ctx_dev->zdnn_device != 0);
+    int device = ctx_dev->zdnn_device; GGML_UNUSED(device);
 
     ctx->all_data = ggml_aligned_malloc(size_aligned);
     ctx->all_size = size_aligned;
@@ -393,7 +400,7 @@ static struct ggml_backend_i ggml_backend_zdnn_i = {
 };
 
 static ggml_guid_t ggml_backend_zdnn_guid(void) {
-    static const char * guid_str = "IBM-ZDNN_ACCELER";
+    static char * guid_str = "IBM-ZDNN_ACCELER";
     return reinterpret_cast<ggml_guid_t>((void *)guid_str);
 }
 
@@ -515,8 +522,8 @@ static ggml_backend_buffer_t ggml_backend_zdnn_device_buffer_from_ptr(ggml_backe
 
     struct ggml_backend_zdnn_device_context * ctx_dev = (struct ggml_backend_zdnn_device_context *)dev->context;
 
-    GGML_ASSERT(ctx_dev->zdnn_device != NULL);
-    int device = ctx_dev->zdnn_device;
+    GGML_ASSERT(ctx_dev->zdnn_device != 0);
+    int device = ctx_dev->zdnn_device; GGML_UNUSED(device);
 
     ctx->buffers[ctx->n_buffers].data = ptr;
     ctx->buffers[ctx->n_buffers].size = size;
@@ -527,6 +534,8 @@ static ggml_backend_buffer_t ggml_backend_zdnn_device_buffer_from_ptr(ggml_backe
     ++ctx->n_buffers;
 
     return ggml_backend_buffer_init(ggml_backend_zdnn_buffer_from_ptr_type(), ggml_backend_zdnn_buffer_i, ctx, size);
+
+    GGML_UNUSED(max_tensor_size);
 }
 
 static bool ggml_backend_zdnn_device_supports_op(ggml_backend_dev_t dev, const struct ggml_tensor * op) {
@@ -612,6 +621,7 @@ static void * ggml_backend_zdnn_get_proc_address(ggml_backend_reg_t reg, const c
     return NULL;
 
     GGML_UNUSED(reg);
+    GGML_UNUSED(name);
 }
 
 static struct ggml_backend_reg_i ggml_backend_zdnn_reg_i = {

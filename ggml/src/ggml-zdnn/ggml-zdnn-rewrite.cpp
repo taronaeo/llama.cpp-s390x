@@ -244,32 +244,32 @@ static enum ggml_status ggml_backend_zdnn_buffer_init_tensor(ggml_backend_buffer
 
     struct ggml_backend_zdnn_buffer_context * ctx = (struct ggml_backend_zdnn_buffer_context *)buffer->context;
 
-    // Find which buffer entry this tensor belongs to
+    // Create a dedicated buffer entry for this tensor
     const int64_t tsize = ggml_nbytes(tensor);
-    size_t offset = 0;
-    int buffer_idx = -1;
 
-    for (int i = 0; i < ctx->n_buffers; ++i) {
-        const int64_t ioffs = (int64_t)tensor->data - (int64_t)ctx->buffers[i].data;
-        if (ioffs >= 0 && ioffs + tsize <= (int64_t)ctx->buffers[i].size) {
-            buffer_idx = i;
-            offset = (size_t)ioffs;
-            break;
-        }
-    }
-
-    if (buffer_idx >= 0) {
-        // Copy tensor name to buffer for logging
-        strncpy(ctx->buffers[buffer_idx].name, tensor->name, sizeof(ctx->buffers[buffer_idx].name) - 1);
-        ctx->buffers[buffer_idx].name[sizeof(ctx->buffers[buffer_idx].name) - 1] = '\0';
-
-        GGML_LOG_INFO("%s: initialized tensor '%s' in buffer %d, size = %8.2f MiB, offset = %zu\n",
-                      __func__, ctx->buffers[buffer_idx].name, buffer_idx,
-                      (float)tsize / (1024.0f * 1024.0f), offset);
-    } else {
-        GGML_LOG_WARN("%s: could not find buffer for tensor '%s'\n", __func__, tensor->name);
+    if (ctx->n_buffers >= 64) {
+        GGML_LOG_ERROR("%s: too many tensors, maximum 64 supported\n", __func__);
         return GGML_STATUS_FAILED;
     }
+
+    int buffer_idx = ctx->n_buffers;
+
+    // Initialize the buffer entry for this specific tensor
+    ctx->buffers[buffer_idx].data = tensor->data;
+    ctx->buffers[buffer_idx].size = tsize;
+
+    // Copy tensor name to buffer for logging
+    strncpy(ctx->buffers[buffer_idx].name, tensor->name, sizeof(ctx->buffers[buffer_idx].name) - 1);
+    ctx->buffers[buffer_idx].name[sizeof(ctx->buffers[buffer_idx].name) - 1] = '\0';
+
+    // Initialize tensor descriptors for this tensor
+    // TODO: Set up pre_tfm_desc, tfm_desc, and ztensor based on tensor properties
+
+    ctx->n_buffers++;
+
+    GGML_LOG_INFO("%s: initialized tensor '%s' in buffer %d, size = %8.2f MiB\n",
+                  __func__, ctx->buffers[buffer_idx].name, buffer_idx,
+                  (float)tsize / (1024.0f * 1024.0f));
 
     tensor->extra = &ctx->buffers[buffer_idx];
 

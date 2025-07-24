@@ -108,13 +108,14 @@ static void ggml_zdnn_free(struct ggml_backend_zdnn_context * ctx) {
 }
 
 struct ggml_backend_zdnn_buffer {
-    char name[128];
     void * data;
     size_t size;
 
     zdnn_tensor_desc pre_tfm_desc;
     zdnn_tensor_desc tfm_desc;
     zdnn_ztensor     ztensor;
+
+    char name[GGML_MAX_NAME];
 };
 
 struct ggml_backend_zdnn_buffer_context {
@@ -240,7 +241,7 @@ static void ggml_zdnn_init_tensor(struct ggml_backend_zdnn_buffer * buffer, stru
                     ZDNN_2D,
                     FP32,
                     &buffer->pre_tfm_desc,
-                    1, 1, tensor->ne[1], tensor->ne[0]
+                    tensor->ne[1], tensor->ne[0]
                 );
             } break;
         default:

@@ -39,11 +39,14 @@ static struct ggml_backend_zdnn_device_context {
 
     bool has_nnpa_parmblkformat_1;
 
+    int32_t max_dim_idx_size;
+
     char name[128];
 } g_ggml_ctx_dev_main = {
     /* .zdnn_device              = */ 0,
     /* .zdnn_device_ref_count    = */ 0,
     /* .has_nnpa_parmblkformat_1 = */ false,
+    /* .max_dim_idx_size         = */ 0,
     /* .name                     = */ "",
 };
 
@@ -57,6 +60,7 @@ static int ggml_backend_zdnn_device_acq(struct ggml_backend_zdnn_device_context 
 
     if (ctx->zdnn_device) {
         // ctx->has_nnpa_parmblkformat_1 = zdnn_has_nnpa_parmblkformat_1(ctx->zdnn_device);
+        ctx->max_dim_idx_size = zdnn_get_nnpa_max_dim_idx_size();
 
         strncpy(ctx->name, GGML_ZDNN_NAME, sizeof(ctx->name) - 1);
         ctx->name[sizeof(ctx->name) - 1] = '\0';
@@ -149,6 +153,10 @@ static zdnn_ztensor * ggml_zdnn_get_buffer(struct ggml_tensor * t, size_t * offs
 }
 
 static bool ggml_zdnn_supports_op(const struct ggml_backend_zdnn_device_context * ctx_dev, const struct ggml_tensor * op) {
+    const struct ggml_tensor * src0 = op->src[0];
+    const struct ggml_tensor * src1 = op->src[1];
+    const struct ggml_tensor * dst  = op;
+
     switch (op->op) {
         case GGML_OP_NONE:
         case GGML_OP_RESHAPE:
@@ -159,7 +167,17 @@ static bool ggml_zdnn_supports_op(const struct ggml_backend_zdnn_device_context 
             return true;
 
         case GGML_OP_MUL_MAT:
-            return true;
+            {
+                GGML_TENSOR_BINARY_OP_LOCALS
+
+                const int32_t max_dim_idx_size = ctx_dev->max_dim_idx_size;
+
+                return ggml_is_contiguous(src0) &&
+                       ggml_is_contiguous(src1) &&
+                       src1->type == GGML_TYPE_F32 &&
+                       (ne0 <= max_dim_idx_size && ne1 <= max_dim_idx_size && ne10 <= max_dim_idx_size) &&
+                       (src0->type == GGML_TYPE_F32 || ggml_get_type_traits(src0->type)->to_float != NULL);
+            } break;
 
         default:
             return false;
@@ -498,7 +516,7 @@ static const char * ggml_backend_zdnn_device_get_name(ggml_backend_dev_t dev) {
 }
 
 static const char * ggml_backend_zdnn_device_get_description(ggml_backend_dev_t dev) {
-    return "IBM Z Deep Neural Network Accelerator (NNPA)";
+    return "IBM Z Neural Network Processing Assist (NNPA)";
 
     GGML_UNUSED(dev);
 }

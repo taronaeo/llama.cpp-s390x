@@ -224,16 +224,12 @@ static enum ggml_status ggml_zdnn_graph_compute(ggml_backend_t backend, struct g
         }
 
         GGML_ASSERT(ok);
-
     }
 
     return GGML_STATUS_SUCCESS;
 }
 
 static void ggml_zdnn_init_tensor(struct ggml_backend_zdnn_buffer * buffer, struct ggml_tensor * tensor) {
-    // Initialize tensor descriptors for this tensor
-    // TODO: Set up pre_tfm_desc, tfm_desc, and ztensor based on tensor properties
-
     switch (tensor->op) {
         case GGML_OP_MUL_MAT:
             {

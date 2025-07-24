@@ -119,7 +119,7 @@ struct ggml_backend_zdnn_buffer_context {
     bool owned;
 
     int n_buffers;
-    struct ggml_backend_zdnn_buffer buffers[999999];
+    struct ggml_backend_zdnn_buffer buffers[999999];  // TODO: CHANGE TO VECTOR
 };
 
 // finds the zTensor that contains the tensor data
@@ -211,6 +211,35 @@ static enum ggml_status ggml_zdnn_graph_compute(ggml_backend_t backend, struct g
     return GGML_STATUS_SUCCESS;
 }
 
+static void ggml_zdnn_init_tensor(struct ggml_backend_zdnn_buffer * buffer, struct ggml_tensor * tensor) {
+    // Initialize tensor descriptors for this tensor
+    // TODO: Set up pre_tfm_desc, tfm_desc, and ztensor based on tensor properties
+
+    switch (tensor->op) {
+        case GGML_OP_MUL_MAT:
+            {
+                zdnn_init_pre_transformed_desc(
+                    ZDNN_2D,
+                    FP32,
+                    &buffer->pre_tfm_desc,
+                    1, 1, tensor->ne[1], tensor->ne[0]
+                );
+            } break;
+        default:
+            {
+                zdnn_init_pre_transformed_desc(
+                    ZDNN_NCHW,
+                    FP32,
+                    &buffer->pre_tfm_desc,
+                    tensor->ne[3], tensor->ne[2], tensor->ne[1], tensor->ne[0]
+                );
+            } break;
+    }
+
+    ZDNN_CHECK(zdnn_generate_transformed_desc(&buffer->pre_tfm_desc, &buffer->tfm_desc));
+    ZDNN_CHECK(zdnn_init_ztensor_with_malloc(&buffer->pre_tfm_desc, &buffer->tfm_desc, &buffer->ztensor));
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 
 //
@@ -246,19 +275,14 @@ static enum ggml_status ggml_backend_zdnn_buffer_init_tensor(ggml_backend_buffer
 
     // Create a dedicated buffer entry for this tensor
     const int64_t tsize = ggml_nbytes(tensor);
-
     int buffer_idx = ctx->n_buffers;
 
-    // Initialize the buffer entry for this specific tensor
     ctx->buffers[buffer_idx].data = tensor->data;
     ctx->buffers[buffer_idx].size = tsize;
-
-    // Copy tensor name to buffer for logging
     strncpy(ctx->buffers[buffer_idx].name, tensor->name, sizeof(ctx->buffers[buffer_idx].name) - 1);
     ctx->buffers[buffer_idx].name[sizeof(ctx->buffers[buffer_idx].name) - 1] = '\0';
 
-    // Initialize tensor descriptors for this tensor
-    // TODO: Set up pre_tfm_desc, tfm_desc, and ztensor based on tensor properties
+    ggml_zdnn_init_tensor(&ctx->buffers[buffer_idx], tensor);
 
     ctx->n_buffers++;
 

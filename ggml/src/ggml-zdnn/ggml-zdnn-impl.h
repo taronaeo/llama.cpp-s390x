@@ -56,4 +56,15 @@ typedef unsigned long long ulong64x2_t __attribute__((vector_size(16)));
         GGML_ASSERT(status == ZDNN_OK); \
     } while (0);
 
+struct ggml_backend_zdnn_buffer {
+    void * data;
+    size_t size;
+
+    zdnn_tensor_desc pre_tfm_desc;
+    zdnn_tensor_desc tfm_desc;
+    zdnn_ztensor     ztensor;
+
+    char name[GGML_MAX_NAME];
+};
+
 #endif  // GGML_ZDNN_IMPL

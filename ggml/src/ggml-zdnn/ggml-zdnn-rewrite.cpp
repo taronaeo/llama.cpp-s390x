@@ -63,6 +63,7 @@ static bool ggml_zdnn_op_mul_mat(struct ggml_backend_zdnn_context * ctx, const g
     void * bias_data = (void *)calloc(ne0, ggml_element_size(output));
     ZDNN_CHECK(zdnn_transform_ztensor(&ztensor_bias, bias_data));
 
+    std::raise(SIGINT);
     ZDNN_CHECK(zdnn_matmul_transpose_op(&inputs_extra->ztensor, &weights_extra->ztensor, &ztensor_bias,
                                         false, true, MATMUL_OP_ADDITION, &output_extra->ztensor));
     ZDNN_CHECK(zdnn_transform_ztensor(&output_extra->ztensor, output->data));
@@ -168,17 +169,6 @@ static void ggml_zdnn_free(struct ggml_backend_zdnn_context * ctx) {
     GGML_LOG_INFO("%s: deallocating\n", __func__);
     free(ctx);
 }
-
-struct ggml_backend_zdnn_buffer {
-    void * data;
-    size_t size;
-
-    zdnn_tensor_desc pre_tfm_desc;
-    zdnn_tensor_desc tfm_desc;
-    zdnn_ztensor     ztensor;
-
-    char name[GGML_MAX_NAME];
-};
 
 struct ggml_backend_zdnn_buffer_context {
     void * all_data;

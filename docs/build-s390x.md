@@ -42,14 +42,14 @@ cmake --build build --config Release -j $(nproc)
     cmake --build build --config Release -j $(nproc)
     ```
 
--   By default, NNPA is enabled when available. To disable it (not recommended):
+-   By default, NNPA is disabled by default. To enable it:
 
     ```bash
     cmake -S . -B build             \
         -DCMAKE_BUILD_TYPE=Release  \
         -DGGML_BLAS=ON              \
         -DGGML_BLAS_VENDOR=OpenBLAS \
-        -DGGML_NNPA=OFF
+        -DGGML_NNPA=ON
 
     cmake --build build --config Release -j $(nproc)
     ```
@@ -86,7 +86,7 @@ All models need to be converted to Big-Endian. You can achieve this in three cas
 
     You can find popular models pre-converted and verified at [s390x Verified Models](https://huggingface.co/collections/taronaeo/s390x-verified-models-672765393af438d0ccb72a08) or [s390x Runnable Models](https://huggingface.co/collections/taronaeo/s390x-runnable-models-686e951824198df12416017e).
 
-    These models have already been converted from `safetensors` to `GGUF Big-Endian` and their respective tokenizers verified to run correctly on IBM z15 and later system.
+    These models have already been converted from `safetensors` to `GGUF` Big-Endian and their respective tokenizers verified to run correctly on IBM z15 and later system.
 
 2. **Convert safetensors model to GGUF Big-Endian directly (recommended)**
 
@@ -95,11 +95,13 @@ All models need to be converted to Big-Endian. You can achieve this in three cas
     The model you are trying to convert must be in `safetensors` file format (for example [IBM Granite 3.3 2B](https://huggingface.co/ibm-granite/granite-3.3-2b-instruct)). Make sure you have downloaded the model repository for this case.
 
     Ensure that you have installed the required packages in advance
+
     ```bash
     pip3 install -r requirements.txt
     ```
 
     Convert the `safetensors` model to `GGUF`
+
     ```bash
     python3 convert_hf_to_gguf.py \
         --outfile model-name-be.f16.gguf \
@@ -147,7 +149,7 @@ Only available in IBM z15 or later system with the `-DGGML_VXE=ON` (turned on by
 
 ### 2. NNPA Vector Intrinsics Acceleration
 
-Only available in IBM z16 or later system with the `-DGGML_NNPA=ON` (turned on when available) compile flag. No hardware acceleration is possible with llama.cpp with older systems, such as IBM z15/arch13. In such systems, the APIs can still run but will use a scalar implementation.
+Only available in IBM z16 or later system with the `-DGGML_NNPA=ON` (turned off by default) compile flag. No hardware acceleration is possible with llama.cpp with older systems, such as IBM z15/arch13. In such systems, the APIs can still run but will use a scalar implementation.
 
 ### 3. zDNN Accelerator
 
@@ -206,9 +208,14 @@ IBM VXE/VXE2 SIMD acceleration depends on the BLAS implementation. It is strongl
     ```
 
     For example,
+
     ```bash
     CXXFLAGS="-include cstdint" pip3 install -r requirements.txt
     ```
+
+5. `-DGGML_NNPA=ON` generates gibberish output
+
+    Answer: We are aware of this as detailed in [this issue](https://github.com/ggml-org/llama.cpp/issues/14877). Please either try reducing the number of threads, or disable the compile option using `-DGGML_NNPA=OFF`.
 
 ## Getting Help on IBM Z & LinuxONE
 
@@ -266,4 +273,4 @@ IBM VXE/VXE2 SIMD acceleration depends on the BLAS implementation. It is strongl
 -   🚫 - acceleration unavailable, will still run using scalar implementation
 -   ❓ - acceleration unknown, please contribute if you can test it yourself
 
-Last Updated by **Aaron Teo (aaron.teo1@ibm.com)** on July 21, 2025.
+Last Updated by **Aaron Teo (aaron.teo1@ibm.com)** on July 25, 2025.

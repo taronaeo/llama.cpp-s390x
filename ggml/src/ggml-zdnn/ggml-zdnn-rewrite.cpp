@@ -295,6 +295,10 @@ static ggml_backend_zdnn_context * ggml_zdnn_init(ggml_backend_dev_t dev) {
     GGML_LOG_INFO("%s: allocating\n", __func__);
     GGML_LOG_INFO("%s: found 1 device\n", __func__);
 
+    #ifdef STATIC_LIB
+    zdnn_init();
+    #endif
+
     ggml_backend_zdnn_context * ctx = new ggml_backend_zdnn_context();
     ggml_backend_zdnn_device_context * ctx_dev = (ggml_backend_zdnn_device_context *)dev->context;
 

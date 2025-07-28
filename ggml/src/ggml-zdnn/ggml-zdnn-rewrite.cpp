@@ -321,6 +321,9 @@ static void ggml_backend_zdnn_buffer_free_buffer(ggml_backend_buffer_t buffer) {
     ggml_backend_zdnn_buffer_context * ctx = (ggml_backend_zdnn_buffer_context *)buffer->context;
 
     for (int i = 0; i < ctx->n_buffers; i++) {
+        if (&ctx->buffers[i].ztensor.buffer == NULL) {
+            continue;
+        }
         ZDNN_CHECK(zdnn_free_ztensor_buffer(&ctx->buffers[i].ztensor));
     }
 

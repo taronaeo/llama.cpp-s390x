@@ -410,7 +410,20 @@ static void ggml_backend_zdnn_buffer_set_tensor(ggml_backend_buffer_t buffer, st
     ggml_backend_zdnn_buffer * extra = (ggml_backend_zdnn_buffer *)tensor->extra;
 
     // if extra buffer exists, transform the ztensor with the buffer data. for e.g., bias
-    if (extra->extra) ZDNN_CHECK(zdnn_transform_ztensor(&extra->extra->ztensor, &extra->extra->data));
+    if (extra->extra != nullptr) {
+        GGML_LOG_INFO("%s: transforming bias ztensor for tensor '%s', bias size = %zu bytes\n",
+                      __func__, tensor->name, extra->extra->size);
+
+        zdnn_status status = zdnn_transform_ztensor(&extra->extra->ztensor, extra->extra->data);
+        if (status != ZDNN_OK) {
+            GGML_LOG_ERROR("%s: failed to transform bias ztensor for tensor '%s', status = %d\n",
+                           __func__, tensor->name, status);
+        } else {
+            GGML_LOG_INFO("%s: successfully transformed bias ztensor for tensor '%s'\n",
+                          __func__, tensor->name);
+        }
+        ZDNN_CHECK(status);
+    }
 
     // for all other data
     ZDNN_CHECK(zdnn_transform_ztensor(&extra->ztensor, (void *)((char *)tensor->data + offset)));

@@ -8,7 +8,46 @@
 #include <csignal>
 #include <unistd.h>
 
-static bool ggml_zdnn_op_mul_mat(struct ggml_backend_zdnn_context * ctx, const ggml_tensor * src0, const ggml_tensor * src1, ggml_tensor * dst) {
+inline zdnn_data_types ggml_zdnn_type_mapping(ggml_type type) {
+    switch (type) {
+        case GGML_TYPE_F32:
+            return FP32;
+        case GGML_TYPE_F16:
+            return FP16;
+        case GGML_TYPE_BF16:
+            return BFLOAT;
+        case GGML_TYPE_I8:
+            return INT8;
+        case GGML_TYPE_I32:
+            return INT32;
+        case GGML_TYPE_Q8_0:
+            return INT8;
+        default:
+            GGML_ABORT("%s: fatal: unable to determine zTensor data type",
+                       __func__);
+            break;
+    }
+}
+
+inline void ggml_zdnn_create_tensor(zdnn_tensor_desc  & pre_tfm_desc,
+                                    zdnn_tensor_desc  & tfm_desc,
+                                    zdnn_ztensor      & ztensor,
+                              const ggml_tensor       * src,
+                              const int64_t           * ne,
+                              const zdnn_data_layouts   layout) {
+    zdnn_init_pre_transformed_desc(
+        layout,
+        ggml_zdnn_type_mapping(src->type),
+        &pre_tfm_desc,
+        ne[3], ne[2], ne[1], ne[0]
+    );
+
+    ZDNN_CHECK(zdnn_generate_transformed_desc(&pre_tfm_desc, &tfm_desc));
+    ZDNN_CHECK(zdnn_init_ztensor_with_malloc(&pre_tfm_desc, &tfm_desc, &ztensor));
+}
+
+
+static void ggml_backend_zdnn_mul_mat(ggml_backend_zdnn_context * ctx, const ggml_tensor * src0, const ggml_tensor * src1, ggml_tensor * dst) {
     GGML_TENSOR_BINARY_OP_LOCALS
 
     const enum ggml_type type = src0->type;
@@ -32,10 +71,15 @@ static bool ggml_zdnn_op_mul_mat(struct ggml_backend_zdnn_context * ctx, const g
     const ggml_tensor * inputs  = src1;
           ggml_tensor * output  = dst;
 
-    ggml_backend_zdnn_buffer * weights_extra = (ggml_backend_zdnn_buffer *)weights->extra;
-    ggml_backend_zdnn_buffer * inputs_extra  = (ggml_backend_zdnn_buffer *)inputs->extra;
-    ggml_backend_zdnn_buffer * output_extra  = (ggml_backend_zdnn_buffer *)output->extra;
-    ggml_backend_zdnn_buffer * bias_extra    = (ggml_backend_zdnn_buffer *)output_extra->extra;
+    const zdnn_extra * inputs_extra 	 = (const zdnn_extra *)inputs->extra;
+    const zdnn_extra * weights_extra 	 = (const zdnn_extra *)weights->extra;
+    	  zdnn_extra * output_extra 	 = (	  zdnn_extra *)output->extra;
+    	  zdnn_extra * output_bias_extra = (	  zdnn_extra *)output_extra->extra;
+
+    zdnn_tensor_desc pre_tfm_desc_weights, tfm_desc_weights;
+    zdnn_tensor_desc pre_tfm_desc_bias,    tfm_desc_bias;
+
+    zdnn_ztensor ztensor_weights, ztensor_bias;
 
     const int64_t weights_rows = ne01;
     const int64_t weights_cols = ne00;
@@ -47,66 +91,26 @@ static bool ggml_zdnn_op_mul_mat(struct ggml_backend_zdnn_context * ctx, const g
     const int64_t output_rows = ne1;
     const int64_t output_cols = ne0;
 
-    zdnn_tensor_desc pre_tfm_desc_inputs, tfm_desc_inputs;
-    zdnn_tensor_desc pre_tfm_desc_weights, tfm_desc_weights;
-    zdnn_tensor_desc pre_tfm_desc_bias,    tfm_desc_bias;
-    zdnn_tensor_desc pre_tfm_desc_output, tfm_desc_output;
-    zdnn_ztensor ztensor_inputs, ztensor_weights, ztensor_bias, ztensor_output;
-
-    const int64_t inputs_dim [GGML_MAX_DIMS] = { 1, 1, inputs_cols, inputs_rows };
     const int64_t weights_dim[GGML_MAX_DIMS] = { 1, 1, weights_cols, weights_rows };
     const int64_t bias_dim   [GGML_MAX_DIMS] = { 1, 1, 1, output_cols };
-    const int64_t output_dim[GGML_MAX_DIMS]  = { 1, 1, output_cols, output_rows };
 
-    // have to do this because weights apparently do not go through set_tensor
-    zdnn_init_pre_transformed_desc(
-        ZDNN_2D,
-        FP32,
-        &pre_tfm_desc_weights,
-        weights_dim[3], weights_dim[2], weights_dim[1], weights_dim[0]
-    );
-    ZDNN_CHECK(zdnn_generate_transformed_desc(&pre_tfm_desc_weights, &tfm_desc_weights));
-    ZDNN_CHECK(zdnn_init_ztensor_with_malloc(&pre_tfm_desc_weights, &tfm_desc_weights, &ztensor_weights));
-    ZDNN_CHECK(zdnn_transform_ztensor(&ztensor_weights, weights->data));
-
-    // have to do this here because although it was transformed, the shape is wrong
-    zdnn_init_pre_transformed_desc(
-        ZDNN_2D,
-        FP32,
-        &pre_tfm_desc_inputs,
-        inputs_dim[3], inputs_dim[2], inputs_dim[1], inputs_dim[0]
-    );
-    ZDNN_CHECK(zdnn_generate_transformed_desc(&pre_tfm_desc_inputs, &tfm_desc_inputs));
-    ZDNN_CHECK(zdnn_init_ztensor_with_malloc(&pre_tfm_desc_inputs, &tfm_desc_inputs, &ztensor_inputs));
-    ZDNN_CHECK(zdnn_transform_ztensor(&ztensor_inputs, inputs->data));
-
-    // have to transform the bias ztensor here because only GGML_OP_NONE goes through set_tensor
-    zdnn_init_pre_transformed_desc(
-        ZDNN_1D,
-        FP32,
-        &pre_tfm_desc_bias,
-        bias_dim[3], bias_dim[2], bias_dim[1], bias_dim[0]
-    );
-    ZDNN_CHECK(zdnn_generate_transformed_desc(&pre_tfm_desc_bias, &tfm_desc_bias));
-    ZDNN_CHECK(zdnn_init_ztensor_with_malloc(&pre_tfm_desc_bias, &tfm_desc_bias, &ztensor_bias));
+    //! Something to do with these 2 lines that we can't remove
+    //! If we remove it, the entire computation will throw an error
+    //! Even though we don't use these tensors lol
+    ggml_zdnn_create_tensor(pre_tfm_desc_weights, tfm_desc_weights, ztensor_weights, src0, weights_dim, ZDNN_2D);
+    ggml_zdnn_create_tensor(pre_tfm_desc_bias,    tfm_desc_bias,    ztensor_bias,    dst,  bias_dim,    ZDNN_1D);
 
     void * bias_data = (void *)calloc(ne0, sizeof(ggml_element_size(output)));
-    ZDNN_CHECK(zdnn_transform_ztensor(&ztensor_bias, bias_data));
+    ZDNN_CHECK(zdnn_transform_ztensor(&output_bias_extra->ztensor, bias_data));
 
-    zdnn_init_pre_transformed_desc(
-        ZDNN_2D,
-        FP32,
-        &pre_tfm_desc_output,
-        output_dim[3], output_dim[2], output_dim[1], output_dim[0]
-    );
-    ZDNN_CHECK(zdnn_generate_transformed_desc(&pre_tfm_desc_output, &tfm_desc_output));
-    ZDNN_CHECK(zdnn_init_ztensor_with_malloc(&pre_tfm_desc_output, &tfm_desc_output, &ztensor_output));
-    ZDNN_CHECK(zdnn_transform_ztensor(&ztensor_output, output->data));
+    ZDNN_CHECK(zdnn_matmul_transpose_op(&inputs_extra->ztensor, &weights_extra->ztensor, &ztensor_bias,
+                                        false, true, MATMUL_OP_ADDITION, &output_extra->ztensor));
+    ZDNN_CHECK(zdnn_transform_origtensor(&output_extra->ztensor, output->data));
 
-    std::raise(SIGINT);
-    ZDNN_CHECK(zdnn_matmul_transpose_op(&ztensor_inputs, &ztensor_weights, &ztensor_bias,
-                                        false, true, MATMUL_OP_ADDITION, &ztensor_output));
-    ZDNN_CHECK(zdnn_transform_origtensor(&ztensor_output, output->data));
+    ZDNN_CHECK(zdnn_free_ztensor_buffer(&ztensor_weights));
+    ZDNN_CHECK(zdnn_free_ztensor_buffer(&ztensor_bias));
+
+    free(bias_data);
 }
 
 static bool ggml_backend_zdnn_compute_forward(struct ggml_backend_zdnn_context * ctx, struct ggml_tensor * dst) {

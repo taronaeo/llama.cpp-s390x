@@ -5,6 +5,7 @@
 #include "ggml-impl.h"
 #include "ggml-backend-impl.h"
 
+#include <vector>
 #include <csignal>
 #include <unistd.h>
 

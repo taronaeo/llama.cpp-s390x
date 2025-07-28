@@ -89,7 +89,9 @@ static bool ggml_zdnn_op_mul_mat(struct ggml_backend_zdnn_context * ctx, const g
     );
     ZDNN_CHECK(zdnn_generate_transformed_desc(&pre_tfm_desc_bias, &tfm_desc_bias));
     ZDNN_CHECK(zdnn_init_ztensor_with_malloc(&pre_tfm_desc_bias, &tfm_desc_bias, &ztensor_bias));
-    ZDNN_CHECK(zdnn_transform_ztensor(&ztensor_bias, bias_extra->data));
+
+    void * bias_data = (void *)calloc(ne0, sizeof(ggml_element_size(output)));
+    ZDNN_CHECK(zdnn_transform_ztensor(&ztensor_bias, bias_data));
 
     zdnn_init_pre_transformed_desc(
         ZDNN_2D,

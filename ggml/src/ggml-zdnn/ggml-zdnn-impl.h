@@ -65,6 +65,9 @@ struct ggml_backend_zdnn_buffer {
     zdnn_ztensor     ztensor;
 
     char name[GGML_MAX_NAME];
+    struct ggml_backend_zdnn_buffer * extra;  // for bias etc.
+
+    ggml_backend_zdnn_buffer() : extra(nullptr) {}
 };
 
 #endif  // GGML_ZDNN_IMPL

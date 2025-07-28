@@ -281,6 +281,18 @@ static enum ggml_status ggml_zdnn_graph_compute(ggml_backend_t backend, struct g
     return GGML_STATUS_SUCCESS;
 }
 
+static void ggml_zdnn_init_bias_tensor(struct ggml_backend_zdnn_buffer * buffer, struct ggml_tensor * tensor) {
+    zdnn_init_pre_transformed_desc(
+        ZDNN_1D,
+        FP32,
+        &buffer->pre_tfm_desc,
+        tensor->ne[0], 1, 1, 1
+    );
+
+    ZDNN_CHECK(zdnn_generate_transformed_desc(&buffer->pre_tfm_desc, &buffer->tfm_desc));
+    ZDNN_CHECK(zdnn_init_ztensor_with_malloc(&buffer->pre_tfm_desc, &buffer->tfm_desc, &buffer->ztensor));
+}
+
 static void ggml_zdnn_init_tensor(struct ggml_backend_zdnn_buffer * buffer, struct ggml_tensor * tensor) {
     switch (tensor->op) {
         case GGML_OP_MUL_MAT:
@@ -341,23 +353,45 @@ static enum ggml_status ggml_backend_zdnn_buffer_init_tensor(ggml_backend_buffer
     struct ggml_backend_zdnn_buffer_context * ctx = (struct ggml_backend_zdnn_buffer_context *)buffer->context;
 
     // Create a dedicated buffer entry for this tensor
+    int tensor_buffer_idx;
+    int bias_buffer_idx;
     const int64_t tsize = ggml_nbytes(tensor);
-    int buffer_idx = ctx->n_buffers;
 
-    ctx->buffers[buffer_idx].data = tensor->data;
-    ctx->buffers[buffer_idx].size = tsize;
-    strncpy(ctx->buffers[buffer_idx].name, tensor->name, sizeof(ctx->buffers[buffer_idx].name) - 1);
-    ctx->buffers[buffer_idx].name[sizeof(ctx->buffers[buffer_idx].name) - 1] = '\0';
+    struct ggml_backend_zdnn_buffer * tensor_buffer;
+    tensor_buffer_idx   = ctx->n_buffers;
+    tensor_buffer       = &ctx->buffers[tensor_buffer_idx];
+    tensor_buffer->data = tensor->data;
+    tensor_buffer->size = tsize;
+    strncpy(tensor_buffer->name, tensor->name, sizeof(tensor_buffer->name) - 1);
+    tensor_buffer->name[sizeof(tensor_buffer->name) - 1] = '\0';
 
-    ggml_zdnn_init_tensor(&ctx->buffers[buffer_idx], tensor);
-
+    ggml_zdnn_init_tensor(tensor_buffer, tensor);
     ctx->n_buffers++;
 
+    if (tensor->op == GGML_OP_MUL_MAT) {
+        struct ggml_backend_zdnn_buffer * bias_buffer;
+        bias_buffer_idx   = tensor_buffer_idx + 1;
+        bias_buffer       = &ctx->buffers[bias_buffer_idx];
+        bias_buffer->data = calloc(tensor->ne[0], tensor->ne[0] * sizeof(float));
+        bias_buffer->size = tensor->ne[0] * sizeof(float);
+        strncpy(bias_buffer->name, "bias", sizeof(bias_buffer->name) - 1);
+        bias_buffer->name[sizeof(bias_buffer->name) - 1] = '\0';
+
+        ggml_zdnn_init_bias_tensor(bias_buffer, tensor);
+        ctx->n_buffers++;
+
+        tensor_buffer->extra = bias_buffer;
+
+        GGML_LOG_INFO("%s: initialized bias tensor '%s' in buffer %d, size = %8.2f MiB\n",
+                      __func__, bias_buffer->name, bias_buffer_idx,
+                      (float)bias_buffer->size / (1024.0f * 1024.0f));
+    }
+
     GGML_LOG_INFO("%s: initialized tensor '%s' in buffer %d, size = %8.2f MiB\n",
-                  __func__, ctx->buffers[buffer_idx].name, buffer_idx,
+                  __func__, ctx->buffers[tensor_buffer_idx].name, tensor_buffer_idx,
                   (float)tsize / (1024.0f * 1024.0f));
 
-    tensor->extra = &ctx->buffers[buffer_idx];
+    tensor->extra = &ctx->buffers[tensor_buffer_idx];
 
     return GGML_STATUS_SUCCESS;
 }

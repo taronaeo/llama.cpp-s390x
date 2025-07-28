@@ -408,6 +408,11 @@ static void ggml_backend_zdnn_buffer_memset_tensor(ggml_backend_buffer_t buffer,
 
 static void ggml_backend_zdnn_buffer_set_tensor(ggml_backend_buffer_t buffer, struct ggml_tensor * tensor, const void * data, size_t offset, size_t size) {
     ggml_backend_zdnn_buffer * extra = (ggml_backend_zdnn_buffer *)tensor->extra;
+
+    // if extra buffer exists, transform the ztensor with the buffer data. for e.g., bias
+    if (extra->extra) ZDNN_CHECK(zdnn_transform_ztensor(&extra->extra->ztensor, &extra->extra->data));
+
+    // for all other data
     ZDNN_CHECK(zdnn_transform_ztensor(&extra->ztensor, (void *)((char *)tensor->data + offset)));
 
     memcpy((char *)tensor->data + offset, data, size);

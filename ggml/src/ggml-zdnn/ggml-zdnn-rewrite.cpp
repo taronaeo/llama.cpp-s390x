@@ -255,7 +255,8 @@ static ggml_backend_device g_ggml_backend_zdnn_device;
 static ggml_backend_zdnn_device_context g_ggml_ctx_dev_main = {
     /* .zdnn_device           = */ 0,
     /* .zdnn_device_ref_count = */ 0,
-    /* .has_parmblk_1         = */ false,
+    /* .has_parmblkformat_0   = */ false,
+    /* .has_parmblkformat_1   = */ false,
     /* .max_size              = */ 0,
     /* .name                  = */ "",
 };
@@ -268,7 +269,8 @@ static int ggml_backend_zdnn_device_acq(ggml_backend_zdnn_device_context * ctx) 
     }
 
     if (ctx->zdnn_device >= 1) {
-        ctx->has_parmblk_1 = false;
+        ctx->has_parmblkformat_0 = zdnn_is_nnpa_parmblk_fmt_installed(1, NNPA_PARMBLKFORMAT_0);
+        ctx->has_parmblkformat_1 = zdnn_is_nnpa_parmblk_fmt_installed(1, NNPA_PARMBLKFORMAT_1);
         ctx->max_size = zdnn_get_nnpa_max_dim_idx_size();
         strncpy(ctx->name, GGML_ZDNN_NAME, sizeof(ctx->name) - 1);
     }
@@ -301,7 +303,8 @@ static ggml_backend_zdnn_context * ggml_zdnn_init(ggml_backend_dev_t dev) {
 
     ctx->device = device;
     GGML_LOG_INFO("%s: NNPA name: %s\n", __func__, ctx_dev->name);
-    GGML_LOG_INFO("%s: nnpa_parmblk_1 = %s\n", __func__, ctx_dev->has_parmblk_1 ? "true" : "false");
+    GGML_LOG_INFO("%s: NNPA_PARMBLKFORMAT_0 = %s\n", __func__, ctx_dev->has_parmblkformat_0 ? "true" : "false");
+    GGML_LOG_INFO("%s: NNPA_PARMBLKFORMAT_1 = %s\n", __func__, ctx_dev->has_parmblkformat_1 ? "true" : "false");
 
     ctx->gf = nullptr;
 
@@ -706,7 +709,8 @@ static ggml_backend_dev_t ggml_backend_zdnn_reg_device_get(ggml_backend_reg_t re
 }
 
 static ggml_backend_feature g_ggml_backend_zdnn_features[] = {
-    { "NNPA_PARMBLK_1", "1" },
+    { "NNPA_PARMBLKFORMAT_0", zdnn_is_nnpa_parmblk_fmt_installed(1, NNPA_PARMBLKFORMAT_0) ? "1" : "0" },
+    { "NNPA_PARMBLKFORMAT_1", zdnn_is_nnpa_parmblk_fmt_installed(1, NNPA_PARMBLKFORMAT_1) ? "1" : "0" },
     { NULL, NULL },
 };
 

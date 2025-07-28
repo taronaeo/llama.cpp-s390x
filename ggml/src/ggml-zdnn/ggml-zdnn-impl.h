@@ -61,7 +61,8 @@ struct ggml_backend_zdnn_device_context {
     int zdnn_device;
     int zdnn_device_ref_count;
 
-    bool has_parmblk_1;
+    bool has_parmblkformat_0;
+    bool has_parmblkformat_1;
 
     size_t max_size;
 

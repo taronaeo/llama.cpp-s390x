@@ -77,7 +77,7 @@ static bool ggml_zdnn_op_mul_mat(struct ggml_backend_zdnn_context * ctx, const g
     std::raise(SIGINT);
     ZDNN_CHECK(zdnn_matmul_transpose_op(&inputs_extra->ztensor, &weights_extra->ztensor, &bias_extra->ztensor,
                                         false, true, MATMUL_OP_ADDITION, &output_extra->ztensor));
-    ZDNN_CHECK(zdnn_transform_ztensor(&output_extra->ztensor, output->data));
+    ZDNN_CHECK(zdnn_transform_origtensor(&output_extra->ztensor, output->data));
 }
 
 static bool ggml_backend_zdnn_compute_forward(struct ggml_backend_zdnn_context * ctx, struct ggml_tensor * dst) {

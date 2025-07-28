@@ -59,13 +59,13 @@ typedef unsigned long long ulong64x2_t __attribute__((vector_size(16)));
 struct ggml_backend_zdnn_buffer {
     void * data;
     size_t size;
+    ggml_backend_zdnn_buffer * extra;  // for bias etc.
 
     zdnn_tensor_desc pre_tfm_desc;
     zdnn_tensor_desc tfm_desc;
     zdnn_ztensor     ztensor;
 
     char name[GGML_MAX_NAME];
-    struct ggml_backend_zdnn_buffer * extra;  // for bias etc.
 
     ggml_backend_zdnn_buffer() : extra(nullptr) {}
 };

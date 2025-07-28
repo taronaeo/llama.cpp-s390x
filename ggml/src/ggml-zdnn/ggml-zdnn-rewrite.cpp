@@ -362,8 +362,7 @@ static enum ggml_status ggml_backend_zdnn_buffer_init_tensor(ggml_backend_buffer
     tensor_buffer       = &ctx->buffers[tensor_buffer_idx];
     tensor_buffer->data = tensor->data;
     tensor_buffer->size = tsize;
-    strncpy(tensor_buffer->name, tensor->name, sizeof(tensor_buffer->name) - 1);
-    tensor_buffer->name[sizeof(tensor_buffer->name) - 1] = '\0';
+    snprintf(tensor_buffer->name, sizeof(tensor_buffer->name), "%s", tensor->name);
 
     ggml_zdnn_init_tensor(tensor_buffer, tensor);
     ctx->n_buffers++;
@@ -374,8 +373,7 @@ static enum ggml_status ggml_backend_zdnn_buffer_init_tensor(ggml_backend_buffer
         bias_buffer       = &ctx->buffers[bias_buffer_idx];
         bias_buffer->data = calloc(tensor->ne[0], tensor->ne[0] * sizeof(float));
         bias_buffer->size = tensor->ne[0] * sizeof(float);
-        strncpy(bias_buffer->name, "bias", sizeof(bias_buffer->name) - 1);
-        bias_buffer->name[sizeof(bias_buffer->name) - 1] = '\0';
+        snprintf(bias_buffer->name, sizeof(bias_buffer->name), "%s.bias", tensor->name);
 
         ggml_zdnn_init_bias_tensor(bias_buffer, tensor);
         ctx->n_buffers++;

@@ -5,6 +5,7 @@
 #include "ggml.h"
 #include "ggml-zdnn.h"
 
+#include <vector>
 #include <memory>
 #include <vecintrin.h>
 

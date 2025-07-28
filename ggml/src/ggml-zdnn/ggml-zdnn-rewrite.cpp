@@ -201,12 +201,6 @@ static enum ggml_status ggml_zdnn_graph_compute(ggml_backend_t backend, ggml_cgr
 }
 
 static bool ggml_zdnn_supports_op(const ggml_backend_zdnn_device_context * ctx_dev, const ggml_tensor * op) {
-    const ggml_tensor * src0 = op->src[0];
-    const ggml_tensor * src1 = op->src[1];
-    const ggml_tensor * dst  = op;
-
-    GGML_TENSOR_BINARY_OP_LOCALS
-
     switch (op->op) {
         case GGML_OP_NONE:
         case GGML_OP_RESHAPE:
@@ -217,6 +211,13 @@ static bool ggml_zdnn_supports_op(const ggml_backend_zdnn_device_context * ctx_d
 
         case GGML_OP_MUL_MAT:
             {
+                const ggml_tensor * src0 = op->src[0];
+                const ggml_tensor * src1 = op->src[1];
+
+                const int64_t ne10 = src1->ne[0];
+                const int64_t ne0 = op->ne[0];
+                const int64_t ne1 = op->ne[1];
+
                 const int64_t max_batch = zdnn_get_nnpa_max_dim_idx_size();
 
                 return ggml_is_contiguous(src0) &&

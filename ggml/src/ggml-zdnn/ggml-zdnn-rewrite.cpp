@@ -62,8 +62,8 @@ static bool ggml_zdnn_op_mul_mat(struct ggml_backend_zdnn_context * ctx, const g
         weights_dim[3], weights_dim[2], weights_dim[1], weights_dim[0]
     );
     ZDNN_CHECK(zdnn_generate_transformed_desc(&pre_tfm_desc_weights, &tfm_desc_weights));
-    ZDNN_CHECK(zdnn_init_ztensor_with_malloc(&pre_tfm_desc_weights, &tfm_desc_weights, &weights_extra->ztensor));
-    ZDNN_CHECK(zdnn_transform_ztensor(&weights_extra->ztensor, weights->data));
+    ZDNN_CHECK(zdnn_init_ztensor_with_malloc(&pre_tfm_desc_weights, &tfm_desc_weights, &ztensor_weights));
+    ZDNN_CHECK(zdnn_transform_ztensor(&ztensor_weights, weights->data));
 
     // have to do this here because although it was transformed, the shape is wrong
     if (&inputs_extra->ztensor.is_transformed) zdnn_reset_ztensor(&inputs_extra->ztensor);
@@ -85,8 +85,8 @@ static bool ggml_zdnn_op_mul_mat(struct ggml_backend_zdnn_context * ctx, const g
         bias_dim[3], bias_dim[2], bias_dim[1], bias_dim[0]
     );
     ZDNN_CHECK(zdnn_generate_transformed_desc(&pre_tfm_desc_bias, &tfm_desc_bias));
-    ZDNN_CHECK(zdnn_init_ztensor_with_malloc(&pre_tfm_desc_bias, &tfm_desc_bias, &bias_extra->ztensor));
-    ZDNN_CHECK(zdnn_transform_ztensor(&bias_extra->ztensor, bias_extra->data));
+    ZDNN_CHECK(zdnn_init_ztensor_with_malloc(&pre_tfm_desc_bias, &tfm_desc_bias, &ztensor_bias));
+    ZDNN_CHECK(zdnn_transform_ztensor(&ztensor_bias, bias_extra->data));
 
     std::raise(SIGINT);
     ZDNN_CHECK(zdnn_matmul_transpose_op(&inputs_extra->ztensor, &ztensor_weights, &ztensor_bias,

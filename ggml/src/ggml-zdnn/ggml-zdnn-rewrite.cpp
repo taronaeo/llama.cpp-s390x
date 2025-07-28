@@ -321,6 +321,7 @@ static void ggml_backend_zdnn_buffer_free_buffer(ggml_backend_buffer_t buffer) {
     ggml_backend_zdnn_buffer_context * ctx = (ggml_backend_zdnn_buffer_context *)buffer->context;
 
     for (int i = 0; i < ctx->n_buffers; i++) {
+        GGML_LOG_DEBUG("%s: freeing ztensor buffer %d at %p\n", __func__, i, ctx->buffers[i].ztensor.buffer);
         if (&ctx->buffers[i].ztensor.buffer == NULL) {
             continue;
         }

@@ -329,7 +329,14 @@ static void ggml_backend_zdnn_buffer_free_buffer(ggml_backend_buffer_t buffer) {
     struct ggml_backend_zdnn_buffer_context * ctx = (struct ggml_backend_zdnn_buffer_context *)buffer->context;
 
     for (int i = 0; i < ctx->n_buffers; i++) {
-        zdnn_free_ztensor_buffer(&ctx->buffers[i].ztensor);
+        struct ggml_backend_zdnn_buffer * buf = &ctx->buffers[i];
+
+        // free any extra buffers (e.g., bias)
+        if (buf->extra != nullptr) {
+            zdnn_free_ztensor_buffer(&buf->extra->ztensor);
+            free(buf->extra->data);
+        }
+        zdnn_free_ztensor_buffer(&buf->ztensor);
     }
 
     if (ctx->owned) {

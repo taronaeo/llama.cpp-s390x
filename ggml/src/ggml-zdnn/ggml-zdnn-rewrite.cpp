@@ -409,6 +409,14 @@ static void ggml_backend_zdnn_buffer_memset_tensor(ggml_backend_buffer_t buffer,
 static void ggml_backend_zdnn_buffer_set_tensor(ggml_backend_buffer_t buffer, struct ggml_tensor * tensor, const void * data, size_t offset, size_t size) {
     ggml_backend_zdnn_buffer * extra = (ggml_backend_zdnn_buffer *)tensor->extra;
 
+    // Log only for MUL_MAT operations
+    if (tensor->op == GGML_OP_MUL_MAT) {
+        GGML_LOG_INFO("%s: MUL_MAT operation - tensor '%s', size = %zu bytes\n",
+                      __func__, tensor->name, size);
+        GGML_LOG_INFO("%s: tensor->extra->extra = %p\n",
+                      __func__, extra->extra);
+    }
+
     // if extra buffer exists, transform the ztensor with the buffer data. for e.g., bias
     if (extra->extra != nullptr) {
         GGML_LOG_INFO("%s: transforming bias ztensor for tensor '%s', bias size = %zu bytes\n",

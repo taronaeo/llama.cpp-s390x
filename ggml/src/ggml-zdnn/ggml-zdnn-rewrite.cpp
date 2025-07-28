@@ -709,6 +709,7 @@ static ggml_backend_dev_t ggml_backend_zdnn_reg_device_get(ggml_backend_reg_t re
 }
 
 static ggml_backend_feature g_ggml_backend_zdnn_features[] = {
+    { "NNPA", zdnn_is_nnpa_installed() ? "1" : "0" },
     { "NNPA_PARMBLKFORMAT_0", zdnn_is_nnpa_parmblk_fmt_installed(1, NNPA_PARMBLKFORMAT_0) ? "1" : "0" },
     { "NNPA_PARMBLKFORMAT_1", zdnn_is_nnpa_parmblk_fmt_installed(1, NNPA_PARMBLKFORMAT_1) ? "1" : "0" },
     { NULL, NULL },

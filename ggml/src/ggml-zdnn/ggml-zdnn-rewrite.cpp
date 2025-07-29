@@ -383,9 +383,9 @@ static enum ggml_status ggml_backend_zdnn_buffer_init_tensor(ggml_backend_buffer
     ctx->buffers.push_back(zdnn_buffer);
 
     ggml_zdnn_init_tensor(&zdnn_buffer, tensor);
+    tensor->extra = &ctx->buffers.back();
 
     ctx->n_buffers++;
-    tensor->extra = &ctx->buffers[buffer_idx];
 
     GGML_LOG_INFO("%s: initialised tensor '%s' in buffer %d, size = %8.2f MiB\n",
                   __func__, tensor->name, buffer_idx, tsize);

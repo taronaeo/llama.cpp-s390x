@@ -6,6 +6,7 @@
 #include "ggml-zdnn.h"
 
 #include <vector>
+#include <deque>
 #include <memory>
 #include <vecintrin.h>
 
@@ -91,7 +92,7 @@ struct ggml_backend_zdnn_buffer_context {
     bool owned;
 
     int n_buffers;
-    std::vector<ggml_backend_zdnn_buffer> buffers;
+    std::deque<ggml_backend_zdnn_buffer> buffers;
 };
 
 #endif  // GGML_ZDNN_IMPL

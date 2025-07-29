@@ -6,6 +6,7 @@
 #include "ggml-backend-impl.h"
 
 #include <vector>
+#include <deque>
 #include <csignal>
 #include <unistd.h>
 

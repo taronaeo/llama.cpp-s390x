@@ -103,6 +103,8 @@ static void ggml_zdnn_mul_mat_op(ggml_backend_zdnn_context * ctx, const ggml_ten
     const ggml_tensor * inputs  = src1;
           ggml_tensor * output  = dst;
 
+    const ggml_backend_zdnn_buffer * weights_extra = (const ggml_backend_zdnn_buffer *)weights->extra;
+
     zdnn_tensor_desc ptd_weights, td_weights;
     zdnn_tensor_desc ptd_inputs,  td_inputs;
     zdnn_tensor_desc ptd_bias,    td_bias;
@@ -134,6 +136,15 @@ static void ggml_zdnn_mul_mat_op(ggml_backend_zdnn_context * ctx, const ggml_ten
     ggml_zdnn_load_tensor(zt_inputs,  inputs->data);
     ggml_zdnn_load_tensor(zt_bias,    bias_data);
     ggml_zdnn_load_tensor(zt_output,  output->data);
+
+    GGML_LOG_INFO("%s: tensor '%s' pre_tfm_desc dimensions: [%ld, %ld, %ld, %ld]\n",
+                  __func__, weights_extra->name,
+                  weights_extra->pre_tfm_desc.dim1,
+                  weights_extra->pre_tfm_desc.dim2,
+                  weights_extra->pre_tfm_desc.dim3,
+                  weights_extra->pre_tfm_desc.dim4);
+
+    std::raise(SIGINT);
 
     ZDNN_CHECK(zdnn_matmul_transpose_op(&zt_inputs, &zt_weights, &zt_bias,
                                         false, true, MATMUL_OP_ADDITION, &zt_output));

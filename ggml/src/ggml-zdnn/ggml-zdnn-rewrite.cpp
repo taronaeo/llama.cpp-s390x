@@ -6,7 +6,7 @@
 #include "ggml-backend-impl.h"
 
 #include <vector>
-#include <deque>
+#include <memory>
 #include <csignal>
 #include <unistd.h>
 
@@ -366,7 +366,7 @@ static void ggml_backend_zdnn_buffer_free_buffer(ggml_backend_buffer_t buffer) {
     ggml_backend_zdnn_buffer_context * ctx = (ggml_backend_zdnn_buffer_context *)buffer->context;
 
     for (int i = 0; i < ctx->n_buffers; i++) {
-        ZDNN_CHECK(zdnn_free_ztensor_buffer(&ctx->buffers[i].ztensor));
+        ZDNN_CHECK(zdnn_free_ztensor_buffer(&ctx->buffers[i]->ztensor));
     }
 
     delete ctx;
@@ -388,15 +388,15 @@ static enum ggml_status ggml_backend_zdnn_buffer_init_tensor(ggml_backend_buffer
     const int64_t tsize = ggml_nbytes(tensor);
     int buffer_idx = ctx->n_buffers;
 
-    ggml_backend_zdnn_buffer zdnn_buffer;
-    zdnn_buffer.data = tensor->data;
-    zdnn_buffer.size = tsize;
-    strncpy(zdnn_buffer.name, tensor->name, GGML_MAX_NAME - 1);
-    ctx->buffers.push_back(zdnn_buffer);
+    std::unique_ptr<ggml_backend_zdnn_buffer> zdnn_buffer = std::make_unique<ggml_backend_zdnn_buffer>();
+    zdnn_buffer->data = tensor->data;
+    zdnn_buffer->size = tsize;
+    strncpy(zdnn_buffer->name, tensor->name, GGML_MAX_NAME - 1);
 
-    ggml_zdnn_init_tensor(&zdnn_buffer, tensor);
-    tensor->extra = &ctx->buffers.back();
+    ggml_zdnn_init_tensor(zdnn_buffer.get(), tensor);
+    tensor->extra = zdnn_buffer.get();  // Stable pointer to heap-allocated object
 
+    ctx->buffers.push_back(std::move(zdnn_buffer));
     ctx->n_buffers++;
 
     GGML_LOG_INFO("%s: initialised tensor '%s' in buffer %d, size = %8.2f MiB\n",
@@ -472,10 +472,10 @@ static ggml_backend_buffer_t ggml_backend_zdnn_buffer_type_alloc_buffer(ggml_bac
     ctx->n_buffers = 1;
 
     if (ctx->all_data != NULL) {
-        ggml_backend_zdnn_buffer zdnn_buffer;
-        zdnn_buffer.data = ctx->all_data;
-        zdnn_buffer.size = size_aligned;
-        ctx->buffers.push_back(zdnn_buffer);
+        std::unique_ptr<ggml_backend_zdnn_buffer> zdnn_buffer = std::make_unique<ggml_backend_zdnn_buffer>();
+        zdnn_buffer->data = ctx->all_data;
+        zdnn_buffer->size = size_aligned;
+        ctx->buffers.push_back(std::move(zdnn_buffer));
     }
 
     if (size_aligned > 0 && (ctx->all_data == NULL)) {
@@ -701,10 +701,10 @@ static ggml_backend_buffer_t ggml_backend_zdnn_device_buffer_from_ptr(ggml_backe
     GGML_ASSERT(ctx_dev->zdnn_device >= 0);
     int device = ctx_dev->zdnn_device; GGML_UNUSED(device);
 
-    ggml_backend_zdnn_buffer zdnn_buffer;
-    zdnn_buffer.data = ptr;
-    zdnn_buffer.size = size;
-    ctx->buffers.push_back(zdnn_buffer);
+    std::unique_ptr<ggml_backend_zdnn_buffer> zdnn_buffer = std::make_unique<ggml_backend_zdnn_buffer>();
+    zdnn_buffer->data = ptr;
+    zdnn_buffer->size = size;
+    ctx->buffers.push_back(std::move(zdnn_buffer));
 
     GGML_LOG_INFO("%s: allocated buffer, size = %8.2f MiB\n",
                   __func__, size_aligned / 1024.0 / 1024.0);

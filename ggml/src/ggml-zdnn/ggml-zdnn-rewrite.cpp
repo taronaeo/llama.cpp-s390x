@@ -55,10 +55,6 @@ inline void ggml_zdnn_load_tensor(zdnn_ztensor & ztensor,
 
 inline void ggml_zdnn_init_tensor(ggml_backend_zdnn_buffer * buffer, const ggml_tensor * tensor) {
     switch (tensor->op) {
-        case GGML_OP_NONE:
-            // noop here because we will initialise it during the compute graph execution
-            return;
-
         case GGML_OP_MUL_MAT:
             {
                 zdnn_init_pre_transformed_desc(
@@ -133,11 +129,23 @@ static void ggml_zdnn_mul_mat_op(ggml_backend_zdnn_context * ctx, const ggml_ten
     const int64_t bias_dim  [GGML_MAX_DIMS]  = { 1, 1, 1, output_cols };
     const int64_t output_dim[GGML_MAX_DIMS]  = { 1, 1, output_cols, output_rows };
 
-    ggml_zdnn_create_tensor(weights_extra->pre_tfm_desc, weights_extra->tfm_desc, weights_extra->ztensor, weights, weights_dim, ZDNN_2D);
-    ggml_zdnn_create_tensor(inputs_extra->pre_tfm_desc,  inputs_extra->tfm_desc,  inputs_extra->ztensor,  inputs,  inputs_dim,  ZDNN_2D);
+    zdnn_init_pre_transformed_desc(ZDNN_2D,
+                                   ggml_zdnn_type_mapping(weights->type),
+                                   &weights_extra->pre_tfm_desc,
+                                   weights_dim[3], weights_dim[2],
+                                   weights_dim[1], weights_dim[0]);
+    zdnn_init_pre_transformed_desc(ZDNN_2D,
+                                   ggml_zdnn_type_mapping(inputs->type),
+                                   &inputs_extra->pre_tfm_desc,
+                                   inputs_dim[3], inputs_dim[2],
+                                   inputs_dim[1], inputs_dim[0]);
+    ZDNN_CHECK(zdnn_generate_transformed_desc(&weights_extra->pre_tfm_desc, &weights_extra->tfm_desc));
+    ZDNN_CHECK(zdnn_generate_transformed_desc(&inputs_extra->pre_tfm_desc,  &inputs_extra->tfm_desc));
 
     ggml_zdnn_create_tensor(ptd_bias,    td_bias,    zt_bias,    output,  bias_dim,    ZDNN_1D);
     // ggml_zdnn_create_tensor(ptd_output,  td_output,  zt_output,  output,  output_dim,  ZDNN_2D);
+
+    std::raise(SIGINT);
 
     void * bias_data = (void *)calloc(ne0, ggml_element_size(output));
     ggml_zdnn_load_tensor(weights_extra->ztensor, weights->data);
@@ -161,12 +169,12 @@ static void ggml_zdnn_mul_mat_op(ggml_backend_zdnn_context * ctx, const ggml_ten
     //               inputs_extra->pre_tfm_desc.dim3,
     //               inputs_extra->pre_tfm_desc.dim4);
 
+    GGML_ASSERT(weights_extra->pre_tfm_desc.layout == ZDNN_2D && "weights_extra->pre_tfm_desc.layout must be ZDNN_2D");
+    GGML_ASSERT(inputs_extra->pre_tfm_desc.layout == ZDNN_2D && "inputs_extra->pre_tfm_desc.layout must be ZDNN_2D");
     GGML_ASSERT(weights_extra->pre_tfm_desc.dim1 == weights->ne[0] && "weights_extra->pre_tfm_desc.dim1 must match weights->ne[0]");
     GGML_ASSERT(weights_extra->pre_tfm_desc.dim2 == weights->ne[1] && "weights_extra->pre_tfm_desc.dim2 must match weights->ne[1]");
     GGML_ASSERT(inputs_extra->pre_tfm_desc.dim1 == inputs->ne[0] && "inputs_extra->pre_tfm_desc.dim1 must match inputs->ne[0]");
     GGML_ASSERT(inputs_extra->pre_tfm_desc.dim2 == inputs->ne[1] && "inputs_extra->pre_tfm_desc.dim2 must match inputs->ne[1]");
-
-    // std::raise(SIGINT);
 
     ZDNN_CHECK(zdnn_matmul_transpose_op(&inputs_extra->ztensor, &weights_extra->ztensor, &zt_bias,
                                         false, true, MATMUL_OP_ADDITION, &output_extra->ztensor));
@@ -413,7 +421,7 @@ static enum ggml_status ggml_backend_zdnn_buffer_init_tensor(ggml_backend_buffer
     strncpy(zdnn_buffer->name, tensor->name, GGML_MAX_NAME - 1);
 
     ggml_zdnn_init_tensor(zdnn_buffer.get(), tensor);
-    tensor->extra = zdnn_buffer.get();  // Stable pointer to heap-allocated object
+    tensor->extra = zdnn_buffer.get();
 
     ctx->buffers.push_back(std::move(zdnn_buffer));
     ctx->n_buffers++;
@@ -434,9 +442,6 @@ static void ggml_backend_zdnn_buffer_set_tensor(ggml_backend_buffer_t buffer, gg
     memcpy((char *)tensor->data + offset, data, size);
 
     ggml_backend_zdnn_buffer * zdnn_buffer = (ggml_backend_zdnn_buffer *)tensor->extra;
-    if (tensor->op == GGML_OP_NONE) {
-        return;
-    }
     ggml_zdnn_load_tensor(zdnn_buffer->ztensor, (void *)data);
 
     GGML_UNUSED(buffer);

@@ -137,8 +137,9 @@ static void ggml_zdnn_mul_mat_op(ggml_backend_zdnn_context * ctx, const ggml_ten
     ggml_zdnn_load_tensor(zt_bias,    bias_data);
     ggml_zdnn_load_tensor(zt_output,  output->data);
 
-    GGML_LOG_INFO("%s: tensor '%s' pre_tfm_desc dimensions: [%ld, %ld, %ld, %ld]\n",
+    GGML_LOG_INFO("%s: tensor '%s' tensor dimensions: [%ld, %ld, %ld, %ld] pre_tfm_desc dimensions: [%ld, %ld, %ld, %ld]\n",
                   __func__, weights_extra->name,
+                  weights->ne[3], weights->ne[2], weights->ne[1], weights->ne[0],
                   weights_extra->pre_tfm_desc.dim1,
                   weights_extra->pre_tfm_desc.dim2,
                   weights_extra->pre_tfm_desc.dim3,

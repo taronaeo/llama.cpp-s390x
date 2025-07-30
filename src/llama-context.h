@@ -94,7 +94,7 @@ struct llama_context {
     // if memory_context is provided, it will be applied first to the context's memory
     // ret contains the status of the graph computation
     // returns nullptr only if ret != GGML_STATUS_SUCCESS
-    llm_graph_result_i * process_ubatch(
+    llm_graph_result * process_ubatch(
                 const llama_ubatch & ubatch,
                     llm_graph_type   gtype,
             llama_memory_context_i * mctx,
@@ -181,6 +181,8 @@ private:
     // Returns max number of outputs for which space was reserved.
     uint32_t output_reserve(int32_t n_outputs);
 
+    void output_reorder();
+
     //
     // graph
     //
@@ -199,7 +201,7 @@ public:
 
 private:
     llm_graph_params graph_params(
-                      llm_graph_result_i * res,
+                        llm_graph_result * res,
                       const llama_ubatch & ubatch,
             const llama_memory_context_i * mctx,
                           llm_graph_type   gtype) const;
@@ -250,6 +252,13 @@ private:
 
     std::vector<int32_t> output_ids; // map batch token positions to ids of the logits and embd buffers
 
+    struct swap_info {
+        uint32_t i0;
+        uint32_t i1;
+    };
+
+    std::vector<swap_info> output_swaps;
+
     ggml_backend_sched_ptr sched;
 
     ggml_backend_t backend_cpu = nullptr;
@@ -277,6 +286,10 @@ private:
     ggml_backend_buffer_ptr buf_output;
 
     bool has_evaluated_once = false;
+
+    // env: LLAMA_SET_ROWS (temporary)
+    // ref: https://github.com/ggml-org/llama.cpp/pull/14285
+    bool supports_set_rows = false;
 
     // perf
     mutable int64_t t_start_us  = 0;

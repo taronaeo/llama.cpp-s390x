@@ -138,6 +138,9 @@ struct slot_params {
     std::string                  oaicompat_cmpl_id;
     common_chat_syntax           oaicompat_chat_syntax;
 
+    // Embeddings
+    int32_t embd_normalize = 2; // (-1=none, 0=max absolute int16, 1=taxicab, 2=Euclidean/L2, >2=p-norm)
+
     json to_json() const {
         std::vector<std::string> samplers;
         samplers.reserve(sampling.samplers.size());
@@ -253,6 +256,7 @@ struct server_task {
         defaults.sampling    = params_base.sampling;
         defaults.speculative = params_base.speculative;
         defaults.n_keep      = params_base.n_keep;
+        defaults.antiprompt  = params_base.antiprompt;
 
         // enabling this will output extra debug information in the HTTP responses from the server
         params.verbose           = params_base.verbosity > 9;
@@ -489,6 +493,10 @@ struct server_task {
                         params.antiprompt.push_back(word);
                     }
                 }
+            }
+            // set reverse prompt from cli args if not set in the request
+            if (params.antiprompt.empty()) {
+                params.antiprompt = defaults.antiprompt;
             }
         }
 
@@ -2596,7 +2604,7 @@ struct server_context {
 
             // normalize only when there is pooling
             if (llama_pooling_type(slot.ctx) != LLAMA_POOLING_TYPE_NONE) {
-                common_embd_normalize(embd, embd_res.data(), n_embd, 2);
+                common_embd_normalize(embd, embd_res.data(), n_embd, slot.params.embd_normalize);
                 res->embedding.push_back(embd_res);
                 break;
             } else {
@@ -4516,9 +4524,10 @@ int main(int argc, char ** argv) {
         json tokens_response = json::array();
         if (body.count("content") != 0) {
             const bool add_special = json_value(body, "add_special", false);
+            const bool parse_special = json_value(body, "parse_special", true);
             const bool with_pieces = json_value(body, "with_pieces", false);
 
-            llama_tokens tokens = tokenize_mixed(ctx_server.vocab, body.at("content"), add_special, true);
+            llama_tokens tokens = tokenize_mixed(ctx_server.vocab, body.at("content"), add_special, parse_special);
 
             if (with_pieces) {
                 for (const auto& token : tokens) {
@@ -4608,6 +4617,14 @@ int main(int argc, char ** argv) {
             }
         }
 
+        int embd_normalize = 2; // default to Euclidean/L2 norm
+        if (body.count("embd_normalize") != 0) {
+            embd_normalize = body.at("embd_normalize");
+            if (llama_pooling_type(ctx_server.ctx) == LLAMA_POOLING_TYPE_NONE) {
+                SRV_DBG("embd_normalize is not supported by pooling type %d, ignoring it\n", llama_pooling_type(ctx_server.ctx));
+            }
+        }
+
         // create and queue the task
         json responses = json::array();
         bool error = false;
@@ -4623,6 +4640,7 @@ int main(int argc, char ** argv) {
 
                 // OAI-compat
                 task.params.oaicompat = oaicompat;
+                task.params.embd_normalize = embd_normalize;
 
                 tasks.push_back(std::move(task));
             }

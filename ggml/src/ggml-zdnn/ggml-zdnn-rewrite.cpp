@@ -67,12 +67,20 @@ inline void ggml_zdnn_init_tensor(ggml_backend_zdnn_buffer * buffer, const ggml_
 
         default:
             {
+                // For 4D tensors, GGML uses NCHW layout. However, because zDNN
+                // automatically transforms everything to NHWC, we will use it
+                // directly to avoid the performance penalty changing the
+                // layout and reshaping the tensor.
                 zdnn_init_pre_transformed_desc(
                     ZDNN_NHWC,
                     ggml_zdnn_type_mapping(tensor->type),
                     &buffer->pre_tfm_desc,
                     tensor->ne[3], tensor->ne[2], tensor->ne[1], tensor->ne[0]
                 );
+
+                // TODO: Consider adding a ggml check.
+                // TODO: If tensor = 4D, use ZDNN_NCHW by default.
+                // TODO: If tensor = 2D, use ZDNN_NHWC by default.
             } break;
     }
 
@@ -108,11 +116,8 @@ static void ggml_zdnn_mul_mat_op(ggml_backend_zdnn_context * ctx, const ggml_ten
     ggml_backend_zdnn_buffer * inputs_extra  = (ggml_backend_zdnn_buffer *)inputs->extra;
     ggml_backend_zdnn_buffer * output_extra  = (ggml_backend_zdnn_buffer *)output->extra;
 
-    zdnn_tensor_desc ptd_weights, td_weights;
-    zdnn_tensor_desc ptd_inputs,  td_inputs;
-    zdnn_tensor_desc ptd_bias,    td_bias;
-    zdnn_tensor_desc ptd_output,  td_output;
-    zdnn_ztensor zt_weights, zt_inputs, zt_bias, zt_output;
+    zdnn_tensor_desc ptd_bias, td_bias;
+    zdnn_ztensor zt_bias;
 
     const int64_t weights_rows = ne01;
     const int64_t weights_cols = ne00;
@@ -129,8 +134,7 @@ static void ggml_zdnn_mul_mat_op(ggml_backend_zdnn_context * ctx, const ggml_ten
     const int64_t bias_dim  [GGML_MAX_DIMS]  = { 1, 1, 1, output_cols };
     const int64_t output_dim[GGML_MAX_DIMS]  = { 1, 1, output_cols, output_rows };
 
-    ggml_zdnn_create_tensor(ptd_bias,    td_bias,    zt_bias,    output,  bias_dim,    ZDNN_1D);
-    // ggml_zdnn_create_tensor(ptd_output,  td_output,  zt_output,  output,  output_dim,  ZDNN_2D);
+    ggml_zdnn_create_tensor(ptd_bias, td_bias, zt_bias, output, bias_dim, ZDNN_1D);
 
     void * bias_data = (void *)calloc(ne0, ggml_element_size(output));
     if (weights_extra->ztensor.is_transformed == false) {
@@ -140,8 +144,7 @@ static void ggml_zdnn_mul_mat_op(ggml_backend_zdnn_context * ctx, const ggml_ten
     if (inputs_extra->ztensor.is_transformed == false) {
         ggml_zdnn_load_tensor(inputs_extra->ztensor, inputs->data);
     }
-    ggml_zdnn_load_tensor(zt_bias,    bias_data);
-    // ggml_zdnn_load_tensor(output_extra->ztensor,  output->data);
+    ggml_zdnn_load_tensor(zt_bias, bias_data);
 
     // GGML_LOG_INFO("%s: tensor '%s' tensor dimensions: [%ld, %ld, %ld, %ld] pre_tfm_desc dimensions: [%ld, %ld, %ld, %ld]\n",
     //               __func__, weights_extra->name,
@@ -159,21 +162,17 @@ static void ggml_zdnn_mul_mat_op(ggml_backend_zdnn_context * ctx, const ggml_ten
     //               inputs_extra->pre_tfm_desc.dim3,
     //               inputs_extra->pre_tfm_desc.dim4);
 
-    // GGML_ASSERT(weights_extra->pre_tfm_desc.layout == ZDNN_2D && "weights_extra->pre_tfm_desc.layout must be ZDNN_2D");
-    // GGML_ASSERT(inputs_extra->pre_tfm_desc.layout == ZDNN_2D && "inputs_extra->pre_tfm_desc.layout must be ZDNN_2D");
     GGML_ASSERT(weights_extra->pre_tfm_desc.dim1 == weights->ne[0] && "weights_extra->pre_tfm_desc.dim1 must match weights->ne[0]");
     GGML_ASSERT(weights_extra->pre_tfm_desc.dim2 == weights->ne[1] && "weights_extra->pre_tfm_desc.dim2 must match weights->ne[1]");
-    GGML_ASSERT(inputs_extra->pre_tfm_desc.dim1 == inputs->ne[0] && "inputs_extra->pre_tfm_desc.dim1 must match inputs->ne[0]");
-    GGML_ASSERT(inputs_extra->pre_tfm_desc.dim2 == inputs->ne[1] && "inputs_extra->pre_tfm_desc.dim2 must match inputs->ne[1]");
-
-    std::raise(SIGINT);
+    GGML_ASSERT(inputs_extra->pre_tfm_desc.dim1  == inputs->ne[0]  && "inputs_extra->pre_tfm_desc.dim1 must match inputs->ne[0]");
+    GGML_ASSERT(inputs_extra->pre_tfm_desc.dim2  == inputs->ne[1]  && "inputs_extra->pre_tfm_desc.dim2 must match inputs->ne[1]");
 
     ZDNN_CHECK(zdnn_matmul_transpose_op(&inputs_extra->ztensor, &weights_extra->ztensor, &zt_bias,
                                         false, true, MATMUL_OP_ADDITION, &output_extra->ztensor));
+    // TODO: Remove in the future as we are currently DLF16 -> FP32 then in the next op, FP32 -> DLF16 again. Inefficient.
     ZDNN_CHECK(zdnn_transform_origtensor(&output_extra->ztensor, output->data));
 
     ZDNN_CHECK(zdnn_free_ztensor_buffer(&zt_bias));
-
     free(bias_data);
 }
 

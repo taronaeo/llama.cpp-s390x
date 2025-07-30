@@ -104,6 +104,7 @@ static void ggml_zdnn_mul_mat_op(ggml_backend_zdnn_context * ctx, const ggml_ten
           ggml_tensor * output  = dst;
 
     const ggml_backend_zdnn_buffer * weights_extra = (const ggml_backend_zdnn_buffer *)weights->extra;
+    const ggml_backend_zdnn_buffer * inputs_extra  = (const ggml_backend_zdnn_buffer *)inputs->extra;
 
     zdnn_tensor_desc ptd_weights, td_weights;
     zdnn_tensor_desc ptd_inputs,  td_inputs;
@@ -144,6 +145,19 @@ static void ggml_zdnn_mul_mat_op(ggml_backend_zdnn_context * ctx, const ggml_ten
                   weights_extra->pre_tfm_desc.dim2,
                   weights_extra->pre_tfm_desc.dim3,
                   weights_extra->pre_tfm_desc.dim4);
+
+    GGML_LOG_INFO("%s: tensor '%s' tensor dimensions: [%ld, %ld, %ld, %ld] pre_tfm_desc dimensions: [%ld, %ld, %ld, %ld]\n",
+                  __func__, inputs_extra->name,
+                  inputs->ne[3], inputs->ne[2], inputs->ne[1], inputs->ne[0],
+                  inputs_extra->pre_tfm_desc.dim1,
+                  inputs_extra->pre_tfm_desc.dim2,
+                  inputs_extra->pre_tfm_desc.dim3,
+                  inputs_extra->pre_tfm_desc.dim4);
+
+    GGML_ASSERT(weights_extra->pre_tfm_desc.dim1 == weights->ne[0] && "weights_extra->pre_tfm_desc.dim1 must match weights->ne[0]");
+    GGML_ASSERT(weights_extra->pre_tfm_desc.dim2 == weights->ne[1] && "weights_extra->pre_tfm_desc.dim2 must match weights->ne[1]");
+    GGML_ASSERT(inputs_extra->pre_tfm_desc.dim1 == inputs->ne[0] && "inputs_extra->pre_tfm_desc.dim1 must match inputs->ne[0]");
+    GGML_ASSERT(inputs_extra->pre_tfm_desc.dim2 == inputs->ne[1] && "inputs_extra->pre_tfm_desc.dim2 must match inputs->ne[1]");
 
     std::raise(SIGINT);
 

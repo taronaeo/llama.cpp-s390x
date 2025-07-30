@@ -133,8 +133,13 @@ static void ggml_zdnn_mul_mat_op(ggml_backend_zdnn_context * ctx, const ggml_ten
     // ggml_zdnn_create_tensor(ptd_output,  td_output,  zt_output,  output,  output_dim,  ZDNN_2D);
 
     void * bias_data = (void *)calloc(ne0, ggml_element_size(output));
-    ggml_zdnn_load_tensor(weights_extra->ztensor, weights->data);
-    ggml_zdnn_load_tensor(inputs_extra->ztensor,  inputs->data);
+    if (weights_extra->ztensor.is_transformed == false) {
+        ggml_zdnn_load_tensor(weights_extra->ztensor, weights->data);
+    }
+
+    if (inputs_extra->ztensor.is_transformed == false) {
+        ggml_zdnn_load_tensor(inputs_extra->ztensor, inputs->data);
+    }
     ggml_zdnn_load_tensor(zt_bias,    bias_data);
     // ggml_zdnn_load_tensor(output_extra->ztensor,  output->data);
 

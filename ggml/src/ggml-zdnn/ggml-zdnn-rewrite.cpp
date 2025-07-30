@@ -68,7 +68,7 @@ inline void ggml_zdnn_init_tensor(ggml_backend_zdnn_buffer * buffer, const ggml_
         default:
             {
                 zdnn_init_pre_transformed_desc(
-                    ZDNN_NCHW,
+                    ZDNN_NHWC,
                     ggml_zdnn_type_mapping(tensor->type),
                     &buffer->pre_tfm_desc,
                     tensor->ne[3], tensor->ne[2], tensor->ne[1], tensor->ne[0]
@@ -129,29 +129,14 @@ static void ggml_zdnn_mul_mat_op(ggml_backend_zdnn_context * ctx, const ggml_ten
     const int64_t bias_dim  [GGML_MAX_DIMS]  = { 1, 1, 1, output_cols };
     const int64_t output_dim[GGML_MAX_DIMS]  = { 1, 1, output_cols, output_rows };
 
-    zdnn_init_pre_transformed_desc(ZDNN_2D,
-                                   ggml_zdnn_type_mapping(weights->type),
-                                   &weights_extra->pre_tfm_desc,
-                                   weights_dim[3], weights_dim[2],
-                                   weights_dim[1], weights_dim[0]);
-    zdnn_init_pre_transformed_desc(ZDNN_2D,
-                                   ggml_zdnn_type_mapping(inputs->type),
-                                   &inputs_extra->pre_tfm_desc,
-                                   inputs_dim[3], inputs_dim[2],
-                                   inputs_dim[1], inputs_dim[0]);
-    ZDNN_CHECK(zdnn_generate_transformed_desc(&weights_extra->pre_tfm_desc, &weights_extra->tfm_desc));
-    ZDNN_CHECK(zdnn_generate_transformed_desc(&inputs_extra->pre_tfm_desc,  &inputs_extra->tfm_desc));
-
     ggml_zdnn_create_tensor(ptd_bias,    td_bias,    zt_bias,    output,  bias_dim,    ZDNN_1D);
     // ggml_zdnn_create_tensor(ptd_output,  td_output,  zt_output,  output,  output_dim,  ZDNN_2D);
-
-    std::raise(SIGINT);
 
     void * bias_data = (void *)calloc(ne0, ggml_element_size(output));
     ggml_zdnn_load_tensor(weights_extra->ztensor, weights->data);
     ggml_zdnn_load_tensor(inputs_extra->ztensor,  inputs->data);
     ggml_zdnn_load_tensor(zt_bias,    bias_data);
-    ggml_zdnn_load_tensor(output_extra->ztensor,  output->data);  //! THIS SHOULD FAIL BECAUSE OF SET_TENSOR
+    ggml_zdnn_load_tensor(output_extra->ztensor,  output->data);
 
     // GGML_LOG_INFO("%s: tensor '%s' tensor dimensions: [%ld, %ld, %ld, %ld] pre_tfm_desc dimensions: [%ld, %ld, %ld, %ld]\n",
     //               __func__, weights_extra->name,
@@ -169,12 +154,14 @@ static void ggml_zdnn_mul_mat_op(ggml_backend_zdnn_context * ctx, const ggml_ten
     //               inputs_extra->pre_tfm_desc.dim3,
     //               inputs_extra->pre_tfm_desc.dim4);
 
-    GGML_ASSERT(weights_extra->pre_tfm_desc.layout == ZDNN_2D && "weights_extra->pre_tfm_desc.layout must be ZDNN_2D");
-    GGML_ASSERT(inputs_extra->pre_tfm_desc.layout == ZDNN_2D && "inputs_extra->pre_tfm_desc.layout must be ZDNN_2D");
+    // GGML_ASSERT(weights_extra->pre_tfm_desc.layout == ZDNN_2D && "weights_extra->pre_tfm_desc.layout must be ZDNN_2D");
+    // GGML_ASSERT(inputs_extra->pre_tfm_desc.layout == ZDNN_2D && "inputs_extra->pre_tfm_desc.layout must be ZDNN_2D");
     GGML_ASSERT(weights_extra->pre_tfm_desc.dim1 == weights->ne[0] && "weights_extra->pre_tfm_desc.dim1 must match weights->ne[0]");
     GGML_ASSERT(weights_extra->pre_tfm_desc.dim2 == weights->ne[1] && "weights_extra->pre_tfm_desc.dim2 must match weights->ne[1]");
     GGML_ASSERT(inputs_extra->pre_tfm_desc.dim1 == inputs->ne[0] && "inputs_extra->pre_tfm_desc.dim1 must match inputs->ne[0]");
     GGML_ASSERT(inputs_extra->pre_tfm_desc.dim2 == inputs->ne[1] && "inputs_extra->pre_tfm_desc.dim2 must match inputs->ne[1]");
+
+    std::raise(SIGINT);
 
     ZDNN_CHECK(zdnn_matmul_transpose_op(&inputs_extra->ztensor, &weights_extra->ztensor, &zt_bias,
                                         false, true, MATMUL_OP_ADDITION, &output_extra->ztensor));

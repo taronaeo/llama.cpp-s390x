@@ -145,28 +145,28 @@ static void ggml_zdnn_mul_mat_op(ggml_backend_zdnn_context * ctx, const ggml_ten
     ggml_zdnn_load_tensor(zt_bias,    bias_data);
     ggml_zdnn_load_tensor(output_extra->ztensor,  output->data);  //! THIS SHOULD FAIL BECAUSE OF SET_TENSOR
 
-    GGML_LOG_INFO("%s: tensor '%s' tensor dimensions: [%ld, %ld, %ld, %ld] pre_tfm_desc dimensions: [%ld, %ld, %ld, %ld]\n",
-                  __func__, weights_extra->name,
-                  weights->ne[3], weights->ne[2], weights->ne[1], weights->ne[0],
-                  weights_extra->pre_tfm_desc.dim1,
-                  weights_extra->pre_tfm_desc.dim2,
-                  weights_extra->pre_tfm_desc.dim3,
-                  weights_extra->pre_tfm_desc.dim4);
+    // GGML_LOG_INFO("%s: tensor '%s' tensor dimensions: [%ld, %ld, %ld, %ld] pre_tfm_desc dimensions: [%ld, %ld, %ld, %ld]\n",
+    //               __func__, weights_extra->name,
+    //               weights->ne[3], weights->ne[2], weights->ne[1], weights->ne[0],
+    //               weights_extra->pre_tfm_desc.dim1,
+    //               weights_extra->pre_tfm_desc.dim2,
+    //               weights_extra->pre_tfm_desc.dim3,
+    //               weights_extra->pre_tfm_desc.dim4);
 
-    GGML_LOG_INFO("%s: tensor '%s' tensor dimensions: [%ld, %ld, %ld, %ld] pre_tfm_desc dimensions: [%ld, %ld, %ld, %ld]\n",
-                  __func__, inputs_extra->name,
-                  inputs->ne[3], inputs->ne[2], inputs->ne[1], inputs->ne[0],
-                  inputs_extra->pre_tfm_desc.dim1,
-                  inputs_extra->pre_tfm_desc.dim2,
-                  inputs_extra->pre_tfm_desc.dim3,
-                  inputs_extra->pre_tfm_desc.dim4);
+    // GGML_LOG_INFO("%s: tensor '%s' tensor dimensions: [%ld, %ld, %ld, %ld] pre_tfm_desc dimensions: [%ld, %ld, %ld, %ld]\n",
+    //               __func__, inputs_extra->name,
+    //               inputs->ne[3], inputs->ne[2], inputs->ne[1], inputs->ne[0],
+    //               inputs_extra->pre_tfm_desc.dim1,
+    //               inputs_extra->pre_tfm_desc.dim2,
+    //               inputs_extra->pre_tfm_desc.dim3,
+    //               inputs_extra->pre_tfm_desc.dim4);
 
     GGML_ASSERT(weights_extra->pre_tfm_desc.dim1 == weights->ne[0] && "weights_extra->pre_tfm_desc.dim1 must match weights->ne[0]");
     GGML_ASSERT(weights_extra->pre_tfm_desc.dim2 == weights->ne[1] && "weights_extra->pre_tfm_desc.dim2 must match weights->ne[1]");
     GGML_ASSERT(inputs_extra->pre_tfm_desc.dim1 == inputs->ne[0] && "inputs_extra->pre_tfm_desc.dim1 must match inputs->ne[0]");
     GGML_ASSERT(inputs_extra->pre_tfm_desc.dim2 == inputs->ne[1] && "inputs_extra->pre_tfm_desc.dim2 must match inputs->ne[1]");
 
-    std::raise(SIGINT);
+    // std::raise(SIGINT);
 
     ZDNN_CHECK(zdnn_matmul_transpose_op(&inputs_extra->ztensor, &weights_extra->ztensor, &zt_bias,
                                         false, true, MATMUL_OP_ADDITION, &output_extra->ztensor));
@@ -418,8 +418,8 @@ static enum ggml_status ggml_backend_zdnn_buffer_init_tensor(ggml_backend_buffer
     ctx->buffers.push_back(std::move(zdnn_buffer));
     ctx->n_buffers++;
 
-    GGML_LOG_INFO("%s: initialised tensor '%s' in buffer %d, size = %8.2f MiB\n",
-                  __func__, tensor->name, buffer_idx, tsize);
+    // GGML_LOG_INFO("%s: initialised tensor '%s' in buffer %d, size = %8.2f MiB\n",
+    //               __func__, tensor->name, buffer_idx, tsize);
 
     return GGML_STATUS_SUCCESS;
 }

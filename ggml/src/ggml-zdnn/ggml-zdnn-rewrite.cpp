@@ -428,8 +428,8 @@ static void ggml_backend_zdnn_buffer_memset_tensor(ggml_backend_buffer_t buffer,
 static void ggml_backend_zdnn_buffer_set_tensor(ggml_backend_buffer_t buffer, ggml_tensor * tensor, const void * data, size_t offset, size_t size) {
     memcpy((char *)tensor->data + offset, data, size);
 
-    ggml_backend_zdnn_buffer * zdnn_buffer = (ggml_backend_zdnn_buffer *)tensor->extra;
-    ggml_zdnn_load_tensor(zdnn_buffer->ztensor, (void *)data);
+    // ggml_backend_zdnn_buffer * zdnn_buffer = (ggml_backend_zdnn_buffer *)tensor->extra;
+    // ggml_zdnn_load_tensor(zdnn_buffer->ztensor, (void *)data);
 
     GGML_UNUSED(buffer);
 }

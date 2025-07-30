@@ -55,6 +55,11 @@ inline void ggml_zdnn_load_tensor(zdnn_ztensor & ztensor,
 
 inline void ggml_zdnn_init_tensor(ggml_backend_zdnn_buffer * buffer, const ggml_tensor * tensor) {
     switch (tensor->op) {
+        case GGML_OP_NONE:
+            {
+                // noop here because we will initialise it during the compute graph execution
+            } break;
+
         case GGML_OP_MUL_MAT:
             {
                 zdnn_init_pre_transformed_desc(
@@ -64,6 +69,7 @@ inline void ggml_zdnn_init_tensor(ggml_backend_zdnn_buffer * buffer, const ggml_
                     tensor->ne[1], tensor->ne[0]
                 );
             } break;
+
         default:
             {
                 zdnn_init_pre_transformed_desc(

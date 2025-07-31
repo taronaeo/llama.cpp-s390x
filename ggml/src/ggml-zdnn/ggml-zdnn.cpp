@@ -112,8 +112,8 @@ static void ggml_zdnn_mul_mat_op(ggml_backend_zdnn_context * ctx, const ggml_ten
     const ggml_tensor * inputs  = src1;
           ggml_tensor * output  = dst;
 
-    ggml_backend_zdnn_buffer * weights_extra = (ggml_backend_zdnn_buffer *)(weights->view_src ? weights->view_src->extra : weights->extra);
-    ggml_backend_zdnn_buffer * inputs_extra  = (ggml_backend_zdnn_buffer *)(inputs->view_src ? inputs->view_src->extra : inputs->extra);
+    ggml_backend_zdnn_buffer * weights_extra = (ggml_backend_zdnn_buffer *)weights->extra;
+    ggml_backend_zdnn_buffer * inputs_extra  = (ggml_backend_zdnn_buffer *)inputs->extra;
     ggml_backend_zdnn_buffer * output_extra  = (ggml_backend_zdnn_buffer *)output->extra;
 
     zdnn_tensor_desc ptd_bias, td_bias;
@@ -279,6 +279,7 @@ static bool ggml_zdnn_supports_op(const ggml_backend_zdnn_device_context * ctx_d
                        ggml_is_matrix(src1) &&
                        ggml_is_contiguous(src0) &&
                        ggml_is_contiguous(src1) &&
+                       src0->view_src == nullptr && src1->view_src == nullptr &&
                        src0->type == GGML_TYPE_F32 && src1->type == GGML_TYPE_F32 &&
                        (ne0 <= max_batch && ne1 <= max_batch && ne10 <= max_batch);
             } break;

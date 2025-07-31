@@ -275,7 +275,9 @@ static bool ggml_zdnn_supports_op(const ggml_backend_zdnn_device_context * ctx_d
 
                 const int64_t max_batch = ctx_dev->max_size;
 
-                return ggml_is_contiguous(src0) &&
+                return ggml_is_matrix(src0) &&
+                       ggml_is_matrix(src1) &&
+                       ggml_is_contiguous(src0) &&
                        ggml_is_contiguous(src1) &&
                        src0->type == GGML_TYPE_F32 && src1->type == GGML_TYPE_F32 &&
                        (ne0 <= max_batch && ne1 <= max_batch && ne10 <= max_batch);

@@ -266,22 +266,39 @@ static bool ggml_zdnn_supports_op(const ggml_backend_zdnn_device_context * ctx_d
 
         case GGML_OP_MUL_MAT:
             {
-                const ggml_tensor * src0 = op->src[0];
-                const ggml_tensor * src1 = op->src[1];
+                const ggml_tensor * weights = op->src[0];
+                const ggml_tensor * inputs = op->src[1];
 
-                const int64_t ne10 = src1->ne[0];
+                const int64_t ne10 = inputs->ne[0];
                 const int64_t ne0 = op->ne[0];
                 const int64_t ne1 = op->ne[1];
 
                 const int64_t max_batch = ctx_dev->max_size;
 
-                return ggml_is_matrix(src0) &&
-                       ggml_is_matrix(src1) &&
-                       ggml_is_contiguous(src0) &&
-                       ggml_is_contiguous(src1) &&
-                       src0->view_src == nullptr && src1->view_src == nullptr &&
-                       src0->type == GGML_TYPE_F32 && src1->type == GGML_TYPE_F32 &&
-                       (ne0 <= max_batch && ne1 <= max_batch && ne10 <= max_batch);
+                if (!ggml_is_matrix(weights) ||
+                    !ggml_is_matrix(inputs) ||
+                    !ggml_is_contiguous(weights) ||
+                    !ggml_is_contiguous(inputs) ||
+                    weights->view_src != nullptr ||
+                    inputs->view_src != nullptr ||
+                    (ne0 > max_batch || ne1 > max_batch || ne10 > max_batch)) {
+                    return false;
+                }
+
+                switch (weights->type) {
+                    case GGML_TYPE_F32:
+                        return true;
+                    case GGML_TYPE_F16:
+                    case GGML_TYPE_BF16:
+                    case GGML_TYPE_I8:
+                    case GGML_TYPE_I32:
+                    case GGML_TYPE_Q8_0:
+                        // TODO: Allow int4 types in the future with natural scaling
+                        return false;  // TODO: Change to true after tests
+
+                    default:
+                        return false;
+                }
             } break;
 
         default:

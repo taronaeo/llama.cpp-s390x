@@ -192,25 +192,27 @@ static void ggml_zdnn_mul_mat_dispatch(ggml_backend_zdnn_context * ctx, const gg
     // GGML_LOG_INFO("%s: src0 is contiguous %d, transposed %d, type = %s, name = %s\n", __func__, ggml_is_contiguous(src0), ggml_is_transposed(src0), ggml_type_name(src0->type), src0->name);
     // GGML_LOG_INFO("%s: src1 is contiguous %d, transposed %d, type = %s, name = %s\n", __func__, ggml_is_contiguous(src1), ggml_is_transposed(src1), ggml_type_name(src1->type), src1->name);
 
-    if (src0->type == GGML_TYPE_F16 && src1->type == GGML_TYPE_F16
-        && !ggml_is_transposed(src0) && !ggml_is_transposed(src1)
-        && src1->ne[2] * src1->ne[3] > 1) {
-        // general KQ + KQV multi-batch
-        GGML_LOG_INFO("%s: using zdnn_mul_mat_batched for KQ + KQV multi-batch\n", __func__);
-        // ggml_zdnn_mul_mat_batched(ctx, src0, src1, dst);
-    } else if (use_mul_mat_vec) {
-        GGML_LOG_INFO("%s: using zdnn_op_mul_mat_vec for vector multiplication\n", __func__);
-        // ggml_zdnn_op_mul_mat(ctx, src0, src1, dst, ggml_zdnn_op_mul_mat_vec, nullptr);
-    } else if (use_mul_mat_vec_q) {
-        GGML_LOG_INFO("%s: using zdnn_op_mul_mat_vec_q for quantized vector multiplication\n", __func__);
-        // ggml_zdnn_op_mul_mat(ctx, src0, src1, dst, ggml_zdnn_op_mul_mat_vec_q, ggml_zdnn_quantize_row_q8_1);
-    } else if (use_mul_mat_q) {
-        GGML_LOG_INFO("%s: using zdnn_op_mul_mat_q for quantized matrix multiplication\n", __func__);
-        // ggml_zdnn_mul_mat_op(ctx, src0, src1, dst);
-    } else {
-        // GGML_LOG_INFO("%s: using zdnn_op_mul_mat for general matrix multiplication\n", __func__);
-        ggml_zdnn_mul_mat_op(ctx, src0, src1, dst);
-    }
+    // if (src0->type == GGML_TYPE_F16 && src1->type == GGML_TYPE_F16
+    //     && !ggml_is_transposed(src0) && !ggml_is_transposed(src1)
+    //     && src1->ne[2] * src1->ne[3] > 1) {
+    //     // general KQ + KQV multi-batch
+    //     GGML_LOG_INFO("%s: using zdnn_mul_mat_batched for KQ + KQV multi-batch\n", __func__);
+    //     // ggml_zdnn_mul_mat_batched(ctx, src0, src1, dst);
+    // } else if (use_mul_mat_vec) {
+    //     GGML_LOG_INFO("%s: using zdnn_op_mul_mat_vec for vector multiplication\n", __func__);
+    //     // ggml_zdnn_op_mul_mat(ctx, src0, src1, dst, ggml_zdnn_op_mul_mat_vec, nullptr);
+    // } else if (use_mul_mat_vec_q) {
+    //     GGML_LOG_INFO("%s: using zdnn_op_mul_mat_vec_q for quantized vector multiplication\n", __func__);
+    //     // ggml_zdnn_op_mul_mat(ctx, src0, src1, dst, ggml_zdnn_op_mul_mat_vec_q, ggml_zdnn_quantize_row_q8_1);
+    // } else if (use_mul_mat_q) {
+    //     GGML_LOG_INFO("%s: using zdnn_op_mul_mat_q for quantized matrix multiplication\n", __func__);
+    //     // ggml_zdnn_mul_mat_op(ctx, src0, src1, dst);
+    // } else {
+    //     // GGML_LOG_INFO("%s: using zdnn_op_mul_mat for general matrix multiplication\n", __func__);
+    //     ggml_zdnn_mul_mat_op(ctx, src0, src1, dst);
+    // }
+
+    ggml_zdnn_mul_mat_op(ctx, src0, src1, dst);
 }
 
 static bool ggml_zdnn_compute_forward(ggml_backend_zdnn_context * ctx, ggml_tensor * dst) {

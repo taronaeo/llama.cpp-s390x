@@ -206,7 +206,7 @@ static void ggml_zdnn_mul_mat_dispatch(ggml_backend_zdnn_context * ctx, const gg
         // ggml_zdnn_op_mul_mat(ctx, src0, src1, dst, ggml_zdnn_op_mul_mat_vec_q, ggml_zdnn_quantize_row_q8_1);
     } else if (use_mul_mat_q) {
         GGML_LOG_INFO("%s: using zdnn_op_mul_mat_q for quantized matrix multiplication\n", __func__);
-        // ggml_zdnn_op_mul_mat(ctx, src0, src1, dst, ggml_zdnn_op_mul_mat_q, ggml_zdnn_quantize_mmq_q8_1);
+        // ggml_zdnn_mul_mat_op(ctx, src0, src1, dst);
     } else {
         // GGML_LOG_INFO("%s: using zdnn_op_mul_mat for general matrix multiplication\n", __func__);
         ggml_zdnn_mul_mat_op(ctx, src0, src1, dst);
@@ -287,8 +287,8 @@ static bool ggml_zdnn_supports_op(const ggml_backend_zdnn_device_context * ctx_d
 
                 switch (weights->type) {
                     case GGML_TYPE_F32:
-                        return true;
                     case GGML_TYPE_F16:
+                        return true;
                     case GGML_TYPE_BF16:
                     case GGML_TYPE_I8:
                     case GGML_TYPE_I32:

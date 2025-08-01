@@ -88,6 +88,7 @@ inline void ggml_zdnn_init_tensor(ggml_backend_zdnn_buffer * buffer, const ggml_
     switch (tensor->type) {
         case GGML_TYPE_F32:
         case GGML_TYPE_F16:
+        case GGML_TYPE_BF16:
             {
                 ZDNN_CHECK(zdnn_generate_transformed_desc(&buffer->pre_tfm_desc, &buffer->tfm_desc));
                 ZDNN_CHECK(zdnn_init_ztensor_with_malloc(&buffer->pre_tfm_desc, &buffer->tfm_desc, &buffer->ztensor));
@@ -304,8 +305,8 @@ static bool ggml_zdnn_supports_op(const ggml_backend_zdnn_device_context * ctx_d
                 switch (weights->type) {
                     case GGML_TYPE_F32:
                     case GGML_TYPE_F16:
-                        return true;
                     case GGML_TYPE_BF16:
+                        return true;
                     case GGML_TYPE_I32:
                     case GGML_TYPE_I8:
                     case GGML_TYPE_Q8_0:

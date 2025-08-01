@@ -31,6 +31,7 @@ inline zdnn_data_types ggml_zdnn_type_mapping(ggml_type type) {
     }
 }
 
+[[deprecated("This function will be replaced by the ggml_zdnn_init_tensor function.")]]
 inline void ggml_zdnn_create_tensor(zdnn_tensor_desc  & pre_tfm_desc,
                                     zdnn_tensor_desc  & tfm_desc,
                                     zdnn_ztensor      & ztensor,
@@ -84,8 +85,21 @@ inline void ggml_zdnn_init_tensor(ggml_backend_zdnn_buffer * buffer, const ggml_
             } break;
     }
 
-    ZDNN_CHECK(zdnn_generate_transformed_desc(&buffer->pre_tfm_desc, &buffer->tfm_desc));
-    ZDNN_CHECK(zdnn_init_ztensor_with_malloc(&buffer->pre_tfm_desc, &buffer->tfm_desc, &buffer->ztensor));
+    switch (tensor->type) {
+        case GGML_TYPE_F32:
+        case GGML_TYPE_F16:
+            {
+                ZDNN_CHECK(zdnn_generate_transformed_desc(&buffer->pre_tfm_desc, &buffer->tfm_desc));
+                ZDNN_CHECK(zdnn_init_ztensor_with_malloc(&buffer->pre_tfm_desc, &buffer->tfm_desc, &buffer->ztensor));
+            } break;
+
+        default:
+            {
+                GGML_LOG_ERROR("%s: unsupported type %s\n",
+                               __func__, ggml_type_name(tensor->type));
+                break;
+            }
+    }
 }
 
 static void ggml_zdnn_mul_mat_op(ggml_backend_zdnn_context * ctx, const ggml_tensor * src0, const ggml_tensor * src1, ggml_tensor * dst) {
@@ -277,13 +291,13 @@ static bool ggml_zdnn_supports_op(const ggml_backend_zdnn_device_context * ctx_d
 
                 const int64_t max_batch = ctx_dev->max_size;
 
-                if (!ggml_is_matrix(weights) ||
-                    !ggml_is_matrix(inputs) ||
-                    !ggml_is_contiguous(weights) ||
-                    !ggml_is_contiguous(inputs) ||
-                    weights->view_src != nullptr ||
-                    inputs->view_src != nullptr ||
-                    (ne0 > max_batch || ne1 > max_batch || ne10 > max_batch)) {
+                if (!ggml_is_matrix(weights)
+                    || !ggml_is_matrix(inputs)
+                    || !ggml_is_contiguous(weights)
+                    || !ggml_is_contiguous(inputs)
+                    || weights->view_src != nullptr
+                    || inputs->view_src != nullptr
+                    || (ne0 > max_batch || ne1 > max_batch || ne10 > max_batch)) {
                     return false;
                 }
 
@@ -292,8 +306,8 @@ static bool ggml_zdnn_supports_op(const ggml_backend_zdnn_device_context * ctx_d
                     case GGML_TYPE_F16:
                         return true;
                     case GGML_TYPE_BF16:
-                    case GGML_TYPE_I8:
                     case GGML_TYPE_I32:
+                    case GGML_TYPE_I8:
                     case GGML_TYPE_Q8_0:
                         // TODO: Allow int4 types in the future with natural scaling
                         return false;  // TODO: Change to true after tests

@@ -96,7 +96,19 @@ inline void ggml_zdnn_init_tensor(ggml_backend_zdnn_buffer * buffer, const ggml_
 
         case GGML_TYPE_Q8_0:
             {
-                ZDNN_CHECK(zdnn_generate_quantized_transformed_desc(&buffer->pre_tfm_desc, QUANTIZED_INT8, &buffer->tfm_desc));
+                zdnn_quantized_transform_types tfm_type;
+                if (tensor->buffer->usage == GGML_BACKEND_BUFFER_USAGE_WEIGHTS) {
+                    tfm_type = QUANTIZED_WEIGHTS_INT8;
+                } else {
+                    tfm_type = QUANTIZED_INT8;
+                }
+
+                ZDNN_CHECK(zdnn_generate_quantized_transformed_desc(
+                    &buffer->pre_tfm_desc,
+                    tfm_type,
+                    &buffer->tfm_desc
+                ));
+
                 ZDNN_CHECK(zdnn_init_quantized_ztensor_with_malloc(
                     &buffer->pre_tfm_desc,
                     &buffer->tfm_desc,

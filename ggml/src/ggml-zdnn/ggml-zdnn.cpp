@@ -94,6 +94,18 @@ inline void ggml_zdnn_init_tensor(ggml_backend_zdnn_buffer * buffer, const ggml_
                 ZDNN_CHECK(zdnn_init_ztensor_with_malloc(&buffer->pre_tfm_desc, &buffer->tfm_desc, &buffer->ztensor));
             } break;
 
+        case GGML_TYPE_Q8_0:
+            {
+                ZDNN_CHECK(zdnn_generate_quantized_transformed_desc(&buffer->pre_tfm_desc, QUANTIZED_INT8, &buffer->tfm_desc));
+                ZDNN_CHECK(zdnn_init_quantized_ztensor_with_malloc(
+                    &buffer->pre_tfm_desc,
+                    &buffer->tfm_desc,
+                    1.f,  // TODO: This is wrong. Take the scaling factor from the tensor.
+                    0.f,
+                    &buffer->ztensor
+                ));
+            }
+
         default:
             {
                 GGML_LOG_ERROR("%s: unsupported type %s\n",
@@ -227,6 +239,7 @@ static void ggml_zdnn_mul_mat_dispatch(ggml_backend_zdnn_context * ctx, const gg
     //     ggml_zdnn_mul_mat_op(ctx, src0, src1, dst);
     // }
 
+    std::raise(SIGINT);  // TODO: Remove this line after testing.
     ggml_zdnn_mul_mat_op(ctx, src0, src1, dst);
 }
 
@@ -306,10 +319,10 @@ static bool ggml_zdnn_supports_op(const ggml_backend_zdnn_device_context * ctx_d
                     case GGML_TYPE_F32:
                     case GGML_TYPE_F16:
                     case GGML_TYPE_BF16:
+                    case GGML_TYPE_Q8_0:
                         return true;
                     case GGML_TYPE_I32:
                     case GGML_TYPE_I8:
-                    case GGML_TYPE_Q8_0:
                         // TODO: Allow int4 types in the future with natural scaling
                         return false;  // TODO: Change to true after tests
 

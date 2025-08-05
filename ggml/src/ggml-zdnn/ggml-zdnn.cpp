@@ -239,7 +239,12 @@ static void ggml_zdnn_mul_mat_dispatch(ggml_backend_zdnn_context * ctx, const gg
     //     ggml_zdnn_mul_mat_op(ctx, src0, src1, dst);
     // }
 
-    std::raise(SIGINT);  // TODO: Remove this line after testing.
+    if (src0->type == GGML_TYPE_Q8_0 ||
+        src1->type == GGML_TYPE_Q8_0 ||
+        dst->type == GGML_TYPE_Q8_0) {
+        std::raise(SIGINT);  // TODO: Remove this line after testing.
+    }
+
     ggml_zdnn_mul_mat_op(ctx, src0, src1, dst);
 }
 

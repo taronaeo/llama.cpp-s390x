@@ -33,4 +33,4 @@ target_link_libraries(ggml-zdnn PRIVATE ${ZDNN_LIB})
 target_include_directories(ggml-zdnn PRIVATE ${ZDNN_INCLUDE})
 target_link_directories(ggml-zdnn PRIVATE ${ZDNN_LIB})
 
-target_compile_definitions(ggml-zdnn PRIVATE GGML_ZDNN GGML_USE_ZDNN)
+target_compile_definitions(ggml-zdnn PRIVATE GGML_USE_ZDNN)

@@ -287,8 +287,6 @@ static bool ggml_zdnn_supports_op(const ggml_backend_zdnn_device_context * ctx_d
         default:
             return false;
     }
-
-    GGML_UNUSED(ctx_dev);
 }
 
 ////////////////////////////////////////////////////////////////////////////////

@@ -10,4 +10,3 @@
 /ggml/src/ggml-opt.cpp @JohannesGaessler
 /ggml/src/gguf.cpp @JohannesGaessler
 /ggml/src/ggml-vulkan/ @0cc4m
-/ggml/src/ggml-zdnn/ @taronaeo

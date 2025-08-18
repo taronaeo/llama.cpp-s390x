@@ -2,6 +2,8 @@
 #include "ggml-zdnn.h"
 #include "ggml-zdnn-impl.h"
 
+#include "helper.hpp"
+
 #include "ggml-impl.h"
 #include "ggml-backend-impl.h"
 

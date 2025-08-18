@@ -251,7 +251,7 @@ IBM VXE/VXE2 SIMD acceleration depends on the BLAS implementation. It is strongl
 | IBM z15  | ✅      |                          |
 | IBM z16  | ✅      |                          |
 | IBM z17  | ✅      | GCC 15.1.0               |
-| IBM zAIU | ✅      |                          |
+| IBM zDNN | ✅      |                          |
 
 -   ✅ - supported and verified to run as intended
 -   🚫 - unsupported, we are unlikely able to provide support

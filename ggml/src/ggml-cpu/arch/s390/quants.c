@@ -34,7 +34,7 @@
 #define B8(c,s  ) B7(c,s,     c), B7(c,s,     s)
 
 // precomputed tables for expanding 8bits to 8 bytes:
-// static const uint64_t table_b2b_0[1 << 8] = { B8(00, 10)  }; // ( b ) << 4
+static const __attribute__((aligned(16))) uint64_t table_b2b_0[1 << 8] = { B8(00, 10) }; // ( b ) << 4
 static const __attribute__((aligned(16))) uint64_t table_b2b_1[1 << 8] = { B8(10, 00) }; // (!b) << 4
 #endif
 
@@ -343,8 +343,8 @@ void ggml_vec_dot_q5_0_q8_0(int n, float * GGML_RESTRICT s, size_t bs, const voi
         const float32x4_t v_d0 = vec_splats(GGML_CPU_FP16_TO_FP32(x0->d) * GGML_CPU_FP16_TO_FP32(y0->d));
         const float32x4_t v_d1 = vec_splats(GGML_CPU_FP16_TO_FP32(x1->d) * GGML_CPU_FP16_TO_FP32(y1->d));
 
-        v_sum0 = vec_madd(v_sums0f, v_d0, v_sum0);
-        v_sum1 = vec_madd(v_sums1f, v_d1, v_sum1);
+        v_sum0 = vec_madd(v_xy0f, v_d0, v_sum0);
+        v_sum1 = vec_madd(v_xy1f, v_d1, v_sum1);
     }
 
     sumf += vec_hsum(v_sum0) + vec_hsum(v_sum1);

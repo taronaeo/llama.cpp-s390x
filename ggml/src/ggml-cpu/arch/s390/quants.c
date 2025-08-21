@@ -436,6 +436,7 @@ void ggml_vec_dot_q5_1_q8_1(int n, float * GGML_RESTRICT s, size_t bs, const voi
 
     const uint8x16_t v_m = vec_splats((uint8_t)0x0F);
 
+    #pragma GCC unroll 4
     for (; ib + 1 < nb; ib += 2) {
         const block_q5_1 * GGML_RESTRICT x0 = &x[ib + 0];
         const block_q5_1 * GGML_RESTRICT x1 = &x[ib + 1];
@@ -502,6 +503,7 @@ void ggml_vec_dot_q5_1_q8_1(int n, float * GGML_RESTRICT s, size_t bs, const voi
 
     sumf += vec_hsum(v_sum0) + vec_hsum(v_sum1) + summs0 + summs1;
 
+    #pragma GCC unroll 4
     for (; ib < nb; ++ib) {
         const block_q5_1 * GGML_RESTRICT x0 = &x[ib];
         const block_q8_1 * GGML_RESTRICT y0 = &y[ib];

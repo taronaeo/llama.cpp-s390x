@@ -345,7 +345,8 @@ void ggml_vec_dot_q5_0_q8_0(int n, float * GGML_RESTRICT s, size_t bs, const voi
     }
 
     float32x4_t v_sumv = vec_add(v_sum0, v_sum1);
-    sumf += v_sumv[0] + v_sumv[1] + v_sumv[2] + v_sumv[3];
+    float32x4_t v_temp = v_sumv + vec_reve(v_sumv);  // Optimised hsum
+    sumf += v_temp[0] + v_temp[1];
 
     #pragma GCC unroll 8
     for (; ib < nb; ++ib) {
@@ -379,7 +380,8 @@ void ggml_vec_dot_q5_0_q8_0(int n, float * GGML_RESTRICT s, size_t bs, const voi
         const float32x4_t v_d = vec_splats(GGML_CPU_FP16_TO_FP32(x[ib].d) * GGML_CPU_FP16_TO_FP32(y[ib].d));
         float32x4_t acc = vec_madd(v_sumsf, v_d, vec_splats(0.0f));
 
-        sumf += acc[0] + acc[1] + acc[2] + acc[3];
+        float32x4_t v_temp = acc + vec_reve(acc);  // Optimised hsum
+        sumf += v_temp[0] + v_temp[1];
     }
 
     *s = sumf;

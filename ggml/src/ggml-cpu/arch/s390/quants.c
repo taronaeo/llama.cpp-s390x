@@ -23,6 +23,21 @@
 
 #define UNUSED GGML_UNUSED
 
+#if defined(__VXE__) || defined(__VXE2__)
+#define B1(c,s,n)  0x ## n ## c ,  0x ## n ## s
+#define B2(c,s,n) B1(c,s,n ## c), B1(c,s,n ## s)
+#define B3(c,s,n) B2(c,s,n ## c), B2(c,s,n ## s)
+#define B4(c,s,n) B3(c,s,n ## c), B3(c,s,n ## s)
+#define B5(c,s,n) B4(c,s,n ## c), B4(c,s,n ## s)
+#define B6(c,s,n) B5(c,s,n ## c), B5(c,s,n ## s)
+#define B7(c,s,n) B6(c,s,n ## c), B6(c,s,n ## s)
+#define B8(c,s  ) B7(c,s,     c), B7(c,s,     s)
+
+// precomputed tables for expanding 8bits to 8 bytes:
+// static const uint64_t table_b2b_0[1 << 8] = { B8(00, 10)  }; // ( b ) << 4
+static const __attribute__((aligned(16))) uint64_t table_b2b_1[1 << 8] = { B8(10, 00) }; // (!b) << 4
+#endif
+
 void quantize_row_q8_0(const float * GGML_RESTRICT x, void * GGML_RESTRICT vy, int64_t k) {
     assert(QK8_0 == 32);
     assert(k % QK8_0 == 0);
@@ -260,73 +275,113 @@ void ggml_vec_dot_q5_0_q8_0(int n, float * GGML_RESTRICT s, size_t bs, const voi
     float sumf = 0.0f;
 
 #if defined(__VXE__) || defined(__VXE2__)
-    float32x4_t acc = vec_splats(0.0f);
-
     const uint8x16_t v_m = vec_splats((uint8_t)0x0F);
-    const uint16x8_t v_ml = { 1, 2, 4, 8, 16, 32, 64, 128 };
-    const uint16x8_t v_mh = { 256, 512, 1024, 2048, 4096, 8192, 16384, 32768 };
-    const uint16x8_t v_z = vec_splats((uint16_t)0);
+    const uint8x16_t v_kperm = (const uint8x16_t){  7,  6,  5,  4,  3,  2, 1, 0,
+                                                   15, 14, 13, 12, 11, 10, 9, 8  };
+
+    float32x4_t v_sum0 = vec_splats(0.0f);
+    float32x4_t v_sum1 = vec_splats(0.0f);
+
+    #pragma GCC unroll 8
+    for (; ib + 1 < nb; ib += 2) {
+        const block_q5_0 * GGML_RESTRICT x0 = &x[ib + 0];
+        const block_q5_0 * GGML_RESTRICT x1 = &x[ib + 1];
+        const block_q8_0 * GGML_RESTRICT y0 = &y[ib + 0];
+        const block_q8_0 * GGML_RESTRICT y1 = &y[ib + 1];
+
+        uint32_t qh0, qh1;
+        memcpy(&qh0, x0->qh, sizeof(qh0));
+        memcpy(&qh1, x1->qh, sizeof(qh1));
+
+        uint64_t tmp0[4], tmp1[4];
+        tmp0[0] = table_b2b_1[(qh0 >>  0) & 0xFF];
+        tmp0[1] = table_b2b_1[(qh0 >>  8) & 0xFF];
+        tmp0[2] = table_b2b_1[(qh0 >> 16) & 0xFF];
+        tmp0[3] = table_b2b_1[(qh0 >> 24)       ];
+        tmp1[0] = table_b2b_1[(qh1 >>  0) & 0xFF];
+        tmp1[1] = table_b2b_1[(qh1 >>  8) & 0xFF];
+        tmp1[2] = table_b2b_1[(qh1 >> 16) & 0xFF];
+        tmp1[3] = table_b2b_1[(qh1 >> 24)       ];
+
+        int8x16_t v_qh0l = vec_xl(0, (const int8_t *)(tmp0 + 0));
+        int8x16_t v_qh0h = vec_xl(0, (const int8_t *)(tmp0 + 2));
+        int8x16_t v_qh1l = vec_xl(0, (const int8_t *)(tmp1 + 0));
+        int8x16_t v_qh1h = vec_xl(0, (const int8_t *)(tmp1 + 2));
+
+        v_qh0l = vec_perm(v_qh0l, v_qh0l, v_kperm);
+        v_qh0h = vec_perm(v_qh0h, v_qh0h, v_kperm);
+        v_qh1l = vec_perm(v_qh1l, v_qh1l, v_kperm);
+        v_qh1h = vec_perm(v_qh1h, v_qh1h, v_kperm);
+
+        uint8x16_t v_x0 = vec_xl(0, (const uint8_t *)x0->qs);
+        uint8x16_t v_x1 = vec_xl(0, (const uint8_t *)x1->qs);
+
+        uint8x16_t v_x0l = vec_and(v_x0, v_m);
+        uint8x16_t v_x0h = vec_sr(v_x0, vec_splats((uint8_t)0x04));
+        uint8x16_t v_x1l = vec_and(v_x1, v_m);
+        uint8x16_t v_x1h = vec_sr(v_x1, vec_splats((uint8_t)0x04));
+
+        int8x16_t v_x0lf = vec_sub((int8x16_t)v_x0l, v_qh0l);
+        int8x16_t v_x0hf = vec_sub((int8x16_t)v_x0h, v_qh0h);
+        int8x16_t v_x1lf = vec_sub((int8x16_t)v_x1l, v_qh1l);
+        int8x16_t v_x1hf = vec_sub((int8x16_t)v_x1h, v_qh1h);
+
+        int8x16_t v_y0l = vec_xl(0,       (const int8_t *)y0->qs);
+        int8x16_t v_y0h = vec_xl(QK8_0/2, (const int8_t *)y0->qs);
+        int8x16_t v_y1l = vec_xl(0,       (const int8_t *)y1->qs);
+        int8x16_t v_y1h = vec_xl(QK8_0/2, (const int8_t *)y1->qs);
+
+        int32x4_t v_sums0 = ggml_vec_dot(ggml_vec_dot(vec_splats(0), v_x0lf, v_y0l), v_x0hf, v_y0h);
+        int32x4_t v_sums1 = ggml_vec_dot(ggml_vec_dot(vec_splats(0), v_x1lf, v_y1l), v_x1hf, v_y1h);
+
+        float32x4_t v_sums0f = vec_float(v_sums0);
+        float32x4_t v_sums1f = vec_float(v_sums1);
+
+        const float32x4_t v_d0 = vec_splats(GGML_CPU_FP16_TO_FP32(x0->d) * GGML_CPU_FP16_TO_FP32(y0->d));
+        const float32x4_t v_d1 = vec_splats(GGML_CPU_FP16_TO_FP32(x1->d) * GGML_CPU_FP16_TO_FP32(y1->d));
+
+        v_sum0 = vec_madd(v_sums0f, v_d0, v_sum0);
+        v_sum1 = vec_madd(v_sums1f, v_d1, v_sum1);
+    }
+
+    float32x4_t v_sumv = vec_add(v_sum0, v_sum1);
+    sumf += v_sumv[0] + v_sumv[1] + v_sumv[2] + v_sumv[3];
 
     #pragma GCC unroll 8
     for (; ib < nb; ++ib) {
-        // Load 32-bit high flags (5th bit) into a 32-bit integer
         uint32_t qh;
         memcpy(&qh, x[ib].qh, sizeof(qh));
 
-        const uint16_t qh_e = qh & 0xFFFF;
-        const uint16_t qh_o = qh >> 16;
+        uint64_t tmp[4];
+        tmp[0] = table_b2b_1[(qh >>  0) & 0xFF];
+        tmp[1] = table_b2b_1[(qh >>  8) & 0xFF];
+        tmp[2] = table_b2b_1[(qh >> 16) & 0xFF];
+        tmp[3] = table_b2b_1[(qh >> 24)       ];
 
-        const uint16x8_t v_qhe = vec_splats(qh_e);
-        const uint16x8_t v_qhel = vec_and(v_qhe, v_ml);
-        const uint16x8_t v_qheh = vec_and(v_qhe, v_mh);
-        const uint16x8_t v_mel = vec_cmpeq(v_qhel, v_z);
-        const uint16x8_t v_meh = vec_cmpeq(v_qheh, v_z);
+        int8x16_t v_qhl = vec_xl(0, (const int8_t *)(tmp + 0));
+        int8x16_t v_qhh = vec_xl(0, (const int8_t *)(tmp + 2));
+        v_qhl = vec_perm(v_qhl, v_qhl, v_kperm);
+        v_qhh = vec_perm(v_qhh, v_qhh, v_kperm);
 
-        const uint16x8_t v_cel = vec_sr(v_mel, vec_splats((uint16_t)15));
-        const uint16x8_t v_ceh = vec_sr(v_meh, vec_splats((uint16_t)15));
+        uint8x16_t v_x = vec_xl(0, (const uint8_t *)x[ib].qs);
+        uint8x16_t v_xl = vec_and(v_x, v_m);
+        uint8x16_t v_xh = vec_sr(v_x, vec_splats((uint8_t)0x04));
 
-        const uint16x8_t v_subel = vec_mul(v_cel, vec_splats((uint16_t)0x10));
-        const uint16x8_t v_subeh = vec_mul(v_ceh, vec_splats((uint16_t)0x10));
+        int8x16_t v_xlf = vec_sub((int8x16_t)v_xl, v_qhl);
+        int8x16_t v_xhf = vec_sub((int8x16_t)v_xh, v_qhh);
 
-        const uint8x16_t v_qhep = vec_pack(v_subel, v_subeh);
+        int8x16_t v_yl = vec_xl(0,       (const int8_t *)y[ib].qs);
+        int8x16_t v_yh = vec_xl(QK8_0/2, (const int8_t *)y[ib].qs);
 
-        const uint16x8_t v_qho = vec_splats(qh_o);
-        const uint16x8_t v_qhol = vec_and(v_qho, v_ml);
-        const uint16x8_t v_qhoh = vec_and(v_qho, v_mh);
-        const uint16x8_t v_mol = vec_cmpeq(v_qhol, v_z);
-        const uint16x8_t v_moh = vec_cmpeq(v_qhoh, v_z);
+        int32x4_t v_sums = ggml_vec_dot(ggml_vec_dot(vec_splats(0), v_xlf, v_yl), v_xhf, v_yh);
+        float32x4_t v_sumsf = vec_float(v_sums);
 
-        const uint16x8_t v_col = vec_sr(v_mol, vec_splats((uint16_t)15));
-        const uint16x8_t v_coh = vec_sr(v_moh, vec_splats((uint16_t)15));
+        const float32x4_t v_d = vec_splats(GGML_CPU_FP16_TO_FP32(x[ib].d) * GGML_CPU_FP16_TO_FP32(y[ib].d));
+        float32x4_t acc = vec_madd(v_sumsf, v_d, vec_splats(0.0f));
 
-        const uint16x8_t v_subol = vec_mul(v_col, vec_splats((uint16_t)0x10));
-        const uint16x8_t v_suboh = vec_mul(v_coh, vec_splats((uint16_t)0x10));
-
-        const uint8x16_t v_qhop = vec_pack(v_subol, v_suboh);
-
-
-        const uint8x16_t v_x = vec_xl(0, x[ib].qs);
-        const int8x16_t v_xl = (int8x16_t)vec_and(v_x, v_m);
-        const int8x16_t v_xh = (int8x16_t)vec_sr(v_x, vec_splats((uint8_t)4));
-
-        const int8x16_t v_xlf = vec_sub(v_xl, (int8x16_t)v_qhep);
-        const int8x16_t v_xhf = vec_sub(v_xh, (int8x16_t)v_qhop);
-
-        const int8x16_t v_yl = vec_xl(0, y[ib].qs);
-        const int8x16_t v_yh = vec_xl(QK8_0/2, y[ib].qs);
-
-        const int32x4_t v_xy_ = ggml_vec_dot(
-                ggml_vec_dot(vec_splats(0), v_xlf, v_yl),
-                v_xhf, v_yh);
-        const float32x4_t v_xy = vec_float(v_xy_);
-
-        const float32x4_t v_d = vec_splats(GGML_CPU_FP16_TO_FP32(x[ib].d) *
-                                            GGML_CPU_FP16_TO_FP32(y[ib].d));
-
-        acc = vec_madd(v_xy, v_d, acc);
+        sumf += acc[0] + acc[1] + acc[2] + acc[3];
     }
 
-    sumf = acc[0] + acc[1] + acc[2] + acc[3];
     *s = sumf;
 #else
     UNUSED(ib);

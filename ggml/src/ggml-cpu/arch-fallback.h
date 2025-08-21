@@ -150,7 +150,6 @@
 #elif defined(__s390x__)
 // quants.c
 #define quantize_row_q8_K_generic quantize_row_q8_K
-#define ggml_vec_dot_q5_1_q8_1_generic ggml_vec_dot_q5_1_q8_1
 #define ggml_vec_dot_tq1_0_q8_K_generic ggml_vec_dot_tq1_0_q8_K
 #define ggml_vec_dot_tq2_0_q8_K_generic ggml_vec_dot_tq2_0_q8_K
 #define ggml_vec_dot_q2_K_q8_K_generic ggml_vec_dot_q2_K_q8_K

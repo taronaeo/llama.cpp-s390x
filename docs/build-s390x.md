@@ -292,4 +292,4 @@ IBM VXE/VXE2 SIMD acceleration depends on the BLAS implementation. It is strongl
 -   🚫 - acceleration unavailable, will still run using scalar implementation
 -   ❓ - acceleration unknown, please contribute if you can test it yourself
 
-Last Updated by **Aaron Teo (aaron.teo1@ibm.com)** on July 31, 2025.
+Last Updated by **Aaron Teo (aaron.teo1@ibm.com)** on Aug 22, 2025.

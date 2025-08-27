@@ -1639,7 +1639,6 @@ struct markdown_printer : public printer {
         }
         fields.emplace_back("test");
         fields.emplace_back("t/s");
-        fields.emplace_back("ttft_ms");
 
         fprintf(fout, "|");
         for (const auto & field : fields) {
@@ -1694,9 +1693,6 @@ struct markdown_printer : public printer {
                 value = buf;
             } else if (field == "t/s") {
                 snprintf(buf, sizeof(buf), "%.2f ± %.2f", t.avg_ts(), t.stdev_ts());
-                value = buf;
-            } else if (field == "ttft_ms") {
-                snprintf(buf, sizeof(buf), "%.2f ± %.2f", t.avg_ttft_ms(), t.stdev_ttft_ms());
                 value = buf;
             } else if (vmap.find(field) != vmap.end()) {
                 value = vmap.at(field);

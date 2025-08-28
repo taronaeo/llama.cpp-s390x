@@ -1272,10 +1272,10 @@ struct test {
     enum field_type { STRING, BOOL, INT, FLOAT };
 
     static field_type get_field_type(const std::string & field) {
-        if (field == "build_number" || field == "n_batch"       || field == "n_ubatch"       || field == "n_threads"      ||
-            field == "poll"         || field == "model_size"    || field == "model_n_params" || field == "n_gpu_layers"   ||
-            field == "main_gpu"     || field == "n_prompt"      || field == "n_gen"          || field == "n_depth"        ||
-            field == "avg_ns"       || field == "stddev_ns"     || field == "avg_e2e_ms"     || field == "stddev_e2e_ms"  ||
+        if (field == "build_number" || field == "n_batch"    || field == "n_ubatch"       || field == "n_threads"     ||
+            field == "poll"         || field == "model_size" || field == "model_n_params" || field == "n_gpu_layers"  ||
+            field == "main_gpu"     || field == "n_prompt"   || field == "n_gen"          || field == "n_depth"       ||
+            field == "avg_ns"       || field == "stddev_ns"  || field == "avg_e2e_ms"     || field == "stddev_e2e_ms" ||
             field == "no_op_offload") {
             return INT;
         }

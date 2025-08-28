@@ -1237,17 +1237,18 @@ struct test {
         if (n_gen == 0) return itl_ns;
 
         for (size_t i = 0; i < samples_ns.size(); i++) {
-            double e2e_ms = samples_ns[i];
-            double ttft_ms = samples_ttft_ns[i];
-            double itl = (e2e_ms - ttft_ms) / (n_gen - 1);
+            double e2e_ns = samples_ns[i];
+            double ttft_ns = samples_ttft_ns[i];
+            double itl = (e2e_ns - ttft_ns) / (n_gen - 1);
             itl_ns.push_back(itl);
         }
         return itl_ns;
     }
 
     std::vector<double> get_itl_ms() const {
+        std::vector<double> itl_ns = get_itl_ns();
         std::vector<double> itl_ms;
-        std::transform(get_itl_ns().begin(), get_itl_ns().end(), std::back_inserter(itl_ms),
+        std::transform(itl_ns.begin(), itl_ns.end(), std::back_inserter(itl_ms),
                        [](double t) { return t / 1e6; });
         return itl_ms;
     }

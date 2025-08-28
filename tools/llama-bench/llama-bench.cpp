@@ -1232,6 +1232,19 @@ struct test {
         return e2e_ms;
     }
 
+    std::vector<double> get_itl_ms() const {
+        std::vector<double> itl_ms;
+        std::transform(samples_ns.begin(), samples_ns.end(), samples_ttft_ns.begin(),
+                        std::back_inserter(itl_ms),
+                        [this](uint64_t e2e_ns, uint64_t ttft_ns) {
+                            double e2e_ms = e2e_ns / 1e6;
+                            double ttft_ms = ttft_ns / 1e6;
+                            return (e2e_ms - ttft_ms) / (n_gen - 1);
+                        });
+
+        return itl_ms;
+    }
+
     double avg_ts() const { return ::avg(get_ts()); }
 
     double stdev_ts() const { return ::stdev(get_ts()); }
@@ -1243,6 +1256,10 @@ struct test {
     double avg_e2e_ms() const { return ::avg(get_e2e_ms()); }
 
     double stdev_e2e_ms() const { return ::stdev(get_e2e_ms()); }
+
+    double avg_itl_ms() const { return ::avg(get_itl_ms()); }
+
+    double stdev_itl_ms() const { return ::stdev(get_itl_ms()); }
 
     static std::string get_backend() {
         std::vector<std::string> backends;
@@ -1258,13 +1275,13 @@ struct test {
 
     static const std::vector<std::string> & get_fields() {
         static const std::vector<std::string> fields = {
-            "build_commit", "build_number", "cpu_info",       "gpu_info",   "backends",     "model_filename",
-            "model_type",   "model_size",   "model_n_params", "n_batch",    "n_ubatch",     "n_threads",
-            "cpu_mask",     "cpu_strict",   "poll",           "type_k",     "type_v",       "n_gpu_layers",
-            "split_mode",   "main_gpu",     "no_kv_offload",  "flash_attn", "tensor_split", "tensor_buft_overrides",
-            "use_mmap",     "embeddings",   "no_op_offload",  "n_prompt",   "n_gen",        "n_depth",      "test_time",
-            "avg_ns",       "stddev_ns",    "avg_ts",         "stddev_ts",  "avg_ttft_ms",  "stddev_ttft_ms",
-            "avg_e2e_ms",   "stddev_e2e_ms",
+            "build_commit", "build_number",  "cpu_info",       "gpu_info",   "backends",     "model_filename",
+            "model_type",   "model_size",    "model_n_params", "n_batch",    "n_ubatch",     "n_threads",
+            "cpu_mask",     "cpu_strict",    "poll",           "type_k",     "type_v",       "n_gpu_layers",
+            "split_mode",   "main_gpu",      "no_kv_offload",  "flash_attn", "tensor_split", "tensor_buft_overrides",
+            "use_mmap",     "embeddings",    "no_op_offload",  "n_prompt",   "n_gen",        "n_depth",      "test_time",
+            "avg_ns",       "stddev_ns",     "avg_ts",         "stddev_ts",  "avg_ttft_ms",  "stddev_ttft_ms",
+            "avg_e2e_ms",   "stddev_e2e_ms", "avg_itl_ms",     "stddev_itl_ms",
         };
         return fields;
     }
@@ -1283,7 +1300,8 @@ struct test {
             field == "use_mmap" || field == "embeddings") {
             return BOOL;
         }
-        if (field == "avg_ts" || field == "stddev_ts" || field == "avg_ttft_ms" || field == "stddev_ttft_ms") {
+        if (field == "avg_ts"     || field == "stddev_ts" || field == "avg_ttft_ms" || field == "stddev_ttft_ms" ||
+            field == "avg_itl_ms" || field == "stddev_itl_ms") {
             return FLOAT;
         }
         return STRING;
@@ -1364,7 +1382,9 @@ struct test {
                                             std::to_string(avg_ttft_ms()),
                                             std::to_string(stdev_ttft_ms()),
                                             std::to_string(avg_e2e_ms()),
-                                            std::to_string(stdev_e2e_ms()) };
+                                            std::to_string(stdev_e2e_ms()),
+                                            std::to_string(avg_itl_ms()),
+                                            std::to_string(stdev_itl_ms()) };
         return values;
     }
 
@@ -1474,7 +1494,8 @@ struct json_printer : public printer {
         print_fields(test::get_fields(), t.get_values());
         fprintf(fout, "    \"samples_ns\": [ %s ],\n", join(t.samples_ns, ", ").c_str());
         fprintf(fout, "    \"samples_ts\": [ %s ],\n", join(t.get_ts(), ", ").c_str());
-        fprintf(fout, "    \"samples_ttft_ns\": [ %s ]\n", join(t.samples_ttft_ns, ", ").c_str());
+        fprintf(fout, "    \"samples_ttft_ns\": [ %s ],\n", join(t.samples_ttft_ns, ", ").c_str());
+        fprintf(fout, "    \"samples_itl_ms\": [ %s ]\n", join(t.get_itl_ms(), ", ").c_str());
         fprintf(fout, "  }");
         fflush(fout);
     }
@@ -1495,7 +1516,8 @@ struct jsonl_printer : public printer {
         print_fields(test::get_fields(), t.get_values());
         fprintf(fout, "\"samples_ns\": [ %s ],", join(t.samples_ns, ", ").c_str());
         fprintf(fout, "\"samples_ts\": [ %s ],", join(t.get_ts(), ", ").c_str());
-        fprintf(fout, "\"samples_ttft_ns\": [ %s ]", join(t.samples_ttft_ns, ", ").c_str());
+        fprintf(fout, "\"samples_ttft_ns\": [ %s ],", join(t.samples_ttft_ns, ", ").c_str());
+        fprintf(fout, "\"samples_itl_ms\": [ %s ]", join(t.get_itl_ms(), ", ").c_str());
         fprintf(fout, "}\n");
         fflush(fout);
     }

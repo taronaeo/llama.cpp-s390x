@@ -1225,6 +1225,13 @@ struct test {
         return ttft_ms;
     }
 
+    std::vector<double> get_e2e_ms() const {
+        std::vector<double> e2e_ms;
+        std::transform(samples_ns.begin(), samples_ns.end(), std::back_inserter(e2e_ms),
+                       [](uint64_t t) { return t / 1e6; });
+        return e2e_ms;
+    }
+
     double avg_ts() const { return ::avg(get_ts()); }
 
     double stdev_ts() const { return ::stdev(get_ts()); }
@@ -1232,6 +1239,10 @@ struct test {
     double avg_ttft_ms() const { return ::avg(get_ttft_ms()); }
 
     double stdev_ttft_ms() const { return ::stdev(get_ttft_ms()); }
+
+    double avg_e2e_ms() const { return ::avg(get_e2e_ms()); }
+
+    double stdev_e2e_ms() const { return ::stdev(get_e2e_ms()); }
 
     static std::string get_backend() {
         std::vector<std::string> backends;
@@ -1253,6 +1264,7 @@ struct test {
             "split_mode",   "main_gpu",     "no_kv_offload",  "flash_attn", "tensor_split", "tensor_buft_overrides",
             "use_mmap",     "embeddings",   "no_op_offload",  "n_prompt",   "n_gen",        "n_depth",      "test_time",
             "avg_ns",       "stddev_ns",    "avg_ts",         "stddev_ts",  "avg_ttft_ms",  "stddev_ttft_ms",
+            "avg_e2e_ms",   "stddev_e2e_ms",
         };
         return fields;
     }
@@ -1260,17 +1272,18 @@ struct test {
     enum field_type { STRING, BOOL, INT, FLOAT };
 
     static field_type get_field_type(const std::string & field) {
-        if (field == "build_number" || field == "n_batch" || field == "n_ubatch" || field == "n_threads" ||
-            field == "poll" || field == "model_size" || field == "model_n_params" || field == "n_gpu_layers" ||
-            field == "main_gpu" || field == "n_prompt" || field == "n_gen" || field == "n_depth" ||
-            field == "avg_ns" || field == "stddev_ns" || field == "avg_ttft_ms" || field == "stddev_ttft_ms" || field == "no_op_offload") {
+        if (field == "build_number" || field == "n_batch"       || field == "n_ubatch"       || field == "n_threads"      ||
+            field == "poll"         || field == "model_size"    || field == "model_n_params" || field == "n_gpu_layers"   ||
+            field == "main_gpu"     || field == "n_prompt"      || field == "n_gen"          || field == "n_depth"        ||
+            field == "avg_ns"       || field == "stddev_ns"     || field == "avg_e2e_ms"     || field == "stddev_e2e_ms"  ||
+            field == "no_op_offload") {
             return INT;
         }
-        if (field == "f16_kv" || field == "no_kv_offload" || field == "cpu_strict" || field == "flash_attn" ||
+        if (field == "f16_kv"   || field == "no_kv_offload" || field == "cpu_strict" || field == "flash_attn" ||
             field == "use_mmap" || field == "embeddings") {
             return BOOL;
         }
-        if (field == "avg_ts" || field == "stddev_ts") {
+        if (field == "avg_ts" || field == "stddev_ts" || field == "avg_ttft_ms" || field == "stddev_ttft_ms") {
             return FLOAT;
         }
         return STRING;
@@ -1349,7 +1362,9 @@ struct test {
                                             std::to_string(avg_ts()),
                                             std::to_string(stdev_ts()),
                                             std::to_string(avg_ttft_ms()),
-                                            std::to_string(stdev_ttft_ms()) };
+                                            std::to_string(stdev_ttft_ms()),
+                                            std::to_string(avg_e2e_ms()),
+                                            std::to_string(stdev_e2e_ms()) };
         return values;
     }
 
@@ -1494,9 +1509,6 @@ struct markdown_printer : public printer {
             return -30;
         }
         if (field == "t/s") {
-            return 20;
-        }
-        if (field == "ttft_ms") {
             return 20;
         }
         if (field == "size" || field == "params") {

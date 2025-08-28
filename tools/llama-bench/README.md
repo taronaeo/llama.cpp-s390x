@@ -89,7 +89,7 @@ Using the CSV output (`-o csv`), these metrics will be provided as average and s
 $$ T_{ttft} = t_{prompt} + t^{(1)}_{gen} $$
 
 where
-* $t_{prompt}$ : prompt processing time
+* $t_{prompt}$ : total prompt processing time
 * $t^{(1)}_{gen}$ : token generation time for the first token
 
 ### End-to-End Request Latency (E2E)
@@ -97,15 +97,15 @@ where
 $$ T_{e2e} = t_{prompt} + t_{gen} $$
 
 where
-* $t_{prompt}$ : prompt processing time
-* $t_{gen}$ : token generation time
+* $t_{prompt}$ : total prompt processing time
+* $t_{gen}$ : total token generation time
 
 ### Inter-token Latency (ITL)
 
 $$ T_{itl} = \frac{T_{e2e} - T_{ttft}}{n\_gen - 1} $$
 
 where
-* $n\_gen$ : tokens to generate (`-n` flag)
+* $n\_{gen}$ : tokens to generate (`-n` flag)
 
 ## Examples
 

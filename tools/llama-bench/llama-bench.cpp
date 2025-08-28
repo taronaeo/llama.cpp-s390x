@@ -1232,16 +1232,23 @@ struct test {
         return e2e_ms;
     }
 
-    std::vector<double> get_itl_ms() const {
-        std::vector<double> itl_ms;
-        if (n_gen == 0) return itl_ms;
+    std::vector<double> get_itl_ns() const {
+        std::vector<double> itl_ns;
+        if (n_gen == 0) return itl_ns;
 
         for (size_t i = 0; i < samples_ns.size(); i++) {
-            double e2e_ms = samples_ns[i] / 1e6;
-            double ttft_ms = samples_ttft_ns[i] / 1e6;
+            double e2e_ms = samples_ns[i];
+            double ttft_ms = samples_ttft_ns[i];
             double itl = (e2e_ms - ttft_ms) / (n_gen - 1);
-            itl_ms.push_back(itl);
+            itl_ns.push_back(itl);
         }
+        return itl_ns;
+    }
+
+    std::vector<double> get_itl_ms() const {
+        std::vector<double> itl_ms;
+        std::transform(get_itl_ns().begin(), get_itl_ns().end(), std::back_inserter(itl_ms),
+                       [](double t) { return t / 1e6; });
         return itl_ms;
     }
 
@@ -1495,7 +1502,7 @@ struct json_printer : public printer {
         fprintf(fout, "    \"samples_ns\": [ %s ],\n", join(t.samples_ns, ", ").c_str());
         fprintf(fout, "    \"samples_ts\": [ %s ],\n", join(t.get_ts(), ", ").c_str());
         fprintf(fout, "    \"samples_ttft_ns\": [ %s ],\n", join(t.samples_ttft_ns, ", ").c_str());
-        fprintf(fout, "    \"samples_itl_ms\": [ %s ]\n", join(t.get_itl_ms(), ", ").c_str());
+        fprintf(fout, "    \"samples_itl_ns\": [ %s ]\n", join(t.get_itl_ns(), ", ").c_str());
         fprintf(fout, "  }");
         fflush(fout);
     }
@@ -1517,7 +1524,7 @@ struct jsonl_printer : public printer {
         fprintf(fout, "\"samples_ns\": [ %s ],", join(t.samples_ns, ", ").c_str());
         fprintf(fout, "\"samples_ts\": [ %s ],", join(t.get_ts(), ", ").c_str());
         fprintf(fout, "\"samples_ttft_ns\": [ %s ],", join(t.samples_ttft_ns, ", ").c_str());
-        fprintf(fout, "\"samples_itl_ms\": [ %s ]", join(t.get_itl_ms(), ", ").c_str());
+        fprintf(fout, "\"samples_itl_ns\": [ %s ]", join(t.get_itl_ns(), ", ").c_str());
         fprintf(fout, "}\n");
         fflush(fout);
     }

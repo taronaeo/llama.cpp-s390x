@@ -86,19 +86,19 @@ Using the CSV output (`-o csv`), these metrics will be provided as average and s
 
 ### Time to First Token (TTFT)
 
-$$ T_{ttft} \approx t_{prompt} + t^{(1)}_{gen} $$
+$$ T_{ttft} = t_{prompt} + t^{(1)}_{gen} $$
 
 where
-* $ t_{prompt} $ : Prompt Processing time
-* $ t^{(1)}_{gen} $ : Token Generation time for the first token
+* $ t_{prompt} $ : prompt processing time
+* $ t^{(1)}_{gen} $ : token generation time for the first token
 
 ### End-to-End Request Latency (E2E)
 
-$$ T_{e2e} \approx t_{prompt} + t_{gen} $$
+$$ T_{e2e} = t_{prompt} + t_{gen} $$
 
 where
-* $ t_{prompt} $ : Prompt Processing time
-* $ t_{gen} $ : Token Generation time
+* $ t_{prompt} $ : prompt processing time
+* $ t_{gen} $ : token generation time
 
 ### Inter-token Latency (ITL)
 
@@ -350,7 +350,7 @@ $ ./llama-bench -o sql
 ```
 
 ```sql
-CREATE TABLE IF NOT EXISTS test (
+CREATE TABLE IF NOT EXISTS llama_bench (
   build_commit TEXT,
   build_number INTEGER,
   cpu_info TEXT,
@@ -374,8 +374,10 @@ CREATE TABLE IF NOT EXISTS test (
   no_kv_offload INTEGER,
   flash_attn INTEGER,
   tensor_split TEXT,
+  tensor_buft_overrides TEXT,
   use_mmap INTEGER,
   embeddings INTEGER,
+  no_op_offload INTEGER,
   n_prompt INTEGER,
   n_gen INTEGER,
   n_depth INTEGER,
@@ -383,9 +385,15 @@ CREATE TABLE IF NOT EXISTS test (
   avg_ns INTEGER,
   stddev_ns INTEGER,
   avg_ts REAL,
-  stddev_ts REAL
+  stddev_ts REAL,
+  avg_ttft_ms REAL,
+  stddev_ttft_ms REAL,
+  avg_e2e_ms REAL,
+  stddev_e2e_ms REAL,
+  avg_itl_ms REAL,
+  stddev_itl_ms REAL
 );
 
-INSERT INTO test (build_commit, build_number, cpu_info, gpu_info, backends, model_filename, model_type, model_size, model_n_params, n_batch, n_ubatch, n_threads, cpu_mask, cpu_strict, poll, type_k, type_v, n_gpu_layers, split_mode, main_gpu, no_kv_offload, flash_attn, tensor_split, use_mmap, embeddings, n_prompt, n_gen, n_depth, test_time, avg_ns, stddev_ns, avg_ts, stddev_ts) VALUES ('8cf427ff', '5163', 'AMD Ryzen 7 7800X3D 8-Core Processor', 'NVIDIA GeForce RTX 4080', 'CUDA', 'models/Qwen2.5-7B-Instruct-Q4_K_M.gguf', 'qwen2 7B Q4_K - Medium', '4677120000', '7615616512', '2048', '512', '8', '0x0', '0', '50', 'f16', 'f16', '99', 'layer', '0', '0', '0', '0.00', '1', '0', '512', '0', '0', '2025-04-24T12:00:08Z', '69905000', '519516', '7324.546977', '54.032613');
-INSERT INTO test (build_commit, build_number, cpu_info, gpu_info, backends, model_filename, model_type, model_size, model_n_params, n_batch, n_ubatch, n_threads, cpu_mask, cpu_strict, poll, type_k, type_v, n_gpu_layers, split_mode, main_gpu, no_kv_offload, flash_attn, tensor_split, use_mmap, embeddings, n_prompt, n_gen, n_depth, test_time, avg_ns, stddev_ns, avg_ts, stddev_ts) VALUES ('8cf427ff', '5163', 'AMD Ryzen 7 7800X3D 8-Core Processor', 'NVIDIA GeForce RTX 4080', 'CUDA', 'models/Qwen2.5-7B-Instruct-Q4_K_M.gguf', 'qwen2 7B Q4_K - Medium', '4677120000', '7615616512', '2048', '512', '8', '0x0', '0', '50', 'f16', 'f16', '99', 'layer', '0', '0', '0', '0.00', '1', '0', '0', '128', '0', '2025-04-24T12:00:09Z', '1063608780', '4464130', '120.346696', '0.504647');
+INSERT INTO llama_bench (build_commit, build_number, cpu_info, gpu_info, backends, model_filename, model_type, model_size, model_n_params, n_batch, n_ubatch, n_threads, cpu_mask, cpu_strict, poll, type_k, type_v, n_gpu_layers, split_mode, main_gpu, no_kv_offload, flash_attn, tensor_split, tensor_buft_overrides, use_mmap, embeddings, no_op_offload, n_prompt, n_gen, n_depth, test_time, avg_ns, stddev_ns, avg_ts, stddev_ts, avg_ttft_ms, stddev_ttft_ms, avg_e2e_ms, stddev_e2e_ms, avg_itl_ms, stddev_itl_ms) VALUES ('69f7e7116', '6321', 'OpenBLAS, CPU', '', 'BLAS', 'models/granite-3.3-2b-instruct-be.IQ4_XS.gguf', 'granite 3B IQ4_XS - 4.25 bpw', '1395281392', '2533539840', '2048', '512', '8', '0x0', '0', '50', 'f16', 'f16', '99', 'layer', '0', '0', '0', '0.00', 'none', '1', '0', '0', '512', '0', '0', '2025-08-28T17:08:13Z', '6326649352', '9345621', '80.927655', '0.119504', '0.000000', '0.000000', '6326.649353', '9.344944', '0.000000', '0.000000');
+INSERT INTO llama_bench (build_commit, build_number, cpu_info, gpu_info, backends, model_filename, model_type, model_size, model_n_params, n_batch, n_ubatch, n_threads, cpu_mask, cpu_strict, poll, type_k, type_v, n_gpu_layers, split_mode, main_gpu, no_kv_offload, flash_attn, tensor_split, tensor_buft_overrides, use_mmap, embeddings, no_op_offload, n_prompt, n_gen, n_depth, test_time, avg_ns, stddev_ns, avg_ts, stddev_ts, avg_ttft_ms, stddev_ttft_ms, avg_e2e_ms, stddev_e2e_ms, avg_itl_ms, stddev_itl_ms) VALUES ('69f7e7116', '6321', 'OpenBLAS, CPU', '', 'BLAS', 'models/granite-3.3-2b-instruct-be.IQ4_XS.gguf', 'granite 3B IQ4_XS - 4.25 bpw', '1395281392', '2533539840', '2048', '512', '8', '0x0', '0', '50', 'f16', 'f16', '99', 'layer', '0', '0', '0', '0.00', 'none', '1', '0', '0', '0', '128', '0', '2025-08-28T17:08:51Z', '5640474378', '40328612', '22.694063', '0.163702', '44.155657', '0.086653', '5640.474378', '40.328543', '44.065502', '0.317725');
 ```

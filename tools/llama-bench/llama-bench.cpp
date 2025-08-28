@@ -1300,16 +1300,15 @@ struct test {
         if (field == "build_number" || field == "n_batch"    || field == "n_ubatch"       || field == "n_threads"     ||
             field == "poll"         || field == "model_size" || field == "model_n_params" || field == "n_gpu_layers"  ||
             field == "main_gpu"     || field == "n_prompt"   || field == "n_gen"          || field == "n_depth"       ||
-            field == "avg_ns"       || field == "stddev_ns"  || field == "avg_e2e_ms"     || field == "stddev_e2e_ms" ||
-            field == "no_op_offload") {
+            field == "avg_ns"       || field == "stddev_ns"  || field == "no_op_offload") {
             return INT;
         }
         if (field == "f16_kv"   || field == "no_kv_offload" || field == "cpu_strict" || field == "flash_attn" ||
             field == "use_mmap" || field == "embeddings") {
             return BOOL;
         }
-        if (field == "avg_ts"     || field == "stddev_ts" || field == "avg_ttft_ms" || field == "stddev_ttft_ms" ||
-            field == "avg_itl_ms" || field == "stddev_itl_ms") {
+        if (field == "avg_ts"     || field == "stddev_ts"     || field == "avg_ttft_ms" || field == "stddev_ttft_ms" ||
+            field == "avg_e2e_ms" || field == "stddev_e2e_ms" || field == "avg_itl_ms"  || field == "stddev_itl_ms") {
             return FLOAT;
         }
         return STRING;

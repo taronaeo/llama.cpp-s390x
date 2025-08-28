@@ -1234,14 +1234,19 @@ struct test {
 
     std::vector<double> get_itl_ms() const {
         std::vector<double> itl_ms;
-        std::transform(samples_ns.begin(), samples_ns.end(), samples_ttft_ns.begin(),
-                        std::back_inserter(itl_ms),
-                        [this](uint64_t e2e_ns, uint64_t ttft_ns) {
-                            double e2e_ms = e2e_ns / 1e6;
-                            double ttft_ms = ttft_ns / 1e6;
-                            return (e2e_ms - ttft_ms) / (n_gen - 1);
-                        });
-
+        if (samples_ns.size() != samples_ttft_ns.size()) {
+            return itl_ms; // Return empty vector if sizes don't match
+        }
+        for (size_t i = 0; i < samples_ns.size(); i++) {
+            if (n_gen > 1) {
+                double e2e_ms = samples_ns[i] / 1e6;
+                double ttft_ms = samples_ttft_ns[i] / 1e6;
+                double itl = (e2e_ms - ttft_ms) / (n_gen - 1);
+                itl_ms.push_back(itl);
+            } else {
+                itl_ms.push_back(0.0); // ITL is 0 if only 1 token generated
+            }
+        }
         return itl_ms;
     }
 

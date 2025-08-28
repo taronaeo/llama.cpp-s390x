@@ -1249,7 +1249,7 @@ struct test {
         std::vector<double> itl_ns = get_itl_ns();
         std::vector<double> itl_ms;
         std::transform(itl_ns.begin(), itl_ns.end(), std::back_inserter(itl_ms),
-                       [](double t) { return t / 1e6; });
+                       [](uint64_t t) { return t / 1e6; });
         return itl_ms;
     }
 

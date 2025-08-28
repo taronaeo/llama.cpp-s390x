@@ -89,23 +89,23 @@ Using the CSV output (`-o csv`), these metrics will be provided as average and s
 $$ T_{ttft} = t_{prompt} + t^{(1)}_{gen} $$
 
 where
-* $ t_{prompt} $ : prompt processing time
-* $ t^{(1)}_{gen} $ : token generation time for the first token
+* $t_{prompt}$ : prompt processing time
+* $t^{(1)}_{gen}$ : token generation time for the first token
 
 ### End-to-End Request Latency (E2E)
 
 $$ T_{e2e} = t_{prompt} + t_{gen} $$
 
 where
-* $ t_{prompt} $ : prompt processing time
-* $ t_{gen} $ : token generation time
+* $t_{prompt}$ : prompt processing time
+* $t_{gen}$ : token generation time
 
 ### Inter-token Latency (ITL)
 
 $$ T_{itl} = \frac{T_{e2e} - T_{ttft}}{n\_gen - 1} $$
 
 where
-* $ n\_gen $ : tokens to generate (`-n` flag)
+* $n\_gen$ : tokens to generate (`-n` flag)
 
 ## Examples
 
@@ -230,42 +230,42 @@ $ ./llama-bench -o json
 ```
 
 ```json
-[                                                                                                                                                                 
-  {                                                                                                                                                               
-    "build_commit": "69f7e7116",                                                                                                                                  
-    "build_number": 6321,                                                                                                                                         
-    "cpu_info": "OpenBLAS, CPU",                                                                                                                                  
-    "gpu_info": "",                                                                                                                                               
-    "backends": "BLAS",                                                                                                                                           
-    "model_filename": "models/granite-3.3-2b-instruct-be.IQ4_XS.gguf",                                                                      
-    "model_type": "granite 3B IQ4_XS - 4.25 bpw",                                                                                                                 
-    "model_size": 1395281392,                                                                                                                                     
-    "model_n_params": 2533539840,                                                                                                                                 
-    "n_batch": 2048,                                                                                                                                              
-    "n_ubatch": 512,                                                                                                                                              
-    "n_threads": 8,                                                                                                                                               
-    "cpu_mask": "0x0",                                                                                                                                            
-    "cpu_strict": false,                                                                                                                                          
-    "poll": 50,                                                                                                                                                   
-    "type_k": "f16",                                                                                                                                              
-    "type_v": "f16",                                                                                                                                              
-    "n_gpu_layers": 99,                                                                                                                                           
-    "split_mode": "layer",                                                                                                                                        
-    "main_gpu": 0,                                                                                                                                                
-    "no_kv_offload": false,                                                                                                                                       
-    "flash_attn": false,                                                                                                                                          
-    "tensor_split": "0.00",                                                                                                                                       
-    "tensor_buft_overrides": "none",                                                                                                                              
-    "use_mmap": true,                                                                                                                                             
-    "embeddings": false,                                                                                                                                          
-    "no_op_offload": 0,                                                                                                                                           
-    "n_prompt": 512,                                                                                                                                              
-    "n_gen": 0,                                                                                                                                                   
-    "n_depth": 0,                                                                                                                                                 
-    "test_time": "2025-08-28T17:01:34Z",                                                                                                                          
-    "avg_ns": 6276064173,                                                                                                                                         
-    "stddev_ns": 34323113,                                                                                                                                        
-    "avg_ts": 81.581735,                                                                                                                                          
+[
+  {
+    "build_commit": "69f7e7116",
+    "build_number": 6321,
+    "cpu_info": "OpenBLAS, CPU",
+    "gpu_info": "",
+    "backends": "BLAS",
+    "model_filename": "models/granite-3.3-2b-instruct-be.IQ4_XS.gguf",
+    "model_type": "granite 3B IQ4_XS - 4.25 bpw",
+    "model_size": 1395281392,
+    "model_n_params": 2533539840,
+    "n_batch": 2048,
+    "n_ubatch": 512,
+    "n_threads": 8,
+    "cpu_mask": "0x0",
+    "cpu_strict": false,
+    "poll": 50,
+    "type_k": "f16",
+    "type_v": "f16",
+    "n_gpu_layers": 99,
+    "split_mode": "layer",
+    "main_gpu": 0,
+    "no_kv_offload": false,
+    "flash_attn": false,
+    "tensor_split": "0.00",
+    "tensor_buft_overrides": "none",
+    "use_mmap": true,
+    "embeddings": false,
+    "no_op_offload": 0,
+    "n_prompt": 512,
+    "n_gen": 0,
+    "n_depth": 0,
+    "test_time": "2025-08-28T17:01:34Z",
+    "avg_ns": 6276064173,
+    "stddev_ns": 34323113,
+    "avg_ts": 81.581735,
     "stddev_ts": 0.444487,
     "avg_ttft_ms": 0.000000,
     "stddev_ttft_ms": 0.000000,
@@ -273,7 +273,7 @@ $ ./llama-bench -o json
     "stddev_e2e_ms": 34.322931,
     "avg_itl_ms": 0.000000,
     "stddev_itl_ms": 0.000000,
-    "samples_ns": [ 6255489794, 6293138165, 6328736359, 6254136857, 6248819694 ], 
+    "samples_ns": [ 6255489794, 6293138165, 6328736359, 6254136857, 6248819694 ],
     "samples_ts": [ 81.8481, 81.3585, 80.9008, 81.8658, 81.9355 ],
     "samples_ttft_ns": [  ],
     "samples_itl_ns": [  ]
@@ -309,7 +309,7 @@ $ ./llama-bench -o json
     "n_prompt": 0,
     "n_gen": 128,
     "n_depth": 0,
-    "test_time": "2025-08-28T17:02:12Z", 
+    "test_time": "2025-08-28T17:02:12Z",
     "avg_ns": 5613693967,
     "stddev_ns": 9159226,
     "avg_ts": 22.801434,
@@ -320,7 +320,7 @@ $ ./llama-bench -o json
     "stddev_e2e_ms": 9.158920,
     "avg_itl_ms": 43.857701,
     "stddev_itl_ms": 0.073127,
-    "samples_ns": [ 5617273869, 5609876644, 5628089934, 5607197607, 5606031783 ], 
+    "samples_ns": [ 5617273869, 5609876644, 5628089934, 5607197607, 5606031783 ],
     "samples_ts": [ 22.7869, 22.8169, 22.7431, 22.8278, 22.8325 ],
     "samples_ttft_ns": [ 43584301, 43738022, 43642511, 43936642, 43928534 ],
     "samples_itl_ns": [ 4.38873e+07, 4.38279e+07, 4.3972e+07, 4.38052e+07, 4.37961e+07 ]

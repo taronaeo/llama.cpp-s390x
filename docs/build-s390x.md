@@ -42,14 +42,14 @@ cmake --build build --config Release -j $(nproc)
     cmake --build build --config Release -j $(nproc)
     ```
 
--   By default, NNPA is disabled by default. To enable it:
+-   By default, NNPA is enabled when available. To disable it (not recommended):
 
     ```bash
     cmake -S . -B build             \
         -DCMAKE_BUILD_TYPE=Release  \
         -DGGML_BLAS=ON              \
         -DGGML_BLAS_VENDOR=OpenBLAS \
-        -DGGML_NNPA=ON
+        -DGGML_NNPA=OFF
 
     cmake --build build --config Release -j $(nproc)
     ```
@@ -166,7 +166,7 @@ Only available in IBM z15/LinuxONE 3 or later system with the `-DGGML_VXE=ON` (t
 
 ### 2. NNPA Vector Intrinsics Acceleration
 
-Only available in IBM z16/LinuxONE 4 or later system with the `-DGGML_NNPA=ON` (turned off by default) compile flag. No hardware acceleration is possible with llama.cpp with older systems, such as IBM z15/arch13. In such systems, the APIs can still run but will use a scalar implementation.
+Only available in IBM z16/LinuxONE 4 or later system with the `-DGGML_NNPA=ON` (turned on when available) compile flag. No hardware acceleration is possible with llama.cpp with older systems, such as IBM z15/arch13. In such systems, the APIs can still run but will use a scalar implementation.
 
 ### 3. zDNN Accelerator (WIP)
 
@@ -230,10 +230,6 @@ IBM VXE/VXE2 SIMD acceleration depends on the BLAS implementation. It is strongl
     CXXFLAGS="-include cstdint" pip3 install -r requirements.txt
     ```
 
-5. `-DGGML_NNPA=ON` generates gibberish output
-
-    Answer: We are aware of this as detailed in [this issue](https://github.com/ggml-org/llama.cpp/issues/14877). Please either try reducing the number of threads, or disable the compile option using `-DGGML_NNPA=OFF`.
-
 ## Getting Help on IBM Z & LinuxONE
 
 1. **Bugs, Feature Requests**
@@ -292,4 +288,4 @@ IBM VXE/VXE2 SIMD acceleration depends on the BLAS implementation. It is strongl
 -   🚫 - acceleration unavailable, will still run using scalar implementation
 -   ❓ - acceleration unknown, please contribute if you can test it yourself
 
-Last Updated by **Aaron Teo (aaron.teo1@ibm.com)** on Aug 22, 2025.
+Last Updated by **Aaron Teo (aaron.teo1@ibm.com)** on Sep 2, 2025.

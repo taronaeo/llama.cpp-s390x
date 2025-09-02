@@ -3524,6 +3524,14 @@ int ggml_cpu_has_sme(void) {
 #endif
 }
 
+int ggml_cpu_support_fattn(void) {
+#if defined(GGML_NNPA) || defined(__NNPA__)
+    return 0;
+#else
+    return 1;
+#endif
+}
+
 void ggml_cpu_init(void) {
     // needed to initialize ggml_time
     {

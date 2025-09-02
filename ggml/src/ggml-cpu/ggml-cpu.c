@@ -3526,6 +3526,8 @@ int ggml_cpu_has_sme(void) {
 
 int ggml_cpu_support_fattn(void) {
 #if defined(GGML_NNPA) || defined(__NNPA__)
+    // disable Flash Attention when using NNPA
+    // see: https://github.com/ggml-org/llama.cpp/issues/15721
     return 0;
 #else
     return 1;

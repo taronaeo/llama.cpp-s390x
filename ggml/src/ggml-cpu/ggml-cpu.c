@@ -3219,7 +3219,10 @@ void ggml_cpu_fp32_to_fp16(const float * x, ggml_fp16_t * y, int64_t n) {
         float32x4_t v_zero = vec_splats(0.0f);
         uint16x8_t v_yd = vec_round_from_fp32(v_x, v_zero, 0);
         uint16x8_t v_y = vec_convert_to_fp16(v_yd, 0);
-        vec_xst(v_y, 0, (ggml_fp16_t *)(y + i));
+        y[i + 0] = vec_extract(v_y, 0);
+        y[i + 1] = vec_extract(v_y, 1);
+        y[i + 2] = vec_extract(v_y, 2);
+        y[i + 3] = vec_extract(v_y, 3);
     }
 #endif
     for (; i < n; ++i) {

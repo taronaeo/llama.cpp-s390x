@@ -312,13 +312,7 @@ struct common_params {
     enum llama_rope_scaling_type rope_scaling_type = LLAMA_ROPE_SCALING_TYPE_UNSPECIFIED;
     enum llama_pooling_type      pooling_type      = LLAMA_POOLING_TYPE_UNSPECIFIED; // pooling type for embeddings
     enum llama_attention_type    attention_type    = LLAMA_ATTENTION_TYPE_UNSPECIFIED; // attention type for embeddings
-    #if defined(GGML_NNPA) || defined(__NNPA__)
-    // disable Flash Attention on NNPA
-    // see: https://github.com/ggml-org/llama.cpp/issues/15721
-    enum llama_flash_attn_type   flash_attn_type   = LLAMA_FLASH_ATTN_TYPE_DISABLED;
-    #else
     enum llama_flash_attn_type   flash_attn_type   = LLAMA_FLASH_ATTN_TYPE_AUTO; // whether to use Flash Attention
-    #endif
 
     struct common_params_sampling    sampling;
     struct common_params_speculative speculative;

@@ -105,8 +105,6 @@ extern "C" {
     GGML_BACKEND_API int ggml_cpu_has_wasm_simd  (void);
     GGML_BACKEND_API int ggml_cpu_has_llamafile  (void);
 
-    GGML_BACKEND_API int ggml_cpu_support_fattn  (void);  // whether Flash Attention is supported
-
     // Internal types and functions exposed for tests and benchmarks
 
     typedef void (*ggml_vec_dot_t)  (int n, float * GGML_RESTRICT s, size_t bs, const void * GGML_RESTRICT x, size_t bx,

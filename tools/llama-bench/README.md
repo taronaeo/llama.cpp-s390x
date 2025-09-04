@@ -82,8 +82,6 @@ For a description of the other options, see the [main example](../main/README.md
 
 ## Metrics
 
-Using the CSV output (`-o csv`), these metrics will be provided as average and standard deviations.
-
 ### Time to First Token (TTFT)
 
 $$ T_{ttft} = t_{prompt} + t^{(1)}_{gen} $$
@@ -91,6 +89,8 @@ $$ T_{ttft} = t_{prompt} + t^{(1)}_{gen} $$
 where
 * $t_{prompt}$ : total prompt processing time
 * $t^{(1)}_{gen}$ : token generation time for the first token
+
+> **_NOTE_**: This is only meaningful with a `-pg` test.
 
 ### End-to-End Request Latency (E2E)
 
@@ -102,7 +102,7 @@ where
 
 ### Inter-token Latency (ITL)
 
-$$ T_{itl} = \frac{T_{e2e} - T_{ttft}}{n\_gen - 1} $$
+$$ T_{itl} = \frac{T_{e2e} - T_{ttft}}{n\_{gen} - 1} $$
 
 where
 * $n\_{gen}$ : tokens to generate (`-n` flag)

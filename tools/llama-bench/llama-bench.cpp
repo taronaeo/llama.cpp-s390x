@@ -1845,7 +1845,7 @@ static bool test_gen(llama_context * ctx, int n_gen, int n_threads, uint64_t * t
 
         // capture the time to first token
         // t_ttft may be a nullptr from the warmup run
-        if (i == 0 && t_ttft != nullptr && *t_ttft == 0) {
+        if (i == 0 && t_ttft != nullptr) {
             *t_ttft = get_time_ns();
         }
     }

@@ -711,7 +711,9 @@ static void ggml_compute_forward_dup_f32(
                         for (int i01 = ir0; i01 < ir1; i01++) {
                             const float * src0_ptr = (float *) ((char *) src0->data + i01*nb01 + i02*nb02 + i03*nb03);
 
-                            GGML_LOG_INFO("%s: L714: src0_ptr = %f\n", __func__, *src0_ptr);
+                            for (size_t za = 0; za < ne00; za++) {
+                                GGML_LOG_INFO("%s: L715: src0_ptr[%zu] = %f\n", __func__, za, src0_ptr[za]);
+                            }
 
                             from_float(src0_ptr, dst_ptr + id, ne00);
                             id += rs;

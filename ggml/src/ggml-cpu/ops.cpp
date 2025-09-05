@@ -750,8 +750,16 @@ static void ggml_compute_forward_dup_f32(
                         for (int i01 = ir0; i01 < ir1; i01++) {
                             for (int i00 = 0; i00 < ne00; i00++) {
                                 const float * src0_ptr = (float *) ((char *) src0->data + i00*nb00 + i01*nb01 + i02*nb02 + i03*nb03);
+                                const float src_val = *src0_ptr;
 
-                                dst_ptr[id] = GGML_CPU_FP32_TO_FP16(*src0_ptr);
+                                if (isinf(src_val) && src_val < 0) {
+                                    fprintf(stderr, "WARNING: -inf detected in ggml_compute_forward_dup_f32 -> F16\n");
+                                    fprintf(stderr, "  Source position: i00=%d, i01=%d, i02=%d, i03=%d\n", (int)i00, (int)i01, (int)i02, (int)i03);
+                                    fprintf(stderr, "  Linear index: %zu, value: %f\n", id, src_val);
+                                    fprintf(stderr, "  Thread: %d/%d\n", ith, nth);
+                                }
+
+                                dst_ptr[id] = GGML_CPU_FP32_TO_FP16(src_val);
                                 id++;
                             }
                         }
@@ -4154,6 +4162,7 @@ static void ggml_compute_forward_rms_norm_f32(
     memcpy(&eps, dst->op_params, sizeof(float));
 
     GGML_ASSERT(eps >= 0.0f);
+
 
     // TODO: optimize
     for (int64_t i03 = 0; i03 < ne03; i03++) {

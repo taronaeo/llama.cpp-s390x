@@ -752,7 +752,7 @@ static void ggml_compute_forward_dup_f32(
                                 const float * src0_ptr = (float *) ((char *) src0->data + i00*nb00 + i01*nb01 + i02*nb02 + i03*nb03);
                                 const float src_val = *src0_ptr;
 
-                                if (isinf(src_val) && src_val < 0) {
+                                if ((isnan(src_val) || isinf(src_val) || src_val == -INFINITY) && src_val < 0) {
                                     fprintf(stderr, "WARNING: -inf detected in ggml_compute_forward_dup_f32 -> F16\n");
                                     fprintf(stderr, "  Source position: i00=%d, i01=%d, i02=%d, i03=%d\n", (int)i00, (int)i01, (int)i02, (int)i03);
                                     fprintf(stderr, "  Linear index: %zu, value: %f\n", id, src_val);

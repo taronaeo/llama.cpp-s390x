@@ -3220,10 +3220,10 @@ void ggml_cpu_fp32_to_fp16(const float * x, ggml_fp16_t * y, int64_t n) {
         if (isnan(x[i + 2]) || x[i + 2] == -INFINITY) GGML_LOG_INFO("%s: x[2]: %10.6f (0x%08x)\n", __func__, x[i + 2], x[i + 2]);
         if (isnan(x[i + 3]) || x[i + 3] == -INFINITY) GGML_LOG_INFO("%s: x[3]: %10.6f (0x%08x)\n", __func__, x[i + 3], x[i + 3]);
 
-        if (isnan(x[i + 0]) || x[i + 0] == -1.0 / 0.0 ||
-            isnan(x[i + 1]) || x[i + 1] == -1.0 / 0.0 ||
-            isnan(x[i + 2]) || x[i + 2] == -1.0 / 0.0 ||
-            isnan(x[i + 3]) || x[i + 3] == -1.0 / 0.0) {
+        if (isnan(x[i + 0]) || x[i + 0] == -INFINITY ||
+            isnan(x[i + 1]) || x[i + 1] == -INFINITY ||
+            isnan(x[i + 2]) || x[i + 2] == -INFINITY ||
+            isnan(x[i + 3]) || x[i + 3] == -INFINITY) {
                 raise(SIGINT);
         }
 

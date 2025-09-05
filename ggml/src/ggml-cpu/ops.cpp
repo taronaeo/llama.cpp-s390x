@@ -710,6 +710,12 @@ static void ggml_compute_forward_dup_f32(
                         id += rs * ir0;
                         for (int i01 = ir0; i01 < ir1; i01++) {
                             const float * src0_ptr = (float *) ((char *) src0->data + i01*nb01 + i02*nb02 + i03*nb03);
+
+                            if (isinf(*src0_ptr) || isnan(*src0_ptr) || *src0_ptr == -INFINITY) {
+                                GGML_LOG_INFO("%s: L715: INF detected - src0_ptr = %f, i01=%d, i02=%d, i03=%d, ne00=%lld\n",
+                                              __func__, *src0_ptr, i01, i02, i03, (long long)ne00);
+                            }
+
                             from_float(src0_ptr, dst_ptr + id, ne00);
                             id += rs;
                         }
@@ -750,8 +756,6 @@ static void ggml_compute_forward_dup_f32(
                         for (int i01 = ir0; i01 < ir1; i01++) {
                             for (int i00 = 0; i00 < ne00; i00++) {
                                 const float * src0_ptr = (float *) ((char *) src0->data + i00*nb00 + i01*nb01 + i02*nb02 + i03*nb03);
-
-                                GGML_LOG_INFO("%s: src0_ptr[%d] = %f\n", __func__, i00, *src0_ptr);
 
                                 dst_ptr[id] = GGML_CPU_FP32_TO_FP16(*src0_ptr);
                                 id++;

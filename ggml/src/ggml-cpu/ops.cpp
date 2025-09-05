@@ -1,5 +1,7 @@
 #include "ops.h"
 
+#include <csignal>
+
 #include "ggml-cpu.h"
 #include "ggml-impl.h"
 #include "binary-ops.h"
@@ -713,6 +715,10 @@ static void ggml_compute_forward_dup_f32(
 
                             for (size_t za = 0; za < ne00; za++) {
                                 GGML_LOG_INFO("%s: L715: src0_ptr[%zu] = %f\n", __func__, za, src0_ptr[za]);
+                                if (src0_ptr[za] == -INFINITY) {
+                                    GGML_LOG_WARN("%s: L717: WARNING - NEGATIVE INFINITY DETECTED at index %zu! src0_ptr[%zu] = %f\n", __func__, za, za, src0_ptr[za]);
+                                    std::raise(SIGINT);
+                                }
                             }
 
                             from_float(src0_ptr, dst_ptr + id, ne00);

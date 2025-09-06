@@ -602,27 +602,6 @@ static ggml_guid_t ggml_backend_zdnn_guid(void) {
     return reinterpret_cast<ggml_guid_t>((void *)guid_str);
 }
 
-// TODO: remove in the future
-ggml_backend_t ggml_backend_zdnn_init(void) {
-    ggml_backend_dev_t dev = ggml_backend_reg_dev_get(ggml_backend_zdnn_reg(), 0);
-
-    ggml_backend_zdnn_context * ctx = ggml_zdnn_init(dev);
-    if (ctx == NULL) {
-        GGML_LOG_ERROR("%s: error: failed to allocate context\n", __func__);
-        return NULL;
-    }
-
-    ggml_backend_t backend = (ggml_backend_t)malloc(sizeof(ggml_backend));
-    *backend = (ggml_backend) {
-        /* .guid       = */ ggml_backend_zdnn_guid(),
-        /* .iface      = */ ggml_backend_zdnn_i,
-        /* .device     = */ dev,
-        /* .context    = */ ctx,
-    };
-
-    return backend;
-}
-
 bool ggml_backend_is_zdnn(ggml_backend_t backend) {
     return backend != NULL &&
            ggml_guid_matches(backend->guid, ggml_backend_zdnn_guid());

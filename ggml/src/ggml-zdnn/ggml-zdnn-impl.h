@@ -8,7 +8,6 @@
 #include <vector>
 #include <memory>
 #include <vecintrin.h>
-#include <atomic>  // for std::atomic
 
 #define GGML_ZDNN_NAME    "zDNN"
 #define GGML_ZDNN_VERSION ZDNN_VERNUM
@@ -78,14 +77,12 @@ struct ggml_backend_zdnn_context {
 struct ggml_backend_zdnn_buffer {
     void * data;
     size_t size;
-    std::atomic<size_t> bytes_written;
 
     zdnn_tensor_desc pre_tfm_desc;
     zdnn_tensor_desc tfm_desc;
     zdnn_ztensor     ztensor;
 
     char name[GGML_MAX_NAME];
-    std::atomic<bool> transformed_once;
 };
 
 struct ggml_backend_zdnn_buffer_context {

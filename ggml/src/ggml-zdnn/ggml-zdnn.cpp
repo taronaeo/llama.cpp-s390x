@@ -425,12 +425,8 @@ static void ggml_backend_zdnn_buffer_set_tensor(ggml_backend_buffer_t buffer, gg
     memcpy((char *)tensor->data + offset, data, size);
 
     ggml_backend_zdnn_buffer * extra = (ggml_backend_zdnn_buffer *)tensor->extra;
-    size_t total_size = ggml_nbytes(tensor);
-    // WARNING: this check might not be thread-safe. need to verify.
-    if (offset + size == total_size) {
-        if (extra->ztensor.is_transformed) zdnn_reset_ztensor(&extra->ztensor);
-        ggml_zdnn_load_tensor(extra->ztensor, tensor->data);
-    }
+    if (extra->ztensor.is_transformed) zdnn_reset_ztensor(&extra->ztensor);
+    ggml_zdnn_load_tensor(extra->ztensor, tensor->data);
 
     GGML_UNUSED(buffer);
 }

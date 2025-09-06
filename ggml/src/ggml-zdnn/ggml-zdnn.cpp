@@ -381,7 +381,7 @@ static enum ggml_status ggml_backend_zdnn_buffer_init_tensor(ggml_backend_buffer
     zdnn_buffer->data = tensor->data;
     zdnn_buffer->size = tsize;
     zdnn_buffer->extra = nullptr;
-    strncpy(zdnn_buffer->name, tensor->name, GGML_MAX_NAME - 1);
+    snprintf(zdnn_buffer->name, GGML_MAX_NAME, "%s", tensor->name);
 
     ggml_zdnn_init_tensor(zdnn_buffer.get(), tensor);
     tensor->extra = zdnn_buffer.get();
@@ -392,7 +392,8 @@ static enum ggml_status ggml_backend_zdnn_buffer_init_tensor(ggml_backend_buffer
                 std::unique_ptr<ggml_backend_zdnn_buffer> zdnn_bias_buffer = std::make_unique<ggml_backend_zdnn_buffer>();
                 zdnn_bias_buffer->data = (void *)calloc(tensor->ne[0], ggml_element_size(tensor));
                 zdnn_bias_buffer->size = ggml_element_size(tensor) * tensor->ne[0];
-                snprintf(zdnn_bias_buffer->name, GGML_MAX_NAME - 1, "%s (bias)", tensor->name);
+                snprintf(zdnn_bias_buffer->name, GGML_MAX_NAME, "%.*s (bias)",
+                         GGML_MAX_NAME - (int)sizeof(" (bias)"), tensor->name);
 
                 const int64_t bias_dim[GGML_MAX_DIMS] = { 1, 1, 1, tensor->ne[0] };
                 ggml_zdnn_create_tensor(zdnn_bias_buffer->pre_tfm_desc,

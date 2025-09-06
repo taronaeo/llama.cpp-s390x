@@ -439,13 +439,7 @@ static void ggml_backend_zdnn_buffer_set_tensor(ggml_backend_buffer_t buffer, gg
 }
 
 static void ggml_backend_zdnn_buffer_get_tensor(ggml_backend_buffer_t buffer, const ggml_tensor * tensor, void * data, size_t offset, size_t size) {
-    ggml_backend_zdnn_buffer * extra = (ggml_backend_zdnn_buffer *)tensor->extra;
-
-    if (extra->ztensor.is_transformed && offset == 0 && size == ggml_nbytes(tensor)) {
-        ZDNN_CHECK(zdnn_transform_origtensor(&extra->ztensor, data));
-    } else {
-        memcpy(data, (const char *)tensor->data + offset, size);
-    }
+    memcpy(data, (const char *)tensor->data + offset, size);
 
     GGML_UNUSED(buffer);
 }

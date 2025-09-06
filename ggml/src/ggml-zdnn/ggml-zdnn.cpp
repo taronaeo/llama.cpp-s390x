@@ -374,8 +374,6 @@ static void ggml_backend_zdnn_buffer_free_buffer(ggml_backend_buffer_t buffer) {
             if (bias->ztensor.buffer != NULL && bias->ztensor.is_transformed) {
                 ZDNN_CHECK(zdnn_free_ztensor_buffer(&bias->ztensor));
             }
-
-            free(bias->data);
             delete bias;
         }
     }
@@ -408,9 +406,6 @@ static enum ggml_status ggml_backend_zdnn_buffer_init_tensor(ggml_backend_buffer
     ggml_zdnn_init_tensor(zdnn_buffer.get(), tensor);
     tensor->extra = zdnn_buffer.get();
 
-    ctx->buffers.push_back(std::move(zdnn_buffer));
-    ctx->n_buffers++;
-
     switch (tensor->op) {
         case GGML_OP_MUL_MAT:
             {
@@ -431,7 +426,12 @@ static enum ggml_status ggml_backend_zdnn_buffer_init_tensor(ggml_backend_buffer
                 ctx->buffers.push_back(std::move(zdnn_bias_buffer));
                 ctx->n_buffers++;
             } break;
+        default:
+            break;
     }
+
+    ctx->buffers.push_back(std::move(zdnn_buffer));
+    ctx->n_buffers++;
 
     // GGML_LOG_INFO("%s: initialised tensor '%s' in buffer %d, size = %8.2f MiB\n",
     //               __func__, tensor->name, buffer_idx, tsize);

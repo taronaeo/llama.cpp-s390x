@@ -116,7 +116,6 @@ static void ggml_zdnn_mul_mat_op(ggml_backend_zdnn_context * ctx, const ggml_ten
     ggml_backend_zdnn_buffer * inputs_extra  = (ggml_backend_zdnn_buffer *)inputs->extra;
     ggml_backend_zdnn_buffer * output_extra  = (ggml_backend_zdnn_buffer *)output->extra;
     ggml_backend_zdnn_buffer * bias_extra    = (ggml_backend_zdnn_buffer *)output_extra->extra;
-    GGML_ASSERT(bias_extra != nullptr && "bias buffer must be initialised");
 
     const int64_t weights_rows = ne01;
     const int64_t weights_cols = ne00;
@@ -128,6 +127,9 @@ static void ggml_zdnn_mul_mat_op(ggml_backend_zdnn_context * ctx, const ggml_ten
     const int64_t output_rows = ne1;
     const int64_t output_cols = ne0;
 
+    // TODO: Weights are somehow not going through `ggml_backend_zdnn_buffer_set_tensor` during model loading.
+    //       So we need to load the weights here. Remove this when the issue is fixed.
+    //       Problem might be residing in `ggml_backend_zdnn_device_supports_buft`.
     if (weights_extra->ztensor.is_transformed == false) ggml_zdnn_load_tensor(weights_extra->ztensor, weights->data);
 
     // GGML_LOG_INFO("%s: tensor '%s' tensor dimensions: [%ld, %ld, %ld, %ld] pre_tfm_desc dimensions: [%ld, %ld, %ld, %ld]\n",

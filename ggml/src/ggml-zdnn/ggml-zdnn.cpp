@@ -134,7 +134,6 @@ static void ggml_zdnn_mul_mat_op(ggml_backend_zdnn_context * ctx, const ggml_ten
 
     void * bias_data = (void *)calloc(ne0, ggml_element_size(output));
     if (weights_extra->ztensor.is_transformed == false) ggml_zdnn_load_tensor(weights_extra->ztensor, weights->data);
-    if (inputs_extra->ztensor.is_transformed == false) ggml_zdnn_load_tensor(inputs_extra->ztensor, inputs->data);
     ggml_zdnn_load_tensor(zt_bias, bias_data);
 
     // GGML_LOG_INFO("%s: tensor '%s' tensor dimensions: [%ld, %ld, %ld, %ld] pre_tfm_desc dimensions: [%ld, %ld, %ld, %ld]\n",
@@ -425,11 +424,25 @@ static void ggml_backend_zdnn_buffer_memset_tensor(ggml_backend_buffer_t buffer,
 static void ggml_backend_zdnn_buffer_set_tensor(ggml_backend_buffer_t buffer, ggml_tensor * tensor, const void * data, size_t offset, size_t size) {
     memcpy((char *)tensor->data + offset, data, size);
 
+    ggml_backend_zdnn_buffer * extra = (ggml_backend_zdnn_buffer *)tensor->extra;
+    size_t total_size = ggml_nbytes(tensor);
+    // WARNING: this check might not be thread-safe. need to verify.
+    if (offset + size == total_size) {
+        if (extra->ztensor.is_transformed) zdnn_reset_ztensor(&extra->ztensor);
+        ggml_zdnn_load_tensor(extra->ztensor, tensor->data);
+    }
+
     GGML_UNUSED(buffer);
 }
 
 static void ggml_backend_zdnn_buffer_get_tensor(ggml_backend_buffer_t buffer, const ggml_tensor * tensor, void * data, size_t offset, size_t size) {
-    memcpy(data, (const char *)tensor->data + offset, size);
+    ggml_backend_zdnn_buffer * extra = (ggml_backend_zdnn_buffer *)tensor->extra;
+
+    if (extra->ztensor.is_transformed && offset == 0 && size == ggml_nbytes(tensor)) {
+        ZDNN_CHECK(zdnn_transform_origtensor(&extra->ztensor, data));
+    } else {
+        memcpy(data, (const char *)tensor->data + offset, size);
+    }
 
     GGML_UNUSED(buffer);
 }

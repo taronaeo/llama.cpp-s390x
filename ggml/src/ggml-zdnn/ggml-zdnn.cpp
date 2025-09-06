@@ -115,9 +115,7 @@ static void ggml_zdnn_mul_mat_op(ggml_backend_zdnn_context * ctx, const ggml_ten
     ggml_backend_zdnn_buffer * weights_extra = (ggml_backend_zdnn_buffer *)weights->extra;
     ggml_backend_zdnn_buffer * inputs_extra  = (ggml_backend_zdnn_buffer *)inputs->extra;
     ggml_backend_zdnn_buffer * output_extra  = (ggml_backend_zdnn_buffer *)output->extra;
-
-    zdnn_tensor_desc ptd_bias, td_bias;
-    zdnn_ztensor zt_bias;
+    ggml_backend_zdnn_buffer * bias_extra    = (ggml_backend_zdnn_buffer *)output_extra->extra;
 
     const int64_t weights_rows = ne01;
     const int64_t weights_cols = ne00;
@@ -129,12 +127,7 @@ static void ggml_zdnn_mul_mat_op(ggml_backend_zdnn_context * ctx, const ggml_ten
     const int64_t output_rows = ne1;
     const int64_t output_cols = ne0;
 
-    const int64_t bias_dim  [GGML_MAX_DIMS]  = { 1, 1, 1, output_cols };
-    ggml_zdnn_create_tensor(ptd_bias, td_bias, zt_bias, output, bias_dim, ZDNN_1D);
-
-    void * bias_data = (void *)calloc(ne0, ggml_element_size(output));
     if (weights_extra->ztensor.is_transformed == false) ggml_zdnn_load_tensor(weights_extra->ztensor, weights->data);
-    ggml_zdnn_load_tensor(zt_bias, bias_data);
 
     // GGML_LOG_INFO("%s: tensor '%s' tensor dimensions: [%ld, %ld, %ld, %ld] pre_tfm_desc dimensions: [%ld, %ld, %ld, %ld]\n",
     //               __func__, weights_extra->name,
@@ -157,13 +150,10 @@ static void ggml_zdnn_mul_mat_op(ggml_backend_zdnn_context * ctx, const ggml_ten
     GGML_ASSERT(inputs_extra->pre_tfm_desc.dim1  == inputs->ne[0]  && "inputs_extra->pre_tfm_desc.dim1 must match inputs->ne[0]");
     GGML_ASSERT(inputs_extra->pre_tfm_desc.dim2  == inputs->ne[1]  && "inputs_extra->pre_tfm_desc.dim2 must match inputs->ne[1]");
 
-    ZDNN_CHECK(zdnn_matmul_transpose_op(&inputs_extra->ztensor, &weights_extra->ztensor, &zt_bias,
+    ZDNN_CHECK(zdnn_matmul_transpose_op(&inputs_extra->ztensor, &weights_extra->ztensor, &bias_extra->ztensor,
                                         false, true, MATMUL_OP_ADDITION, &output_extra->ztensor));
     // TODO: Remove in the future as we are currently DLF16 -> FP32 then in the next op, FP32 -> DLF16 again. Inefficient.
     ZDNN_CHECK(zdnn_transform_origtensor(&output_extra->ztensor, output->data));
-
-    ZDNN_CHECK(zdnn_free_ztensor_buffer(&zt_bias));
-    free(bias_data);
 }
 
 static void ggml_zdnn_mul_mat_dispatch(ggml_backend_zdnn_context * ctx, const ggml_tensor * src0, const ggml_tensor * src1, ggml_tensor * dst) {
@@ -377,6 +367,16 @@ static void ggml_backend_zdnn_buffer_free_buffer(ggml_backend_buffer_t buffer) {
         if (ctx->buffers[i]->ztensor.buffer != NULL && ctx->buffers[i]->ztensor.is_transformed) {
             ZDNN_CHECK(zdnn_free_ztensor_buffer(&ctx->buffers[i]->ztensor));
         }
+
+        if (ctx->buffers[i]->extra != nullptr) {
+            ggml_backend_zdnn_buffer * bias = (ggml_backend_zdnn_buffer *)ctx->buffers[i]->extra;
+            if (bias->ztensor.buffer != NULL && bias->ztensor.is_transformed) {
+                ZDNN_CHECK(zdnn_free_ztensor_buffer(&bias->ztensor));
+            }
+
+            free(bias->data);
+            delete bias;
+        }
     }
 
     delete ctx;
@@ -401,6 +401,7 @@ static enum ggml_status ggml_backend_zdnn_buffer_init_tensor(ggml_backend_buffer
     std::unique_ptr<ggml_backend_zdnn_buffer> zdnn_buffer = std::make_unique<ggml_backend_zdnn_buffer>();
     zdnn_buffer->data = tensor->data;
     zdnn_buffer->size = tsize;
+    zdnn_buffer->extra = nullptr;
     strncpy(zdnn_buffer->name, tensor->name, GGML_MAX_NAME - 1);
 
     ggml_zdnn_init_tensor(zdnn_buffer.get(), tensor);
@@ -408,6 +409,28 @@ static enum ggml_status ggml_backend_zdnn_buffer_init_tensor(ggml_backend_buffer
 
     ctx->buffers.push_back(std::move(zdnn_buffer));
     ctx->n_buffers++;
+
+    switch (tensor->op) {
+        case GGML_OP_MUL_MAT:
+            {
+                std::unique_ptr<ggml_backend_zdnn_buffer> zdnn_bias_buffer = std::make_unique<ggml_backend_zdnn_buffer>();
+                zdnn_bias_buffer->data = (void *)calloc(tensor->ne[0], ggml_element_size(tensor));
+                zdnn_bias_buffer->size = ggml_element_size(tensor) * tensor->ne[0];
+                snprintf(zdnn_bias_buffer->name, GGML_MAX_NAME - 1, "%s (bias)", tensor->name);
+
+                const int64_t bias_dim[GGML_MAX_DIMS] = { 1, 1, 1, tensor->ne[0] };
+                ggml_zdnn_create_tensor(zdnn_bias_buffer->pre_tfm_desc,
+                                        zdnn_bias_buffer->tfm_desc,
+                                        zdnn_bias_buffer->ztensor,
+                                        tensor, bias_dim, ZDNN_1D);
+
+                ggml_zdnn_load_tensor(zdnn_bias_buffer->ztensor, zdnn_bias_buffer->data);
+                zdnn_buffer->extra = zdnn_bias_buffer.get();
+
+                ctx->buffers.push_back(std::move(zdnn_bias_buffer));
+                ctx->n_buffers++;
+            } break;
+    }
 
     // GGML_LOG_INFO("%s: initialised tensor '%s' in buffer %d, size = %8.2f MiB\n",
     //               __func__, tensor->name, buffer_idx, tsize);

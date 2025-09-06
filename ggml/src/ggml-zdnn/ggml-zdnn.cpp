@@ -116,6 +116,7 @@ static void ggml_zdnn_mul_mat_op(ggml_backend_zdnn_context * ctx, const ggml_ten
     ggml_backend_zdnn_buffer * inputs_extra  = (ggml_backend_zdnn_buffer *)inputs->extra;
     ggml_backend_zdnn_buffer * output_extra  = (ggml_backend_zdnn_buffer *)output->extra;
     ggml_backend_zdnn_buffer * bias_extra    = (ggml_backend_zdnn_buffer *)output_extra->extra;
+    GGML_ASSERT(bias_extra != nullptr && "bias buffer must be initialised");
 
     const int64_t weights_rows = ne01;
     const int64_t weights_cols = ne00;

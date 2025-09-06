@@ -364,18 +364,9 @@ static void ggml_zdnn_free(ggml_backend_zdnn_context * ctx) {
 static void ggml_backend_zdnn_buffer_free_buffer(ggml_backend_buffer_t buffer) {
     ggml_backend_zdnn_buffer_context * ctx = (ggml_backend_zdnn_buffer_context *)buffer->context;
 
-    for (int i = 0; i < ctx->n_buffers; i++) {
-        if (ctx->buffers[i]->extra != nullptr) {
-            ggml_backend_zdnn_buffer * bias = (ggml_backend_zdnn_buffer *)ctx->buffers[i]->extra;
-            if (bias->ztensor.buffer != NULL && bias->ztensor.is_transformed) {
-                ZDNN_CHECK(zdnn_free_ztensor_buffer(&bias->ztensor));
-            }
-            delete bias;
-        }
-
-        if (ctx->buffers[i]->ztensor.buffer != NULL && ctx->buffers[i]->ztensor.is_transformed) {
-            ZDNN_CHECK(zdnn_free_ztensor_buffer(&ctx->buffers[i]->ztensor));
-        }
+    for (const auto & buf_ptr : ctx->buffers) {
+        ggml_backend_zdnn_buffer * buf = buf_ptr.get();
+        if (buf->ztensor.buffer_size > 0) ZDNN_CHECK(zdnn_free_ztensor_buffer(&buf->ztensor));
     }
 
     delete ctx;

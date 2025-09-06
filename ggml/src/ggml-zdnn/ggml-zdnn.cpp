@@ -157,6 +157,14 @@ static void ggml_zdnn_mul_mat_op(ggml_backend_zdnn_context * ctx, const ggml_ten
                                         false, true, MATMUL_OP_ADDITION, &output_extra->ztensor));
     // TODO: Remove in the future as we are currently DLF16 -> FP32 then in the next op, FP32 -> DLF16 again. Inefficient.
     ZDNN_CHECK(zdnn_transform_origtensor(&output_extra->ztensor, output->data));
+
+    GGML_UNUSED(ctx);
+    GGML_UNUSED(weights_rows);
+    GGML_UNUSED(weights_cols);
+    GGML_UNUSED(inputs_rows);
+    GGML_UNUSED(inputs_cols);
+    GGML_UNUSED(output_rows);
+    GGML_UNUSED(output_cols);
 }
 
 static void ggml_zdnn_mul_mat_dispatch(ggml_backend_zdnn_context * ctx, const ggml_tensor * src0, const ggml_tensor * src1, ggml_tensor * dst) {
@@ -214,6 +222,8 @@ static enum ggml_status ggml_zdnn_graph_compute(ggml_backend_t backend, ggml_cgr
     }
 
     return GGML_STATUS_SUCCESS;
+
+    GGML_UNUSED(ctx_dev);
 }
 
 static bool ggml_zdnn_supports_op(const ggml_backend_zdnn_device_context * ctx_dev, const ggml_tensor * op) {
@@ -407,6 +417,8 @@ static enum ggml_status ggml_backend_zdnn_buffer_init_tensor(ggml_backend_buffer
     //               __func__, tensor->name, buffer_idx, tsize);
 
     return GGML_STATUS_SUCCESS;
+
+    GGML_UNUSED(buffer_idx);
 }
 
 static void ggml_backend_zdnn_buffer_memset_tensor(ggml_backend_buffer_t buffer, ggml_tensor * tensor, uint8_t value, size_t offset, size_t size) {
@@ -615,11 +627,15 @@ static const char * ggml_backend_zdnn_device_get_name(ggml_backend_dev_t dev) {
 
 static const char * ggml_backend_zdnn_device_get_description(ggml_backend_dev_t dev) {
     return "IBM Z Neural Network Processing Assist (NNPA)";
+
+    GGML_UNUSED(dev);
 }
 
 static void ggml_backend_zdnn_device_get_memory(ggml_backend_dev_t dev, size_t * free, size_t * total) {
     *free  = 0;
     *total = 0;
+
+    GGML_UNUSED(dev);
 }
 
 static enum ggml_backend_dev_type ggml_backend_zdnn_device_get_type(ggml_backend_dev_t dev) {
@@ -637,7 +653,7 @@ static void ggml_backend_zdnn_device_get_props(ggml_backend_dev_t dev, ggml_back
         /* .async                = */ false,
         /* .host_buffer          = */ false,
         /* .buffer_from_host_ptr = */ true,
-        /* .events               = */ false,
+        /* .events               = */ false
     };
 }
 
@@ -653,7 +669,7 @@ static ggml_backend_t ggml_backend_zdnn_device_init(ggml_backend_dev_t dev, cons
         /* .guid       = */ ggml_backend_zdnn_guid(),
         /* .iface      = */ ggml_backend_zdnn_i,
         /* .device     = */ dev,
-        /* .context    = */ ctx,
+        /* .context    = */ ctx
     };
 
     return backend;
@@ -705,6 +721,8 @@ static ggml_backend_buffer_t ggml_backend_zdnn_device_buffer_from_ptr(ggml_backe
     ++ctx->n_buffers;
 
     return ggml_backend_buffer_init(ggml_backend_zdnn_buffer_from_ptr_type(), ggml_backend_zdnn_buffer_i, ctx, size);
+
+    GGML_UNUSED(max_tensor_size);
 }
 
 static bool ggml_backend_zdnn_device_supports_op(ggml_backend_dev_t dev, const ggml_tensor * op) {
@@ -794,7 +812,7 @@ static ggml_backend_reg_i ggml_backend_zdnn_reg_i = {
     /* .get_name         = */ ggml_backend_zdnn_reg_get_name,
     /* .get_device_count = */ ggml_backend_zdnn_reg_device_count,
     /* .get_device       = */ ggml_backend_zdnn_reg_device_get,
-    /* .get_proc_address = */ ggml_backend_zdnn_get_proc_address,
+    /* .get_proc_address = */ ggml_backend_zdnn_get_proc_address
 };
 
 static void ggml_zdnn_cleanup(void) {
@@ -812,13 +830,13 @@ ggml_backend_reg_t ggml_backend_zdnn_reg(void) {
         g_ggml_backend_zdnn_reg = (ggml_backend_reg) {
             /* .api_version = */ GGML_ZDNN_VERSION,
             /* .iface       = */ ggml_backend_zdnn_reg_i,
-            /* .context     = */ NULL,
+            /* .context     = */ NULL
         };
 
         g_ggml_backend_zdnn_device = (ggml_backend_device) {
             /* .iface       = */ ggml_backend_zdnn_device_i,
             /* .reg         = */ &g_ggml_backend_zdnn_reg,
-            /* .context     = */ &g_ggml_ctx_dev_main,
+            /* .context     = */ &g_ggml_ctx_dev_main
         };
 
         return &g_ggml_backend_zdnn_reg;

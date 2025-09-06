@@ -387,20 +387,23 @@ static void * ggml_backend_zdnn_buffer_get_base(ggml_backend_buffer_t buffer) {
     return ctx->all_data;
 }
 
-static enum ggml_status ggml_backend_zdnn_buffer_init_tensor(ggml_backend_buffer_t buffer, ggml_tensor * tensor) {
-    if (tensor->view_src != NULL) {
+static ggml_status ggml_backend_zdnn_buffer_init_tensor(ggml_backend_buffer_t buffer, ggml_tensor * tensor) {
+    if (tensor->view_src != nullptr) {
         assert(tensor->view_src->buffer->buft == buffer->buft);
+        tensor->extra = tensor->view_src->extra;
         return GGML_STATUS_SUCCESS;
     }
 
     ggml_backend_zdnn_buffer_context * ctx = (ggml_backend_zdnn_buffer_context *)buffer->context;
 
-    const int64_t tsize = ggml_nbytes(tensor);
+    const size_t tsize = ggml_nbytes(tensor);
     int buffer_idx = ctx->n_buffers;
 
     std::unique_ptr<ggml_backend_zdnn_buffer> zdnn_buffer = std::make_unique<ggml_backend_zdnn_buffer>();
     zdnn_buffer->data = tensor->data;
     zdnn_buffer->size = tsize;
+    zdnn_buffer->bytes_written.store(0, std::memory_order_relaxed);
+    zdnn_buffer->transformed_once.store(false, std::memory_order_relaxed);
     strncpy(zdnn_buffer->name, tensor->name, GGML_MAX_NAME - 1);
 
     ggml_zdnn_init_tensor(zdnn_buffer.get(), tensor);
@@ -425,11 +428,17 @@ static void ggml_backend_zdnn_buffer_set_tensor(ggml_backend_buffer_t buffer, gg
     memcpy((char *)tensor->data + offset, data, size);
 
     ggml_backend_zdnn_buffer * extra = (ggml_backend_zdnn_buffer *)tensor->extra;
-    size_t total_size = ggml_nbytes(tensor);
-    // WARNING: this check might not be thread-safe. need to verify.
-    if (offset + size == total_size) {
-        if (extra->ztensor.is_transformed) zdnn_reset_ztensor(&extra->ztensor);
-        ggml_zdnn_load_tensor(extra->ztensor, tensor->data);
+    assert(offset + size <= extra->size);
+
+    const size_t prev = extra->bytes_written.fetch_add(size, std::memory_order_acq_rel);
+    const bool   is_complete = (prev + size == extra->size);
+
+    if (is_complete) {
+        bool expected = false;
+        if (extra->transformed_once.compare_exchange_strong(expected, true, std::memory_order_acq_rel, std::memory_order_acquire)) {
+            if (extra->ztensor.is_transformed) zdnn_reset_ztensor(&extra->ztensor);
+            ggml_zdnn_load_tensor(extra->ztensor, tensor->data);
+        }
     }
 
     GGML_UNUSED(buffer);

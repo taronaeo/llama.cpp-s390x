@@ -160,19 +160,6 @@ static void ggml_zdnn_mul_mat_op(ggml_backend_zdnn_context * ctx, const ggml_ten
 }
 
 static void ggml_zdnn_mul_mat_dispatch(ggml_backend_zdnn_context * ctx, const ggml_tensor * src0, const ggml_tensor * src1, ggml_tensor * dst) {
-    bool use_mul_mat_vec =
-        (src0->type == GGML_TYPE_F16 || src0->type == GGML_TYPE_F16)
-        && src1->type == GGML_TYPE_F32 && dst->type == GGML_TYPE_F32
-        && src0->ne[0] % 2 == 0 && src1->ne[1] == 1;
-
-    bool use_mul_mat_vec_q =
-        ggml_is_quantized(src0->type)
-        && src1->type == GGML_TYPE_F32 && dst->type == GGML_TYPE_F32;
-
-    bool use_mul_mat_q =
-        ggml_is_quantized(src0->type)
-        && src1->type == GGML_TYPE_F32 && dst->type == GGML_TYPE_F32;
-
     // debug helpers
     // GGML_LOG_INFO("%s: use_mul_mat_vec   = %d\n", __func__, use_mul_mat_vec);
     // GGML_LOG_INFO("%s: use_mul_mat_vec_q = %d\n", __func__, use_mul_mat_vec_q);
@@ -184,25 +171,7 @@ static void ggml_zdnn_mul_mat_dispatch(ggml_backend_zdnn_context * ctx, const gg
     // GGML_LOG_INFO("%s: src0 is contiguous %d, transposed %d, type = %s, name = %s\n", __func__, ggml_is_contiguous(src0), ggml_is_transposed(src0), ggml_type_name(src0->type), src0->name);
     // GGML_LOG_INFO("%s: src1 is contiguous %d, transposed %d, type = %s, name = %s\n", __func__, ggml_is_contiguous(src1), ggml_is_transposed(src1), ggml_type_name(src1->type), src1->name);
 
-    if (src0->type == GGML_TYPE_F16 && src1->type == GGML_TYPE_F16
-        && !ggml_is_transposed(src0) && !ggml_is_transposed(src1)
-        && src1->ne[2] * src1->ne[3] > 1) {
-        // general KQ + KQV multi-batch
-        GGML_LOG_INFO("%s: using zdnn_mul_mat_batched for KQ + KQV multi-batch\n", __func__);
-        // ggml_zdnn_mul_mat_batched(ctx, src0, src1, dst);
-    } else if (use_mul_mat_vec) {
-        GGML_LOG_INFO("%s: using zdnn_op_mul_mat_vec for vector multiplication\n", __func__);
-        // ggml_zdnn_op_mul_mat(ctx, src0, src1, dst, ggml_zdnn_op_mul_mat_vec, nullptr);
-    } else if (use_mul_mat_vec_q) {
-        GGML_LOG_INFO("%s: using zdnn_op_mul_mat_vec_q for quantized vector multiplication\n", __func__);
-        // ggml_zdnn_op_mul_mat(ctx, src0, src1, dst, ggml_zdnn_op_mul_mat_vec_q, ggml_zdnn_quantize_row_q8_1);
-    } else if (use_mul_mat_q) {
-        GGML_LOG_INFO("%s: using zdnn_op_mul_mat_q for quantized matrix multiplication\n", __func__);
-        // ggml_zdnn_op_mul_mat(ctx, src0, src1, dst, ggml_zdnn_op_mul_mat_q, ggml_zdnn_quantize_mmq_q8_1);
-    } else {
-        // GGML_LOG_INFO("%s: using zdnn_op_mul_mat for general matrix multiplication\n", __func__);
-        ggml_zdnn_mul_mat_op(ctx, src0, src1, dst);
-    }
+    ggml_zdnn_mul_mat_op(ctx, src0, src1, dst);
 }
 
 static bool ggml_zdnn_compute_forward(ggml_backend_zdnn_context * ctx, ggml_tensor * dst) {
@@ -262,8 +231,8 @@ static bool ggml_zdnn_supports_op(const ggml_backend_zdnn_device_context * ctx_d
                 const ggml_tensor * inputs  = op->src[1];
 
                 const int64_t ne10 = inputs->ne[0];
-                const int64_t ne0 = op->ne[0];
-                const int64_t ne1 = op->ne[1];
+                const int64_t ne0  = op->ne[0];
+                const int64_t ne1  = op->ne[1];
 
                 const int64_t max_batch = ctx_dev->max_size;
 

@@ -39,10 +39,7 @@ RUN apt update -y && \
     apt upgrade -y && \
     apt install -y libgomp1 curl && \
     apt autoremove -y && \
-    apt clean -y && \
-    rm -rf /tmp/* /var/tmp/* && \
-    find /var/cache/apt/archives /var/lib/apt/lists -not -name lock -type f -delete && \
-    find /var/cache -type f -delete
+    apt clean -y
 
 COPY --from=build /opt/llama.cpp/bin /
 

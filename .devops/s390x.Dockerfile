@@ -21,4 +21,10 @@ RUN --mount=type=cache,target=/root/.ccache \
     && cmake --build build --config Release -j $(nproc) \
     && cmake --install build --prefix /opt/llama.cpp
 
-RUN ls -la /opt/llama.cpp
+RUN cp *.py /opt/llama.cpp \
+    && cp -r gguf-py /opt/llama.cpp \
+    && cp -r requirements /opt/llama.cpp \
+    && cp requirements.txt /opt/llama.cpp \
+    && cp .devops/tools.sh /opt/llama.cpp/tools.sh
+
+RUN ls -laR /opt/llama.cpp

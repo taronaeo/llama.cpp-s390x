@@ -7,7 +7,7 @@ ARG SUPPORT_ZDNN=OFF
 FROM --platform=linux/s390x gcc:${GCC_VERSION} AS build
 RUN apt update -y \
     && apt upgrade -y \
-    && apt install -y --no-install-recommends cmake \
+    && apt install -y --no-install-recommends cmake ninja-build \
     && apt install -y --no-install-recommends libopenblas-openmp-dev \
     && rm -rf /var/lib/apt/lists/*
 

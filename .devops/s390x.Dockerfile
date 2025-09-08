@@ -36,7 +36,10 @@ ENV LLAMA_ARG_HOST=0.0.0.0
 ENV LLAMA_ARG_PORT=8080
 
 COPY --from=build /opt/llama.cpp/bin /
-COPY --from=build /opt/llama.cpp/lib /usr/lib
+COPY --from=build /opt/llama.cpp/bin /
+COPY --from=build /opt/llama.cpp/lib /usr/lib/s390x-linux-gnu
+COPY --from=build /usr/local/lib64 /usr/lib/s390x-linux-gnu
+COPY --from=build /lib/s390x-linux-gnu /usr/lib/s390x-linux-gnu
 
 WORKDIR /models
 USER nonroot:nonroot

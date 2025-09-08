@@ -35,15 +35,8 @@ FROM --platform=linux/s390x gcr.io/distroless/cc-debian12:nonroot AS server
 ENV LLAMA_ARG_HOST=0.0.0.0
 ENV LLAMA_ARG_PORT=8080
 
-RUN apt update -y && \
-    apt upgrade -y && \
-    apt install -y libgomp1 curl && \
-    apt autoremove -y && \
-    apt clean -y
-
 COPY --from=build /opt/llama.cpp/bin /
-
-RUN ls -la | grep llama
+COPY --from=build /opt/llama.cpp/lib /
 
 WORKDIR /models
 USER nonroot:nonroot

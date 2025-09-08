@@ -36,7 +36,7 @@ ENV LLAMA_ARG_HOST=0.0.0.0
 ENV LLAMA_ARG_PORT=8080
 
 COPY --from=build /opt/llama.cpp/bin /
-COPY --from=build /opt/llama.cpp/lib /
+COPY --from=build /opt/llama.cpp/lib /usr/lib
 
 WORKDIR /models
 USER nonroot:nonroot

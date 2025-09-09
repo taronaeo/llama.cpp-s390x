@@ -15,8 +15,10 @@ RUN --mount=type=cache,target=/var/cache/apt \
         git cmake ccache ninja-build \
         python3 python3-pip python3-dev \
         libcurl4-openssl-dev libopenblas-openmp-dev && \
-    curl https://sh.rustup.rs -sSf | bash -s -- -y && \
     rm -rf /var/lib/apt/lists/*
+
+# Install rustc for pip installation
+RUN curl https://sh.rustup.rs -sSf | bash -s -- -y
 
 WORKDIR /app
 COPY . .

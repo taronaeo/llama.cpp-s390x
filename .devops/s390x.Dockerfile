@@ -57,7 +57,7 @@ RUN apt update -y \
 # Copy llama.cpp libraries
 COPY --from=collector /lib/llama.cpp /usr/lib/s390x-linux-gnu
 
-# Copy all distro libraries
+# Copy all shared libraries
 COPY --from=collector /lib/distro /lib/s390x-linux-gnu
 
 
@@ -65,14 +65,14 @@ COPY --from=collector /lib/distro /lib/s390x-linux-gnu
 FROM --platform=linux/s390x base AS light
 
 # Copy llama.cpp binaries and libraries
-COPY --from=collector /bin/llama.cpp/llama-cli       /llama.cpp/bin
-COPY --from=collector /bin/llama.cpp/libggml-cpu.so  /llama.cpp/bin
-COPY --from=collector /bin/llama.cpp/libggml-blas.so /llama.cpp/bin
+COPY --from=collector /bin/llama.cpp/llama-cli /
+COPY --from=collector /bin/llama.cpp/libggml-cpu.so /
+COPY --from=collector /bin/llama.cpp/libggml-blas.so /
 
 USER root:root
 WORKDIR /models
 
-ENTRYPOINT [ "/llama.cpp/bin/llama-cli" ]
+ENTRYPOINT [ "/llama-cli" ]
 
 
 ### Hardened Server
@@ -81,18 +81,18 @@ FROM --platform=linux/s390x gcr.io/distroless/cc-debian${DEBIAN_VERSION}:nonroot
 ENV LLAMA_ARG_HOST=0.0.0.0
 
 # Copy llama.cpp binaries and libraries
-COPY --from=collector /bin/llama.cpp/llama-server /llama.cpp/bin
+COPY --from=collector /bin/llama.cpp/llama-server /
 COPY --from=collector /lib/llama.cpp /usr/lib/s390x-linux-gnu
 
 # Fixes model loading errors
-COPY --from=collector /bin/llama.cpp/libggml-cpu.so /llama.cpp/bin
-COPY --from=collector /bin/llama.cpp/libggml-blas.so /llama.cpp/bin
+COPY --from=collector /bin/llama.cpp/libggml-cpu.so /
+COPY --from=collector /bin/llama.cpp/libggml-blas.so /
 
-# Copy all distro libraries
+# Copy all shared libraries
 COPY --from=collector /lib/distro /lib/s390x-linux-gnu
 
 USER nonroot:nonroot
 WORKDIR /models
 EXPOSE 8080
 
-ENTRYPOINT [ "/llama.cpp/bin/llama-server" ]
+ENTRYPOINT [ "/llama-server" ]

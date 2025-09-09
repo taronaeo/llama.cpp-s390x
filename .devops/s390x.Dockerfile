@@ -1,16 +1,6 @@
 ARG GCC_VERSION=15.2.0
 ARG DEBIAN_VERSION=12
 
-# Build gguf-py
-FROM --platform=linux/s390x python:3.11-slim-bookworm AS gguf-py-build
-
-WORKDIR /app
-
-COPY requirements /app/requirements
-COPY requirements.txt /app/requirements.txt
-
-RUN pip install --no-cache-dir --prefix=/gguf-py -r requirements.txt
-
 
 FROM --platform=linux/s390x gcc:${GCC_VERSION} AS build
 
@@ -19,12 +9,15 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     apt update -y && \
     apt upgrade -y && \
     apt install -y --no-install-recommends \
-        git cmake ccache ninja-build \
+        git cmake ccache ninja-build python3 python3-pip \
         libcurl4-openssl-dev libopenblas-openmp-dev && \
     rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 COPY . .
+
+RUN pip3 install --upgrade pip setuptools wheel && \
+    pip3 install --no-cache-dir --prefix=/gguf-py -r requirements.txt
 
 RUN --mount=type=cache,target=/root/.ccache \
     --mount=type=cache,target=/app/build \

@@ -1,5 +1,5 @@
 ARG GCC_VERSION=15.2.0
-ARG DEBIAN_VERSION=bookworm
+ARG DEBIAN_VERSION=12
 
 FROM gcc:${GCC_VERSION} AS build
 
@@ -76,7 +76,7 @@ ENTRYPOINT [ "/llama-cli" ]
 
 
 ### Hardened Server
-FROM --platform=linux/s390x gcr.io/distroless/cc-debian12:nonroot AS server
+FROM --platform=linux/s390x gcr.io/distroless/cc-debian${DEBIAN_VERSION}:nonroot AS server
 
 ENV LLAMA_ARG_HOST=0.0.0.0
 

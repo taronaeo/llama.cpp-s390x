@@ -1,7 +1,18 @@
 ARG GCC_VERSION=15.2.0
 ARG DEBIAN_VERSION=12
 
-FROM gcc:${GCC_VERSION} AS build
+# Build gguf-py
+FROM --platform=linux/s390x python:3.11-slim-bookworm AS gguf-py-build
+
+WORKDIR /app
+
+COPY requirements /app/requirements
+COPY requirements.txt /app/requirements.txt
+
+RUN pip install --no-cache-dir --prefix=/gguf-py -r requirements.txt
+
+
+FROM --platform=linux/s390x gcc:${GCC_VERSION} AS build
 
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,target=/var/lib/apt/lists,sharing=locked \
@@ -47,6 +58,10 @@ FROM --platform=linux/s390x scratch AS collector
 COPY --from=build /opt/llama.cpp/bin /bin/llama.cpp
 COPY --from=build /opt/llama.cpp/lib /lib/llama.cpp
 
+# Copy tools script
+# COPY --from=build /opt/llama.cpp/tools.sh /bin/llama.cpp
+# COPY --from=build /opt/llama.cpp/requirements.txt /bin/llama.cpp
+
 # Copy all shared libraries from distro
 COPY --from=build /usr/lib/s390x-linux-gnu /lib/distro
 
@@ -67,6 +82,28 @@ COPY --from=collector /lib/llama.cpp /usr/lib/s390x-linux-gnu
 
 # Copy all distro libraries
 COPY --from=collector /lib/distro /lib/s390x-linux-gnu
+
+
+### Full
+FROM base AS full
+
+USER root:root
+WORKDIR /app
+
+COPY --from=collector /bin/llama.cpp /app
+
+RUN apt update -y && \
+    apt install -y && \
+        git python3 python3-pip && \
+    pip install --upgrade pip setuptools wheel && \
+    pip install -r requirements.txt && \
+    apt autoremove -y && \
+    apt clean -y && \
+    rm -rf /tmp/* /var/tmp/* && \
+    find /var/cache/apt/archives /var/lib/apt/lists -not -name lock -type f -delete && \
+    find /var/cache -type f -delete
+
+ENTRYPOINT [ "/app/tools.sh" ]
 
 
 ### CLI Only

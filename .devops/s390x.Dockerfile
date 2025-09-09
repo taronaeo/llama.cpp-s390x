@@ -54,7 +54,11 @@ RUN apt update -y \
     && find /var/cache/apt/archives /var/lib/apt/lists -not -name lock -type f -delete \
     && find /var/cache -type f -delete
 
+# Copy llama.cpp libraries
 COPY --from=collector /lib/llama.cpp /usr/lib/s390x-linux-gnu
+
+# Copy all shared libraries
+COPY --from=collector /lib/distro /lib/s390x-linux-gnu
 
 
 ### CLI Only

@@ -40,8 +40,7 @@ COPY --from=build /opt/llama.cpp/lib /lib/llama.cpp
 # Copy all shared libraries from distro
 COPY --from=build /usr/lib/s390x-linux-gnu /lib/distro
 
-# TODO: REMEMBER TO REMOVE DEBUG TAG
-FROM --platform=linux/s390x gcr.io/distroless/cc-debian12:debug-nonroot AS server
+FROM --platform=linux/s390x gcr.io/distroless/cc-debian12:nonroot AS server
 
 ENV LLAMA_ARG_HOST=0.0.0.0
 
@@ -50,8 +49,8 @@ COPY --from=collector /bin/llama.cpp /
 COPY --from=collector /lib/llama.cpp /usr/lib/s390x-linux-gnu
 
 # Fixes model loading errors
-# TODO: Double check this
-# COPY --from=collector /bin/llama.cpp/*.so /
+COPY --from=collector /bin/llama.cpp/libggml-cpu.so /
+COPY --from=collector /bin/llama.cpp/libggml-blas.so /
 
 # Copy all shared libraries
 COPY --from=collector /lib/distro /lib/s390x-linux-gnu

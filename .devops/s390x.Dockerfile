@@ -16,8 +16,8 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
 WORKDIR /app
 COPY . .
 
-RUN pip3 install --upgrade pip setuptools wheel && \
-    pip3 install --no-cache-dir --prefix=/gguf-py -r requirements.txt
+RUN pip3 install --upgrade pip setuptools wheel --break-system-packages && \
+    pip3 install --no-cache-dir --prefix=/gguf-py -r requirements.txt --break-system-packages
 
 RUN --mount=type=cache,target=/root/.ccache \
     --mount=type=cache,target=/app/build \

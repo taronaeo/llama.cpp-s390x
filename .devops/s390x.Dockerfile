@@ -1,5 +1,6 @@
 ARG GCC_VERSION=15.2.0
 ARG DEBIAN_VERSION=12
+ARG BUILD_DIR=/app
 
 FROM gcc:${GCC_VERSION} AS build
 
@@ -12,11 +13,11 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
         libcurl4-openssl-dev libopenblas-openmp-dev && \
     rm -rf /var/lib/apt/lists/*
 
-WORKDIR /app
+WORKDIR ${BUILD_DIR}
 COPY . .
 
 RUN --mount=type=cache,target=/root/.ccache \
-    --mount=type=cache,target=/app/build \
+    --mount=type=cache,target=${BUILD_DIR}/build \
     cmake -S . -B build -G Ninja \
         -DCMAKE_BUILD_TYPE=Release \
         -DCMAKE_C_COMPILER_LAUNCHER=ccache \
@@ -31,6 +32,7 @@ RUN --mount=type=cache,target=/root/.ccache \
     cmake --install build --prefix /opt/llama.cpp
 
 # TODO: DOUBLE CHECK ALL FILES ARE COPIED INTO COLLECTOR
+# TODO: Switch to COPY operation instead for caching
 RUN cp *.py /opt/llama.cpp \
     && cp -r gguf-py /opt/llama.cpp \
     && cp -r requirements /opt/llama.cpp \

@@ -3,24 +3,38 @@ ARG DEBIAN_VERSION=12
 
 FROM gcc:${GCC_VERSION} AS build
 
-RUN apt update && \
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt/lists,sharing=locked \
+    apt update -y && \
     apt upgrade -y && \
-    apt install -y git cmake libcurl4-openssl-dev libopenblas-openmp-dev
+    apt install -y --no-install-recommends \
+        git cmake ccache ninja-build \
+        libcurl4-openssl-dev libopenblas-openmp-dev && \
+    rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
-COPY . .
+COPY CMakeLists.txt .
+COPY CMakePresets.json .
 
 RUN --mount=type=cache,target=/root/.ccache \
-    cmake -S . -B build \
+    --mount=type=cache,target=/app/build \
+    cmake -S . -B build -G Ninja \
         -DCMAKE_BUILD_TYPE=Release \
+        -DCMAKE_C_COMPILER_LAUNCHER=ccache \
+        -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
         -DLLAMA_BUILD_TESTS=OFF \
         -DGGML_NATIVE=OFF \
         -DGGML_BACKEND_DL=ON \
         -DGGML_CPU_ALL_VARIANTS=OFF \
         -DGGML_BLAS=ON \
-        -DGGML_BLAS_VENDOR=OpenBLAS \
-    && cmake --build build --config Release -j $(nproc) \
-    && cmake --install build --prefix /opt/llama.cpp
+        -DGGML_BLAS_VENDOR=OpenBLAS
+
+COPY . .
+
+RUN --mount=type=cache,target=/root/.ccache \
+    --mount=type=cache,target=/app/build \
+    cmake --build build --config Release -j $(nproc) && \
+    cmake --install build --prefix /opt/llama.cpp
 
 # TODO: DOUBLE CHECK ALL FILES ARE COPIED INTO COLLECTOR
 RUN cp *.py /opt/llama.cpp \

@@ -4,9 +4,6 @@ ARG DEBIAN_VERSION=12
 
 FROM --platform=linux/s390x gcc:${GCC_VERSION} AS build
 
-# Fix rustc not found
-ENV PATH="/root/.cargo/bin:${PATH}"
-
 RUN --mount=type=cache,target=/var/cache/apt \
     --mount=type=cache,target=/var/lib/apt/lists \
     apt update -y && \
@@ -41,11 +38,12 @@ RUN --mount=type=cache,target=/root/.ccache \
     cmake --install build --prefix /opt/llama.cpp
 
 # TODO: DOUBLE CHECK ALL FILES ARE COPIED INTO COLLECTOR
-RUN cp *.py /opt/llama.cpp \
-    && cp -r gguf-py /opt/llama.cpp \
-    && cp -r requirements /opt/llama.cpp \
-    && cp requirements.txt /opt/llama.cpp \
-    && cp .devops/tools.sh /opt/llama.cpp/tools.sh
+COPY *.py             /opt/llama.cpp/bin
+COPY .devops/tools.sh /opt/llama.cpp/bin
+
+COPY gguf-py          /opt/llama.cpp/gguf-py
+COPY requirements.txt /opt/llama.cpp/gguf-py
+COPY requirements     /opt/llama.cpp/gguf-py/requirements
 
 RUN ls -laR /opt/llama.cpp
 
@@ -54,33 +52,32 @@ RUN ls -laR /opt/llama.cpp
 FROM --platform=linux/s390x scratch AS collector
 
 # Copy llama.cpp binaries and libraries
-COPY --from=build /opt/llama.cpp/bin /bin/llama.cpp
-COPY --from=build /opt/llama.cpp/lib /lib/llama.cpp
-
-# Copy tools script
-# COPY --from=build /opt/llama.cpp/tools.sh /bin/llama.cpp
-# COPY --from=build /opt/llama.cpp/requirements.txt /bin/llama.cpp
+COPY --from=build /opt/llama.cpp/bin /llama.cpp/bin
+COPY --from=build /opt/llama.cpp/lib /llama.cpp/lib
+COPY --from=build /opt/llama.cpp/gguf-py /llama.cpp/gguf-py
 
 # Copy all shared libraries from distro
-COPY --from=build /usr/lib/s390x-linux-gnu /lib/distro
+COPY --from=build /usr/lib/s390x-linux-gnu /lib
 
 
 ### Non-Hardened Base Target
 FROM --platform=linux/s390x debian:${DEBIAN_VERSION}-slim AS base
 
-RUN apt update -y \
-    && apt install -y libgomp1 curl \
-    && apt autoremove -y \
-    && apt clean -y \
-    && rm -rf /tmp/* /var/tmp/* \
-    && find /var/cache/apt/archives /var/lib/apt/lists -not -name lock -type f -delete \
-    && find /var/cache -type f -delete
+RUN --mount=type=cache,target=/var/cache/apt \
+    --mount=type=cache,target=/var/lib/apt/lists \
+    apt update -y && \
+    apt install -y libgomp1 curl && \
+    apt autoremove -y && \
+    apt clean -y && \
+    rm -rf /tmp/* /var/tmp/* && \
+    find /var/cache/apt/archives /var/lib/apt/lists -not -name lock -type f -delete && \
+    find /var/cache -type f -delete
 
 # Copy llama.cpp libraries
-COPY --from=collector /lib/llama.cpp /usr/lib/s390x-linux-gnu
+COPY --from=collector /llama.cpp/lib /usr/lib/s390x-linux-gnu
 
 # Copy all distro libraries
-COPY --from=collector /lib/distro /lib/s390x-linux-gnu
+COPY --from=collector /lib /lib/s390x-linux-gnu
 
 
 ### Full
@@ -89,18 +86,26 @@ FROM base AS full
 USER root:root
 WORKDIR /app
 
-COPY --from=collector /bin/llama.cpp /app
+# Fix rustc not found
+ENV PATH="/root/.cargo/bin:${PATH}"
 
-RUN apt update -y && \
-    apt install -y && \
-        git python3 python3-pip && \
-    pip install --upgrade pip setuptools wheel && \
-    pip install -r requirements.txt && \
+COPY --from=collector /llama.cpp/bin /app
+COPY --from=collector /llama.cpp/gguf-py /app/gguf-py
+
+RUN --mount=type=cache,target=/var/cache/apt \
+    --mount=type=cache,target=/var/lib/apt/lists \
+    apt update -y && \
+    apt install -y --no-install-recommends \
+        git python3 python3-pip python3-dev && \
     apt autoremove -y && \
     apt clean -y && \
     rm -rf /tmp/* /var/tmp/* && \
     find /var/cache/apt/archives /var/lib/apt/lists -not -name lock -type f -delete && \
     find /var/cache -type f -delete
+
+RUN --mount=type=cache,target=/root/.cargo \
+    curl https://sh.rustup.rs -sSf | bash -s -- -y && \
+    pip install -r /app/gguf-py/requirements.txt
 
 ENTRYPOINT [ "/app/tools.sh" ]
 
@@ -112,9 +117,9 @@ USER root:root
 WORKDIR /llama.cpp/bin
 
 # Copy llama.cpp binaries and libraries
-COPY --from=collector /bin/llama.cpp/llama-cli       /llama.cpp/bin
-COPY --from=collector /bin/llama.cpp/libggml-cpu.so  /llama.cpp/bin
-COPY --from=collector /bin/llama.cpp/libggml-blas.so /llama.cpp/bin
+COPY --from=collector /llama.cpp/bin/llama-cli       /llama.cpp/bin
+COPY --from=collector /llama.cpp/bin/libggml-cpu.so  /llama.cpp/bin
+COPY --from=collector /llama.cpp/bin/libggml-blas.so /llama.cpp/bin
 
 ENTRYPOINT [ "/llama.cpp/bin/llama-cli" ]
 
@@ -128,15 +133,15 @@ USER nonroot:nonroot
 WORKDIR /llama.cpp/bin
 
 # Copy llama.cpp binaries and libraries
-COPY --from=collector /bin/llama.cpp/llama-server /llama.cpp/bin
-COPY --from=collector /lib/llama.cpp /usr/lib/s390x-linux-gnu
+COPY --from=collector /llama.cpp/bin/llama-server /llama.cpp/bin
+COPY --from=collector /llama.cpp/lib /usr/lib/s390x-linux-gnu
 
 # Fixes model loading errors
-COPY --from=collector /bin/llama.cpp/libggml-cpu.so /llama.cpp/bin
-COPY --from=collector /bin/llama.cpp/libggml-blas.so /llama.cpp/bin
+COPY --from=collector /llama.cpp/bin/libggml-cpu.so /llama.cpp/bin
+COPY --from=collector /llama.cpp/bin/libggml-blas.so /llama.cpp/bin
 
 # Copy all distro libraries
-COPY --from=collector /lib/distro /lib/s390x-linux-gnu
+COPY --from=collector /lib /lib/s390x-linux-gnu
 
 EXPOSE 8080
 

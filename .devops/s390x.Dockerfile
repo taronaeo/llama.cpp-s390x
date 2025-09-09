@@ -64,13 +64,13 @@ COPY --from=collector /lib/distro /lib/s390x-linux-gnu
 ### CLI Only
 FROM --platform=linux/s390x base AS light
 
+USER root:root
+WORKDIR /llama.cpp/bin
+
 # Copy llama.cpp binaries and libraries
 COPY --from=collector /bin/llama.cpp/llama-cli       /llama.cpp/bin
 COPY --from=collector /bin/llama.cpp/libggml-cpu.so  /llama.cpp/bin
 COPY --from=collector /bin/llama.cpp/libggml-blas.so /llama.cpp/bin
-
-USER root:root
-WORKDIR /models
 
 ENTRYPOINT [ "/llama.cpp/bin/llama-cli" ]
 
@@ -79,6 +79,9 @@ ENTRYPOINT [ "/llama.cpp/bin/llama-cli" ]
 FROM --platform=linux/s390x gcr.io/distroless/cc-debian${DEBIAN_VERSION}:nonroot AS server
 
 ENV LLAMA_ARG_HOST=0.0.0.0
+
+USER nonroot:nonroot
+WORKDIR /llama.cpp/bin
 
 # Copy llama.cpp binaries and libraries
 COPY --from=collector /bin/llama.cpp/llama-server /llama.cpp/bin
@@ -91,8 +94,6 @@ COPY --from=collector /bin/llama.cpp/libggml-blas.so /llama.cpp/bin
 # Copy all distro libraries
 COPY --from=collector /lib/distro /lib/s390x-linux-gnu
 
-USER nonroot:nonroot
-WORKDIR /models
 EXPOSE 8080
 
 ENTRYPOINT [ "/llama.cpp/bin/llama-server" ]

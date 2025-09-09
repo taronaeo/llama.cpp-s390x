@@ -14,13 +14,8 @@ RUN --mount=type=cache,target=/var/cache/apt \
         libcurl4-openssl-dev libopenblas-openmp-dev && \
     rm -rf /var/lib/apt/lists/*
 
-# Install rustc for pip installation
-RUN curl https://sh.rustup.rs -sSf | bash -s -- -y
-
 WORKDIR /app
 COPY . .
-
-RUN pip3 install --no-cache-dir --prefix=/gguf-py -r requirements.txt
 
 RUN --mount=type=cache,target=/root/.ccache \
     --mount=type=cache,target=/app/build \
@@ -103,8 +98,7 @@ RUN --mount=type=cache,target=/var/cache/apt \
     find /var/cache/apt/archives /var/lib/apt/lists -not -name lock -type f -delete && \
     find /var/cache -type f -delete
 
-RUN --mount=type=cache,target=/root/.cargo \
-    curl https://sh.rustup.rs -sSf | bash -s -- -y && \
+RUN curl https://sh.rustup.rs -sSf | bash -s -- -y && \
     pip install -r /app/gguf-py/requirements.txt
 
 ENTRYPOINT [ "/app/tools.sh" ]

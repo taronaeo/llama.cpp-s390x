@@ -35,14 +35,14 @@ FROM --platform=linux/s390x gcr.io/distroless/cc-debian12:nonroot AS server
 ENV LLAMA_ARG_HOST=0.0.0.0
 ENV LLAMA_ARG_PORT=8080
 
-COPY --from=build /opt/llama.cpp/bin /
+# Copy llama.cpp binaries and libraries
 COPY --from=build /opt/llama.cpp/bin /
 COPY --from=build /opt/llama.cpp/lib /usr/lib/s390x-linux-gnu
-COPY --from=build /usr/local/lib64 /usr/lib/s390x-linux-gnu
-COPY --from=build /lib/s390x-linux-gnu /usr/lib/s390x-linux-gnu
+
+# Copy all shared libraries
+COPY --from=build /usr/lib/s390x-linux-gnu /lib/s390x-linux-gnu
 
 WORKDIR /models
-USER nonroot:nonroot
 EXPOSE 8080
 
 ENTRYPOINT [ "/llama-server" ]

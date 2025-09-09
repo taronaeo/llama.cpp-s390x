@@ -40,12 +40,14 @@ COPY --from=build /opt/llama.cpp/lib /lib/llama.cpp
 # Copy all shared libraries from distro
 COPY --from=build /usr/lib/s390x-linux-gnu /lib/distro
 
+
+### Hardened Server
 FROM --platform=linux/s390x gcr.io/distroless/cc-debian12:nonroot AS server
 
 ENV LLAMA_ARG_HOST=0.0.0.0
 
 # Copy llama.cpp binaries and libraries
-COPY --from=collector /bin/llama.cpp /
+COPY --from=collector /bin/llama.cpp/llama-server /
 COPY --from=collector /lib/llama.cpp /usr/lib/s390x-linux-gnu
 
 # Fixes model loading errors

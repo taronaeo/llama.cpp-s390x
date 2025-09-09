@@ -45,7 +45,7 @@ ENV LLAMA_ARG_HOST=0.0.0.0
 ENV LLAMA_ARG_PORT=8080
 
 # Copy llama.cpp binaries and libraries
-COPY --from=collector /bin/llama.cpp/llama-server /
+COPY --from=collector /bin/llama.cpp /
 COPY --from=collector /lib/llama.cpp /usr/lib/s390x-linux-gnu
 
 # Copy all shared libraries

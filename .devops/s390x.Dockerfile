@@ -49,7 +49,7 @@ COPY --from=collector /bin/llama.cpp/llama-server /
 COPY --from=collector /lib/llama.cpp /usr/lib/s390x-linux-gnu
 
 # Copy all shared libraries
-COPY --from=build /lib/distro /lib/s390x-linux-gnu
+COPY --from=collector /lib/distro /lib/s390x-linux-gnu
 
 WORKDIR /models
 EXPOSE ${LLAMA_ARG_PORT}

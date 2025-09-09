@@ -51,6 +51,7 @@ COPY --from=collector /lib/llama.cpp /usr/lib/s390x-linux-gnu
 # Copy all shared libraries
 COPY --from=collector /lib/distro /lib/s390x-linux-gnu
 
+USER nonroot:nonroot
 WORKDIR /models
 EXPOSE ${LLAMA_ARG_PORT}
 

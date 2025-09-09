@@ -4,6 +4,9 @@ ARG DEBIAN_VERSION=12
 
 FROM --platform=linux/s390x gcc:${GCC_VERSION} AS build
 
+# Fix rustc not found
+ENV PATH="/root/.cargo/bin:${PATH}"
+
 RUN --mount=type=cache,target=/var/cache/apt \
     --mount=type=cache,target=/var/lib/apt/lists \
     --mount=type=cache,target=/root/.cargo \

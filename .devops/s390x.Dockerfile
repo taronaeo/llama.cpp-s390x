@@ -43,8 +43,8 @@ COPY --from=build /opt/llama.cpp/lib /lib/llama.cpp
 COPY --from=build /usr/lib/s390x-linux-gnu /lib/distro
 
 
-### Non-Hardened Base Image
-FROM --platform=linux/s390x debian:${UBUNTU_VERSION}-slim AS base
+### Non-Hardened Base Target
+FROM --platform=linux/s390x debian:${DEBIAN_VERSION}-slim AS base
 
 RUN apt update -y \
     && apt install -y libgomp1 curl \

@@ -22,8 +22,6 @@ RUN --mount=type=cache,target=/root/.ccache \
     && cmake --build build --config Release -j $(nproc) \
     && cmake --install build --prefix /opt/llama.cpp
 
-RUN find /opt/llama.cpp/bin -name "*.so" -exec mv {} /opt/llama.cpp/lib \;
-
 # DOUBLE CHECK ALL FILES ARE COPIED INTO COLLECTOR
 RUN cp *.py /opt/llama.cpp \
     && cp -r gguf-py /opt/llama.cpp \
@@ -42,17 +40,18 @@ COPY --from=build /opt/llama.cpp/lib /lib/llama.cpp
 # Copy all shared libraries from distro
 COPY --from=build /usr/lib/s390x-linux-gnu /lib/distro
 
-FROM --platform=linux/s390x gcr.io/distroless/cc-debian12:nonroot AS server
+# TODO: REMEMBER TO REMOVE DEBUG TAG
+FROM --platform=linux/s390x gcr.io/distroless/cc-debian12:debug-nonroot AS server
 
 ENV LLAMA_ARG_HOST=0.0.0.0
-ENV LLAMA_ARG_PORT=8080
 
 # Copy llama.cpp binaries and libraries
 COPY --from=collector /bin/llama.cpp /
 COPY --from=collector /lib/llama.cpp /usr/lib/s390x-linux-gnu
 
 # Fixes model loading errors
-COPY --from=collector /bin/llama.cpp/*.so /
+# TODO: Double check this
+# COPY --from=collector /bin/llama.cpp/*.so /
 
 # Copy all shared libraries
 COPY --from=collector /lib/distro /lib/s390x-linux-gnu

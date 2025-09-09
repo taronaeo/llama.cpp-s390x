@@ -4,20 +4,22 @@ ARG DEBIAN_VERSION=12
 
 FROM --platform=linux/s390x gcc:${GCC_VERSION} AS build
 
-RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
-    --mount=type=cache,target=/var/lib/apt/lists,sharing=locked \
+RUN --mount=type=cache,target=/var/cache/apt \
+    --mount=type=cache,target=/var/lib/apt/lists \
+    --mount=type=cache,target=/root/.cargo \
     apt update -y && \
     apt upgrade -y && \
     apt install -y --no-install-recommends \
-        git cmake ccache ninja-build python3 python3-pip \
+        git cmake ccache ninja-build \
+        python3 python3-pip python3-dev \
         libcurl4-openssl-dev libopenblas-openmp-dev && \
+    curl https://sh.rustup.rs -sSf | bash -s -- -y && \
     rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 COPY . .
 
-RUN pip3 install --upgrade pip setuptools wheel --break-system-packages && \
-    pip3 install --no-cache-dir --prefix=/gguf-py -r requirements.txt --break-system-packages
+RUN pip3 install --no-cache-dir --prefix=/gguf-py -r requirements.txt
 
 RUN --mount=type=cache,target=/root/.ccache \
     --mount=type=cache,target=/app/build \

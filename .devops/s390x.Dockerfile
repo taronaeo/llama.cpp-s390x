@@ -13,8 +13,7 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
-COPY CMakeLists.txt .
-COPY CMakePresets.json .
+COPY . .
 
 RUN --mount=type=cache,target=/root/.ccache \
     --mount=type=cache,target=/app/build \
@@ -27,12 +26,7 @@ RUN --mount=type=cache,target=/root/.ccache \
         -DGGML_BACKEND_DL=ON \
         -DGGML_CPU_ALL_VARIANTS=OFF \
         -DGGML_BLAS=ON \
-        -DGGML_BLAS_VENDOR=OpenBLAS
-
-COPY . .
-
-RUN --mount=type=cache,target=/root/.ccache \
-    --mount=type=cache,target=/app/build \
+        -DGGML_BLAS_VENDOR=OpenBLAS && \
     cmake --build build --config Release -j $(nproc) && \
     cmake --install build --prefix /opt/llama.cpp
 

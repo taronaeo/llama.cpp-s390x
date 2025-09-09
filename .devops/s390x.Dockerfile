@@ -22,6 +22,9 @@ RUN --mount=type=cache,target=/root/.ccache \
     && cmake --build build --config Release -j $(nproc) \
     && cmake --install build --prefix /opt/llama.cpp
 
+RUN find /opt/llama.cpp/bin -name "*.so" -exec mv {} /opt/llama.cpp/lib \;
+
+# DOUBLE CHECK ALL FILES ARE COPIED INTO COLLECTOR
 RUN cp *.py /opt/llama.cpp \
     && cp -r gguf-py /opt/llama.cpp \
     && cp -r requirements /opt/llama.cpp \

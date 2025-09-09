@@ -30,19 +30,28 @@ RUN cp *.py /opt/llama.cpp \
 
 RUN ls -laR /opt/llama.cpp
 
+FROM --platform=linux/s390x scratch AS collector
+
+# Copy llama.cpp binaries and libraries
+COPY --from=build /opt/llama.cpp/bin /bin/llama.cpp
+COPY --from=build /opt/llama.cpp/lib /lib/llama.cpp
+
+# Copy all shared libraries from distro
+COPY --from=build /usr/lib/s390x-linux-gnu /lib/distro
+
 FROM --platform=linux/s390x gcr.io/distroless/cc-debian12:nonroot AS server
 
 ENV LLAMA_ARG_HOST=0.0.0.0
 ENV LLAMA_ARG_PORT=8080
 
 # Copy llama.cpp binaries and libraries
-COPY --from=build /opt/llama.cpp/bin /
-COPY --from=build /opt/llama.cpp/lib /usr/lib/s390x-linux-gnu
+COPY --from=collector /bin/llama.cpp/llama-server /
+COPY --from=collector /lib/llama.cpp /usr/lib/s390x-linux-gnu
 
 # Copy all shared libraries
-COPY --from=build /usr/lib/s390x-linux-gnu /lib/s390x-linux-gnu
+COPY --from=build /lib/distro /lib/s390x-linux-gnu
 
 WORKDIR /models
-EXPOSE 8080
+EXPOSE ${LLAMA_ARG_PORT}
 
 ENTRYPOINT [ "/llama-server" ]

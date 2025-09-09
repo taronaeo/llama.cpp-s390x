@@ -9,7 +9,6 @@ ENV PATH="/root/.cargo/bin:${PATH}"
 
 RUN --mount=type=cache,target=/var/cache/apt \
     --mount=type=cache,target=/var/lib/apt/lists \
-    --mount=type=cache,target=/root/.cargo \
     apt update -y && \
     apt upgrade -y && \
     apt install -y --no-install-recommends \

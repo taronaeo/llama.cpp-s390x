@@ -1,5 +1,5 @@
 ARG GCC_VERSION=15.2.0
-ARG UBUNTU_VERSION=24.10
+ARG DEBIAN_VERSION=bookworm
 
 FROM gcc:${GCC_VERSION} AS build
 
@@ -22,7 +22,7 @@ RUN --mount=type=cache,target=/root/.ccache \
     && cmake --build build --config Release -j $(nproc) \
     && cmake --install build --prefix /opt/llama.cpp
 
-# DOUBLE CHECK ALL FILES ARE COPIED INTO COLLECTOR
+# TODO: DOUBLE CHECK ALL FILES ARE COPIED INTO COLLECTOR
 RUN cp *.py /opt/llama.cpp \
     && cp -r gguf-py /opt/llama.cpp \
     && cp -r requirements /opt/llama.cpp \
@@ -31,6 +31,8 @@ RUN cp *.py /opt/llama.cpp \
 
 RUN ls -laR /opt/llama.cpp
 
+
+### Collect all llama.cpp binaries, libraries and distro libraries
 FROM --platform=linux/s390x scratch AS collector
 
 # Copy llama.cpp binaries and libraries
@@ -39,6 +41,34 @@ COPY --from=build /opt/llama.cpp/lib /lib/llama.cpp
 
 # Copy all shared libraries from distro
 COPY --from=build /usr/lib/s390x-linux-gnu /lib/distro
+
+
+### Non-Hardened Base Image
+FROM --platform=linux/s390x debian:${UBUNTU_VERSION}-slim AS base
+
+RUN apt update -y \
+    && apt install -y libgomp1 curl \
+    && apt autoremove -y \
+    && apt clean -y \
+    && rm -rf /tmp/* /var/tmp/* \
+    && find /var/cache/apt/archives /var/lib/apt/lists -not -name lock -type f -delete \
+    && find /var/cache -type f -delete
+
+COPY --from=collector /lib/llama.cpp /usr/lib/s390x-linux-gnu
+
+
+### CLI Only
+FROM --platform=linux/s390x base AS light
+
+# Copy llama.cpp binaries and libraries
+COPY --from=collector /bin/llama.cpp/llama-cli /
+COPY --from=collector /bin/llama.cpp/libggml-cpu.so /
+COPY --from=collector /bin/llama.cpp/libggml-blas.so /
+
+USER root:root
+WORKDIR /models
+
+ENTRYPOINT [ "/llama-cli" ]
 
 
 ### Hardened Server

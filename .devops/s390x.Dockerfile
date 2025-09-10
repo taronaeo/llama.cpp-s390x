@@ -77,7 +77,9 @@ WORKDIR /app
 RUN --mount=type=cache,target=/var/cache/apt \
     --mount=type=cache,target=/var/lib/apt/lists \
     apt update -y && \
-    apt install -y git python3 python3-pip python3-dev && \
+    apt install -y \
+        git libjpeg-dev \
+        python3 python3-pip python3-dev && \
     apt autoremove -y && \
     apt clean -y && \
     rm -rf /tmp/* /var/tmp/* && \

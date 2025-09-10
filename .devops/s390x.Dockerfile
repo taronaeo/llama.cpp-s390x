@@ -80,8 +80,6 @@ WORKDIR /llama.cpp/bin
 
 # Copy llama.cpp binaries and libraries
 COPY --from=collector /llama.cpp/bin/llama-cli       /llama.cpp/bin
-COPY --from=collector /llama.cpp/bin/libggml-cpu.so  /llama.cpp/bin
-COPY --from=collector /llama.cpp/bin/libggml-blas.so /llama.cpp/bin
 
 ENTRYPOINT [ "/llama.cpp/bin/llama-cli" ]
 
@@ -95,8 +93,6 @@ WORKDIR /llama.cpp/bin
 
 # Copy llama.cpp binaries and libraries
 COPY --from=collector /llama.cpp/bin/llama-server /llama.cpp/bin
-COPY --from=collector /llama.cpp/bin/libggml-cpu.so /llama.cpp/bin
-COPY --from=collector /llama.cpp/bin/libggml-blas.so /llama.cpp/bin
 
 EXPOSE 8080
 

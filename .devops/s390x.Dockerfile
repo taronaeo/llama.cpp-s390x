@@ -1,7 +1,7 @@
 ARG GCC_VERSION=15.2.0
 ARG UBUNTU_VERSION=24.04
 
-
+### Build stage
 FROM --platform=linux/s390x gcc:${GCC_VERSION} AS build
 
 RUN --mount=type=cache,target=/var/cache/apt \
@@ -30,15 +30,12 @@ RUN --mount=type=cache,target=/root/.ccache \
     cmake --build build --config Release -j $(nproc) && \
     cmake --install build --prefix /opt/llama.cpp
 
-# TODO: DOUBLE CHECK ALL FILES ARE COPIED INTO COLLECTOR
 COPY *.py             /opt/llama.cpp/bin
 COPY .devops/tools.sh /opt/llama.cpp/bin
 
 COPY gguf-py          /opt/llama.cpp/gguf-py
 COPY requirements.txt /opt/llama.cpp/gguf-py
 COPY requirements     /opt/llama.cpp/gguf-py/requirements
-
-RUN ls -laR /opt/llama.cpp
 
 
 ### Collect all llama.cpp binaries, libraries and distro libraries
@@ -103,7 +100,7 @@ FROM --platform=linux/s390x base AS light
 WORKDIR /llama.cpp/bin
 
 # Copy llama.cpp binaries and libraries
-COPY --from=collector /llama.cpp/bin/llama-cli       /llama.cpp/bin
+COPY --from=collector /llama.cpp/bin/llama-cli /llama.cpp/bin
 
 ENTRYPOINT [ "/llama.cpp/bin/llama-cli" ]
 

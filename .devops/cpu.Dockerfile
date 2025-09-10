@@ -1,16 +1,11 @@
 ARG UBUNTU_VERSION=22.04
-ARG GCC_VERSION=15.2.0
 
-FROM gcc:$GCC_VERSION AS build
+FROM ubuntu:$UBUNTU_VERSION AS build
 
 ARG TARGETARCH
 
 RUN apt-get update && \
-    apt-get install -y git cmake libcurl4-openssl-dev
-
-RUN if [ "$TARGETARCH" = "s390x" ]; then \
-        apt-get install -y libopenblas-dev; \
-    fi
+    apt-get install -y build-essential git cmake libcurl4-openssl-dev
 
 WORKDIR /app
 
@@ -18,8 +13,6 @@ COPY . .
 
 RUN if [ "$TARGETARCH" = "amd64" ] || [ "$TARGETARCH" = "arm64" ]; then \
         cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DGGML_NATIVE=OFF -DLLAMA_BUILD_TESTS=OFF -DGGML_BACKEND_DL=ON -DGGML_CPU_ALL_VARIANTS=ON; \
-    elif [ "$TARGETARCH" = "s390x" ]; then \
-        cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DGGML_NATIVE=OFF -DLLAMA_BUILD_TESTS=OFF -DGGML_BLAS=ON -DGGML_BLAS_VENDOR=OpenBLAS; \
     else \
         echo "Unsupported architecture"; \
         exit 1; \
@@ -40,13 +33,8 @@ RUN mkdir -p /app/full \
 ## Base image
 FROM ubuntu:$UBUNTU_VERSION AS base
 
-ARG TARGETARCH
-
 RUN apt-get update \
-    && apt-get install -y libgomp1 curl \
-    && if [ "$TARGETARCH" = "s390x" ]; then \
-        apt-get install -y libopenblas-dev; \
-    fi \
+    && apt-get install -y libgomp1 curl\
     && apt autoremove -y \
     && apt clean -y \
     && rm -rf /tmp/* /var/tmp/* \

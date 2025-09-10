@@ -1,12 +1,15 @@
-ARG GCC_VERSION=15.2.0
-ARG UBUNTU_VERSION=24.10
+ARG UBUNTU_VERSION=22.04
 
-FROM gcc:${GCC_VERSION} AS build
+FROM ubuntu:$UBUNTU_VERSION AS build
 
 ARG TARGETARCH
 
 RUN apt-get update && \
     apt-get install -y build-essential git cmake libcurl4-openssl-dev
+
+RUN if [ "$TARGETARCH" = "s390x" ]; then \
+        apt-get install -y libopenblas-dev; \
+    fi
 
 WORKDIR /app
 
@@ -14,8 +17,8 @@ COPY . .
 
 RUN if [ "$TARGETARCH" = "amd64" ] || [ "$TARGETARCH" = "arm64" ]; then \
         cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DGGML_NATIVE=OFF -DLLAMA_BUILD_TESTS=OFF -DGGML_BACKEND_DL=ON -DGGML_CPU_ALL_VARIANTS=ON; \
-    elif [ "${TARGETARCH}" = "s390x" ]; then \
-        cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DGGML_NATIVE=OFF -DLLAMA_BUILD_TESTS=OFF -DGGML_BACKEND_DL=ON -DGGML_CPU_ALL_VARIANTS=OFF; \
+    elif [ "$TARGETARCH" = "s390x" ]; then \
+        cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DGGML_NATIVE=OFF -DLLAMA_BUILD_TESTS=OFF -DGGML_BLAS=ON -DGGML_BLAS_VENDOR=OpenBLAS; \
     else \
         echo "Unsupported architecture"; \
         exit 1; \

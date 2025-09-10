@@ -40,8 +40,13 @@ RUN mkdir -p /app/full \
 ## Base image
 FROM ubuntu:$UBUNTU_VERSION AS base
 
+ARG TARGETARCH
+
 RUN apt-get update \
-    && apt-get install -y libgomp1 curl\
+    && apt-get install -y libgomp1 curl \
+    && if [ "$TARGETARCH" = "s390x" ]; then \
+        apt-get install -y libopenblas-dev; \
+    fi \
     && apt autoremove -y \
     && apt clean -y \
     && rm -rf /tmp/* /var/tmp/* \

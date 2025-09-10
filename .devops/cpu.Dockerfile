@@ -6,7 +6,7 @@ FROM gcc:$GCC_VERSION AS build
 ARG TARGETARCH
 
 RUN apt-get update && \
-    apt-get install -y build-essential git cmake libcurl4-openssl-dev
+    apt-get install -y git cmake libcurl4-openssl-dev
 
 RUN if [ "$TARGETARCH" = "s390x" ]; then \
         apt-get install -y libopenblas-dev; \

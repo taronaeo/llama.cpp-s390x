@@ -76,32 +76,32 @@ COPY --from=collector /lib /lib/s390x-linux-gnu
 
 
 ### Full
-FROM base AS full
+# FROM base AS full
 
-USER root:root
-WORKDIR /app
+# USER root:root
+# WORKDIR /app
 
-# Fix rustc not found
-ENV PATH="/root/.cargo/bin:${PATH}"
+# # Fix rustc not found
+# ENV PATH="/root/.cargo/bin:${PATH}"
 
-COPY --from=collector /llama.cpp/bin /app
-COPY --from=collector /llama.cpp/gguf-py /app/gguf-py
+# COPY --from=collector /llama.cpp/bin /app
+# COPY --from=collector /llama.cpp/gguf-py /app/gguf-py
 
-RUN --mount=type=cache,target=/var/cache/apt \
-    --mount=type=cache,target=/var/lib/apt/lists \
-    apt update -y && \
-    apt install -y --no-install-recommends \
-        git python3 python3-pip python3-dev && \
-    apt autoremove -y && \
-    apt clean -y && \
-    rm -rf /tmp/* /var/tmp/* && \
-    find /var/cache/apt/archives /var/lib/apt/lists -not -name lock -type f -delete && \
-    find /var/cache -type f -delete
+# RUN --mount=type=cache,target=/var/cache/apt \
+#     --mount=type=cache,target=/var/lib/apt/lists \
+#     apt update -y && \
+#     apt install -y --no-install-recommends \
+#         git python3 python3-pip python3-dev && \
+#     apt autoremove -y && \
+#     apt clean -y && \
+#     rm -rf /tmp/* /var/tmp/* && \
+#     find /var/cache/apt/archives /var/lib/apt/lists -not -name lock -type f -delete && \
+#     find /var/cache -type f -delete
 
-RUN curl https://sh.rustup.rs -sSf | bash -s -- -y && \
-    pip install -r /app/gguf-py/requirements.txt
+# RUN curl https://sh.rustup.rs -sSf | bash -s -- -y && \
+#     pip install -r /app/gguf-py/requirements.txt
 
-ENTRYPOINT [ "/app/tools.sh" ]
+# ENTRYPOINT [ "/app/tools.sh" ]
 
 
 ### CLI Only

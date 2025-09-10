@@ -49,9 +49,6 @@ COPY --from=build /opt/llama.cpp/bin /llama.cpp/bin
 COPY --from=build /opt/llama.cpp/lib /llama.cpp/lib
 COPY --from=build /opt/llama.cpp/gguf-py /llama.cpp/gguf-py
 
-# Copy all shared libraries from distro
-# COPY --from=build /usr/lib/s390x-linux-gnu /lib
-
 
 ### Base image
 FROM --platform=linux/s390x ubuntu:${UBUNTU_VERSION} AS base
@@ -59,7 +56,8 @@ FROM --platform=linux/s390x ubuntu:${UBUNTU_VERSION} AS base
 RUN --mount=type=cache,target=/var/cache/apt \
     --mount=type=cache,target=/var/lib/apt/lists \
     apt update -y && \
-    apt install -y curl libgomp1 libopenblas-dev && \
+    apt install -y --no-install-recommends \
+        curl libgomp1 libopenblas-dev && \
     apt autoremove -y && \
     apt clean -y && \
     rm -rf /tmp/* /var/tmp/* && \
@@ -69,8 +67,31 @@ RUN --mount=type=cache,target=/var/cache/apt \
 # Copy llama.cpp libraries
 COPY --from=collector /llama.cpp/lib /usr/lib/s390x-linux-gnu
 
-# Copy all distro libraries
-# COPY --from=collector /lib /lib/s390x-linux-gnu
+
+### Full
+FROM --platform=linux/s390x base AS full
+
+ENV PATH="/root/.cargo/bin:${PATH}"
+WORKDIR /app
+
+RUN --mount=type=cache,target=/var/cache/apt \
+    --mount=type=cache,target=/var/lib/apt/lists \
+    apt update -y && \
+    apt install -y git python3 python3-pip python3-dev && \
+    apt autoremove -y && \
+    apt clean -y && \
+    rm -rf /tmp/* /var/tmp/* && \
+    find /var/cache/apt/archives /var/lib/apt/lists -not -name lock -type f -delete && \
+    find /var/cache -type f -delete
+
+RUN curl https://sh.rustup.rs -sSf | bash -s -- -y
+
+COPY --from=collector /llama.cpp/bin /app
+COPY --from=collector /llama.cpp/gguf-py /app/gguf-py
+
+RUN pip install --no-cache-dir -r /app/gguf-py/requirements.txt
+
+ENTRYPOINT [ "/app/tools.sh" ]
 
 
 ### CLI Only
@@ -84,7 +105,7 @@ COPY --from=collector /llama.cpp/bin/llama-cli       /llama.cpp/bin
 ENTRYPOINT [ "/llama.cpp/bin/llama-cli" ]
 
 
-### Hardened Server
+### Server
 FROM --platform=linux/s390x base AS server
 
 ENV LLAMA_ARG_HOST=0.0.0.0

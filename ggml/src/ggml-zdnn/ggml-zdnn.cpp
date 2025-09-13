@@ -536,29 +536,6 @@ ggml_backend_buffer_type_t ggml_backend_zdnn_buffer_type(void) {
     return &ggml_backend_buffer_type_zdnn;
 }
 
-static const char * ggml_backend_zdnn_buffer_from_ptr_type_get_name(ggml_backend_buffer_type_t buft) {
-    return GGML_ZDNN_NAME "_Mapped";
-
-    GGML_UNUSED(buft);
-}
-
-static ggml_backend_buffer_type_t ggml_backend_zdnn_buffer_from_ptr_type(void) {
-    static ggml_backend_buffer_type ggml_backend_buffer_from_ptr_type_zdnn = {
-        /* .iface = */ {
-            /* .get_name       = */ ggml_backend_zdnn_buffer_from_ptr_type_get_name,
-            /* .alloc_buffer   = */ ggml_backend_zdnn_buffer_type_alloc_buffer,
-            /* .get_alignment  = */ ggml_backend_zdnn_buffer_type_get_alignment,
-            /* .get_max_size   = */ NULL,
-            /* .get_alloc_size = */ NULL,  // defaults to ggml_nbytes
-            /* .is_host        = */ ggml_backend_zdnn_buffer_type_is_host,
-        },
-        /* .device  = */ &g_ggml_backend_zdnn_device,
-        /* .context = */ NULL,
-    };
-
-    return &ggml_backend_buffer_from_ptr_type_zdnn;
-}
-
 //
 // backend
 //
@@ -685,8 +662,7 @@ static bool ggml_backend_zdnn_device_supports_op(ggml_backend_dev_t dev, const g
 
 static bool ggml_backend_zdnn_device_supports_buft(ggml_backend_dev_t dev, ggml_backend_buffer_type_t buft) {
     return
-        buft->iface.get_name == ggml_backend_zdnn_buffer_type_get_name ||
-        buft->iface.get_name == ggml_backend_zdnn_buffer_from_ptr_type_get_name;
+        buft->iface.get_name == ggml_backend_zdnn_buffer_type_get_name;
 
     GGML_UNUSED(dev);
 }

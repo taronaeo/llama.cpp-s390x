@@ -350,6 +350,9 @@ static void ggml_backend_zdnn_buffer_free_buffer(ggml_backend_buffer_t buffer) {
 
     for (const auto & buf_ptr : ctx->buffers) {
         ggml_backend_zdnn_buffer * buf = buf_ptr.get();
+
+        // Free any extra buffer allocated for the tensor. E.g., bias for GGML_OP_MUL_MAT
+        if (buf->extra != nullptr) free(buf->extra->data);
         if (buf->ztensor.buffer_size > 0) ZDNN_CHECK(zdnn_free_ztensor_buffer(&buf->ztensor));
     }
 

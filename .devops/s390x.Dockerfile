@@ -1,20 +1,44 @@
 ARG GCC_VERSION=15.2.0
 ARG UBUNTU_VERSION=24.04
 
-### Build stage
-FROM --platform=linux/s390x gcc:${GCC_VERSION} AS build
+### Build OpenBLAS stage
+FROM --platform=linux/s390x gcc:${GCC_VERSION} AS build-openblas
+
+ARG OPENBLAS_THREADS=8
 
 RUN --mount=type=cache,target=/var/cache/apt \
     --mount=type=cache,target=/var/lib/apt/lists \
     apt update -y && \
     apt upgrade -y && \
     apt install -y --no-install-recommends \
-        git cmake ccache ninja-build \
-        libcurl4-openssl-dev libopenblas-openmp-dev && \
+        git pkg-config && \
+    rm -rf /var/lib/apt/lists/*
+
+WORKDIR /build
+RUN git clone https://github.com/taronaeo/OpenBLAS-s390x /build
+
+RUN export NUM_THREADS=${OPENBLAS_THREADS} && \
+    export OPENBLAS_NUM_THREADS=$NUM_THREADS && \
+    export GOTO_NUM_THREADS=$NUM_THREADS && \
+    export OMP_NUM_THREADS=$NUM_THREADS && \
+    make -j $(nproc) USE_OPENMP=1 && \
+    make -j $(nproc) USE_OPENMP=1 PREFIX=/opt/openblas-libs install
+
+
+### Build Llama.cpp stage
+FROM --platform=linux/s390x gcc:${GCC_VERSION} AS build-llama
+
+RUN --mount=type=cache,target=/var/cache/apt \
+    --mount=type=cache,target=/var/lib/apt/lists \
+    apt update -y && \
+    apt upgrade -y && \
+    apt install -y --no-install-recommends \
+        git cmake ccache ninja-build libcurl4-openssl-dev && \
     rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 COPY . .
+COPY --from=build-openblas /opt/openblas-libs /opt/openblas-libs
 
 RUN --mount=type=cache,target=/root/.ccache \
     --mount=type=cache,target=/app/build \
@@ -26,7 +50,9 @@ RUN --mount=type=cache,target=/root/.ccache \
         -DGGML_BACKEND_DL=OFF \
         -DGGML_NATIVE=OFF \
         -DGGML_BLAS=ON \
-        -DGGML_BLAS_VENDOR=OpenBLAS && \
+        -DGGML_BLAS_VENDOR=OpenBLAS \
+        -DBLAS_LIBRARIES="/opt/openblas-libs/lib/libopenblas.so" \
+        -DBLAS_INCLUDE_DIRS="/opt/openblas-libs/include" && \
     cmake --build build --config Release -j $(nproc) && \
     cmake --install build --prefix /opt/llama.cpp
 
@@ -42,9 +68,12 @@ COPY requirements     /opt/llama.cpp/gguf-py/requirements
 FROM --platform=linux/s390x scratch AS collector
 
 # Copy llama.cpp binaries and libraries
-COPY --from=build /opt/llama.cpp/bin /llama.cpp/bin
-COPY --from=build /opt/llama.cpp/lib /llama.cpp/lib
-COPY --from=build /opt/llama.cpp/gguf-py /llama.cpp/gguf-py
+COPY --from=build-llama /opt/llama.cpp/bin     /llama.cpp/bin
+COPY --from=build-llama /opt/llama.cpp/lib     /llama.cpp/lib
+COPY --from=build-llama /opt/llama.cpp/gguf-py /llama.cpp/gguf-py
+
+# Copy patched OpenBLAS libraries
+COPY --from=build-openblas /opt/openblas-libs/lib /llama.cpp/lib
 
 
 ### Base image
@@ -54,7 +83,7 @@ RUN --mount=type=cache,target=/var/cache/apt \
     --mount=type=cache,target=/var/lib/apt/lists \
     apt update -y && \
     apt install -y --no-install-recommends \
-        curl libgomp1 libopenblas-dev && \
+        curl libgfortran5 && \
     apt autoremove -y && \
     apt clean -y && \
     rm -rf /tmp/* /var/tmp/* && \

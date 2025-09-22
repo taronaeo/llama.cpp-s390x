@@ -20,10 +20,14 @@ static void ggml_zdnn_compute_forward_mul_mat(
     const ggml_tensor * src1 = dst->src[1];  // inputs
 
     // TODO: implement support for quantized types
+    // we currently only support f32, f16, and bf16
     ggml_zdnn_mul_mat_f(ctx, src0, src1, dst);
 }
 
-static bool ggml_zdnn_compute_forward(ggml_backend_zdnn_context * ctx, ggml_tensor * dst) {
+static bool ggml_zdnn_compute_forward(
+    ggml_backend_zdnn_context * ctx,
+    ggml_tensor * dst) {
+
     switch (dst->op) {
         case GGML_OP_MUL_MAT:
             {

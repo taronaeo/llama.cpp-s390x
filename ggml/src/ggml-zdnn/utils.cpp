@@ -23,11 +23,11 @@ zdnn_data_types ggml_zdnn_type_mapping(ggml_type type) {
 }
 
 void ggml_zdnn_create_tensor(zdnn_tensor_desc  & pre_tfm_desc,
-                                    zdnn_tensor_desc  & tfm_desc,
-                                    zdnn_ztensor      & ztensor,
-                              const ggml_tensor       * src,
-                              const int64_t           * ne,
-                              const zdnn_data_layouts   layout) {
+                             zdnn_tensor_desc  & tfm_desc,
+                             zdnn_ztensor      & ztensor,
+                       const ggml_tensor       * src,
+                       const int64_t           * ne,
+                       const zdnn_data_layouts   layout) {
     zdnn_init_pre_transformed_desc(
         layout,
         ggml_zdnn_type_mapping(src->type),

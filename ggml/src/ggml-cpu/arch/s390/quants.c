@@ -279,7 +279,7 @@ void ggml_vec_dot_mxfp4_q8_0(int n, float * GGML_RESTRICT s, size_t bs, const vo
     float sumf = 0.0f;
 
 #if defined(__VXE__) || defined(__VXE2__)
-    const uint8x16_t v_k = vec_xl(0, kvalues_mxfp4);
+    const int8x16_t  v_k = vec_xl(0, kvalues_mxfp4);
     const uint8x16_t v_m = vec_splats((uint8_t)0x0F);
 
     for (; ib + 1 < nb; ib += 2) {

@@ -733,7 +733,7 @@ void ggml_vec_dot_q3_K_q8_K(int n, float * GGML_RESTRICT s, size_t bs, const voi
     uint8x16_t q3h[4];
     uint8x16_t q3b[2];
     int8x16_t q3bytes[4];
-    int8x16_t q8bytes[4];
+    int8x16_t q8bytes[8];
     uint8x16_t qhbits[2];
 
     float sum = 0;

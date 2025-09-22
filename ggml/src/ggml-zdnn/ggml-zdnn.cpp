@@ -1,4 +1,4 @@
-#include "ggml-zdnn-impl.h"
+#include "ggml-zdnn-impl.hpp"
 #include "ggml-impl.h"
 #include "ggml-backend-impl.h"
 

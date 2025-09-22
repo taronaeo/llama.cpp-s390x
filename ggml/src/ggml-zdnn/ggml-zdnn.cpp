@@ -4,6 +4,7 @@
 
 #include "ggml-zdnn/common.hpp"
 #include "ggml-zdnn/mmf.hpp"
+#include "ggml-zdnn/utils.hpp"
 #include "ggml.h"
 
 #include <vector>
@@ -11,104 +12,23 @@
 #include <csignal>  // raise(SIGTRAP)
 #include <unistd.h>
 
-inline zdnn_data_types ggml_zdnn_type_mapping(ggml_type type) {
-    switch (type) {
-        case GGML_TYPE_F32:
-            return FP32;
-        case GGML_TYPE_F16:
-            return FP16;
-        case GGML_TYPE_BF16:
-            return BFLOAT;
-        case GGML_TYPE_I8:
-            return INT8;
-        case GGML_TYPE_I32:
-            return INT32;
-        case GGML_TYPE_Q8_0:
-            return INT8;
-        default:
-            GGML_ABORT("%s: fatal: unable to determine zTensor data type",
-                       __func__);
-            break;
-    }
-}
+static void ggml_zdnn_compute_forward_mul_mat(
+    const ggml_backend_zdnn_context * ctx,
+          ggml_tensor * dst) {
 
-inline void ggml_zdnn_create_tensor(zdnn_tensor_desc  & pre_tfm_desc,
-                                    zdnn_tensor_desc  & tfm_desc,
-                                    zdnn_ztensor      & ztensor,
-                              const ggml_tensor       * src,
-                              const int64_t           * ne,
-                              const zdnn_data_layouts   layout) {
-    zdnn_init_pre_transformed_desc(
-        layout,
-        ggml_zdnn_type_mapping(src->type),
-        &pre_tfm_desc,
-        ne[3], ne[2], ne[1], ne[0]
-    );
+    const ggml_tensor * src0 = dst->src[0];  // weights
+    const ggml_tensor * src1 = dst->src[1];  // inputs
 
-    ZDNN_CHECK(zdnn_generate_transformed_desc(&pre_tfm_desc, &tfm_desc));
-    ZDNN_CHECK(zdnn_init_ztensor_with_malloc(&pre_tfm_desc, &tfm_desc, &ztensor));
-}
-
-inline void ggml_zdnn_load_tensor(zdnn_ztensor & ztensor,
-                                          void * buffer) {
-    ZDNN_CHECK(zdnn_transform_ztensor(&ztensor, buffer));
-}
-
-inline void ggml_zdnn_init_tensor(ggml_backend_zdnn_buffer * buffer, const ggml_tensor * tensor) {
-    switch (tensor->op) {
-        case GGML_OP_MUL_MAT:
-            {
-                zdnn_init_pre_transformed_desc(
-                    ZDNN_2D,
-                    ggml_zdnn_type_mapping(tensor->type),
-                    &buffer->pre_tfm_desc,
-                    tensor->ne[1], tensor->ne[0]
-                );
-            } break;
-
-        default:
-            {
-                // For 4D tensors, GGML uses NCHW layout. However, because zDNN
-                // automatically transforms everything to NHWC, we will use it
-                // directly to avoid the performance penalty changing the
-                // layout and reshaping the tensor.
-                zdnn_init_pre_transformed_desc(
-                    ZDNN_NHWC,
-                    ggml_zdnn_type_mapping(tensor->type),
-                    &buffer->pre_tfm_desc,
-                    tensor->ne[3], tensor->ne[2], tensor->ne[1], tensor->ne[0]
-                );
-
-                // TODO: Consider adding a ggml check.
-                // TODO: If tensor = 4D, use ZDNN_NCHW by default.
-                // TODO: If tensor = 2D, use ZDNN_NHWC by default.
-            } break;
-    }
-
-    ZDNN_CHECK(zdnn_generate_transformed_desc(&buffer->pre_tfm_desc, &buffer->tfm_desc));
-    ZDNN_CHECK(zdnn_init_ztensor_with_malloc(&buffer->pre_tfm_desc, &buffer->tfm_desc, &buffer->ztensor));
-}
-
-static void ggml_zdnn_mul_mat_dispatch(ggml_backend_zdnn_context * ctx, const ggml_tensor * src0, const ggml_tensor * src1, ggml_tensor * dst) {
-    // debug helpers
-    // GGML_LOG_INFO("%s: use_mul_mat_vec   = %d\n", __func__, use_mul_mat_vec);
-    // GGML_LOG_INFO("%s: use_mul_mat_vec_q = %d\n", __func__, use_mul_mat_vec_q);
-    // GGML_LOG_INFO("%s: use_mul_mat_q     = %d\n", __func__, use_mul_mat_q);
-    // GGML_LOG_INFO("%s: src0: %8d %8d %8d %8d\n", __func__, src0->ne[0], src0->ne[1], src0->ne[2], src0->ne[3]);
-    // GGML_LOG_INFO("%s:       %8d %8d %8d %8d\n", __func__, src0->nb[0], src0->nb[1], src0->nb[2], src0->nb[3]);
-    // GGML_LOG_INFO("%s: src1: %8d %8d %8d %8d\n", __func__, src1->ne[0], src1->ne[1], src1->ne[2], src1->ne[3]);
-    // GGML_LOG_INFO("%s:       %8d %8d %8d %8d\n", __func__, src1->nb[0], src1->nb[1], src1->nb[2], src1->nb[3]);
-    // GGML_LOG_INFO("%s: src0 is contiguous %d, transposed %d, type = %s, name = %s\n", __func__, ggml_is_contiguous(src0), ggml_is_transposed(src0), ggml_type_name(src0->type), src0->name);
-    // GGML_LOG_INFO("%s: src1 is contiguous %d, transposed %d, type = %s, name = %s\n", __func__, ggml_is_contiguous(src1), ggml_is_transposed(src1), ggml_type_name(src1->type), src1->name);
-
+    // TODO: implement support for quantized types
     ggml_zdnn_mul_mat_f(ctx, src0, src1, dst);
 }
 
 static bool ggml_zdnn_compute_forward(ggml_backend_zdnn_context * ctx, ggml_tensor * dst) {
     switch (dst->op) {
         case GGML_OP_MUL_MAT:
-            ggml_zdnn_mul_mat_dispatch(ctx, dst->src[0], dst->src[1], dst);
-            break;
+            {
+                ggml_zdnn_compute_forward_mul_mat(ctx, dst);
+            } break;
 
         default:
             return false;

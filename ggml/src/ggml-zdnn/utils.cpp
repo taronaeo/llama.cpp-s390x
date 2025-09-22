@@ -1,7 +1,7 @@
 #include "ggml.h"
 #include "utils.hpp"
 
-inline zdnn_data_types ggml_zdnn_type_mapping(ggml_type type) {
+zdnn_data_types ggml_zdnn_type_mapping(ggml_type type) {
     switch (type) {
         case GGML_TYPE_F32:
             return FP32;
@@ -22,7 +22,7 @@ inline zdnn_data_types ggml_zdnn_type_mapping(ggml_type type) {
     }
 }
 
-inline void ggml_zdnn_create_tensor(zdnn_tensor_desc  & pre_tfm_desc,
+void ggml_zdnn_create_tensor(zdnn_tensor_desc  & pre_tfm_desc,
                                     zdnn_tensor_desc  & tfm_desc,
                                     zdnn_ztensor      & ztensor,
                               const ggml_tensor       * src,
@@ -39,11 +39,11 @@ inline void ggml_zdnn_create_tensor(zdnn_tensor_desc  & pre_tfm_desc,
     ZDNN_CHECK(zdnn_init_ztensor_with_malloc(&pre_tfm_desc, &tfm_desc, &ztensor));
 }
 
-inline void ggml_zdnn_load_tensor(zdnn_ztensor & ztensor, void * buffer) {
+void ggml_zdnn_load_tensor(zdnn_ztensor & ztensor, void * buffer) {
     ZDNN_CHECK(zdnn_transform_ztensor(&ztensor, buffer));
 }
 
-inline void ggml_zdnn_init_tensor(ggml_backend_zdnn_buffer * buffer, const ggml_tensor * tensor) {
+void ggml_zdnn_init_tensor(ggml_backend_zdnn_buffer * buffer, const ggml_tensor * tensor) {
     switch (tensor->op) {
         case GGML_OP_MUL_MAT:
             {

@@ -1,4 +1,4 @@
-#include "ggml-zdnn-impl.hpp"
+#include "ggml-zdnn.h"
 #include "ggml-impl.h"
 #include "ggml-backend-impl.h"
 
@@ -8,7 +8,7 @@
 
 #include <vector>
 #include <memory>
-#include <csignal>
+#include <csignal>  // raise(SIGTRAP)
 #include <unistd.h>
 
 inline zdnn_data_types ggml_zdnn_type_mapping(ggml_type type) {

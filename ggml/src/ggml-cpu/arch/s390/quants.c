@@ -333,6 +333,8 @@ void ggml_vec_dot_mxfp4_q8_0(int n, float * GGML_RESTRICT s, size_t bs, const vo
 
         sumf += GGML_E8M0_TO_FP32(x0->e) * GGML_CPU_FP16_TO_FP32(y0->d) * vec_hsum_i32x4(v_xy);
     }
+
+    *s = sumf;
 #else
     UNUSED(x);
     UNUSED(y);

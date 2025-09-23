@@ -282,6 +282,8 @@ void ggml_vec_dot_mxfp4_q8_0(int n, float * GGML_RESTRICT s, size_t bs, const vo
     const int8x16_t  v_k = vec_xl(0, kvalues_mxfp4);
     const uint8x16_t v_m = vec_splats((const uint8_t)0x0F);
 
+    float32x4_t v_acc = vec_splats(0.0f);
+
     for (; ib < nb; ++ib) {
         const block_mxfp4 * GGML_RESTRICT x0 = &x[ib];
         const block_q8_0  * GGML_RESTRICT y0 = &y[ib];
@@ -297,11 +299,13 @@ void ggml_vec_dot_mxfp4_q8_0(int n, float * GGML_RESTRICT s, size_t bs, const vo
         const int8x16_t v_yh = vec_xl(QK8_0/2, y0->qs);
 
         const int32x4_t v_xy = ggml_vec_dot(ggml_vec_dot(vec_splats(0), v_xl, v_yl), v_xh, v_yh);
+        const float32x4_t v_xyf = vec_float(v_xy);
+        const float32x4_t v_d = vec_splats(0, GGML_E8M0_TO_FP32_HALF(x0->e) * GGML_CPU_FP16_TO_FP32(y0->d));
 
-        const float scale = GGML_E8M0_TO_FP32(x0->e) * GGML_CPU_FP16_TO_FP32(y0->d);
-        sumf += scale * vec_hsum_i32x4(v_xy);
+        acc = vec_madd(v_xyf, v_d, acc);
     }
 
+    sumf = vec_hsum_f32x4(v_acc);
     *s = sumf;
 #else
     UNUSED(x);

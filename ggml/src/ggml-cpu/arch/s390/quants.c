@@ -284,45 +284,6 @@ void ggml_vec_dot_mxfp4_q8_0(int n, float * GGML_RESTRICT s, size_t bs, const vo
 
     float32x4_t v_acc = vec_splats(0.0f);
 
-    #pragma GCC unroll 8
-    for (; ib + 1 < nb; ib += 2) {
-        const block_mxfp4 * GGML_RESTRICT x0 = &x[ib + 0];
-        const block_mxfp4 * GGML_RESTRICT x1 = &x[ib + 1];
-        const block_q8_0  * GGML_RESTRICT y0 = &y[ib + 0];
-        const block_q8_0  * GGML_RESTRICT y1 = &y[ib + 1];
-
-        const uint8x16_t v_x0 = vec_xl(0, x0->qs);
-        const uint8x16_t v_x1 = vec_xl(0, x1->qs);
-
-        int8x16_t v_x0l = (int8x16_t)vec_and(v_x0, v_m);
-        int8x16_t v_x0h = (int8x16_t)vec_sr(v_x0, 4);
-        int8x16_t v_x1l = (int8x16_t)vec_and(v_x1, v_m);
-        int8x16_t v_x1h = (int8x16_t)vec_sr(v_x1, 4);
-
-        v_x0l = vec_perm(v_k, v_k, (uchar8x16_t)v_x0l);
-        v_x0h = vec_perm(v_k, v_k, (uchar8x16_t)v_x0h);
-        v_x1l = vec_perm(v_k, v_k, (uchar8x16_t)v_x1l);
-        v_x1h = vec_perm(v_k, v_k, (uchar8x16_t)v_x1h);
-
-        const int8x16_t v_y0l = vec_xl(0,       y0->qs);
-        const int8x16_t v_y0h = vec_xl(QK8_0/2, y0->qs);
-        const int8x16_t v_y1l = vec_xl(0,       y1->qs);
-        const int8x16_t v_y1h = vec_xl(QK8_0/2, y1->qs);
-
-        const int32x4_t v_xy0 = ggml_vec_dot(ggml_vec_dot(vec_splats(0), v_x0l, v_y0l), v_x0h, v_y0h);
-        const int32x4_t v_xy1 = ggml_vec_dot(ggml_vec_dot(vec_splats(0), v_x1l, v_y1l), v_x1h, v_y1h);
-
-        const float32x4_t v_xy0f = vec_float(v_xy0);
-        const float32x4_t v_xy1f = vec_float(v_xy1);
-
-        const float32x4_t v_d0 = vec_splats(GGML_E8M0_TO_FP32_HALF(x0->e) * GGML_CPU_FP16_TO_FP32(y0->d));
-        const float32x4_t v_d1 = vec_splats(GGML_E8M0_TO_FP32_HALF(x1->e) * GGML_CPU_FP16_TO_FP32(y1->d));
-
-        v_acc = vec_madd(v_xy0f, v_d0, v_acc);
-        v_acc = vec_madd(v_xy1f, v_d1, v_acc);
-    }
-
-    #pragma GCC unroll 8
     for (; ib < nb; ++ib) {
         const block_mxfp4 * GGML_RESTRICT x0 = &x[ib + 0];
         const block_q8_0  * GGML_RESTRICT y0 = &y[ib + 0];

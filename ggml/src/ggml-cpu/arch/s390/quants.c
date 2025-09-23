@@ -302,7 +302,7 @@ void ggml_vec_dot_mxfp4_q8_0(int n, float * GGML_RESTRICT s, size_t bs, const vo
         const float32x4_t v_xyf = vec_float(v_xy);
         const float32x4_t v_d = vec_splats(0, GGML_E8M0_TO_FP32_HALF(x0->e) * GGML_CPU_FP16_TO_FP32(y0->d));
 
-        acc = vec_madd(v_xyf, v_d, acc);
+        v_acc = vec_madd(v_xyf, v_d, v_acc);
     }
 
     sumf = vec_hsum_f32x4(v_acc);

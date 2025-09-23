@@ -284,6 +284,7 @@ void ggml_vec_dot_mxfp4_q8_0(int n, float * GGML_RESTRICT s, size_t bs, const vo
 
     float32x4_t v_acc = vec_splats(0.0f);
 
+    #pragma GCC unroll 8
     for (; ib + 1 < nb; ib += 2) {
         const block_mxfp4 * GGML_RESTRICT x0 = &x[ib + 0];
         const block_mxfp4 * GGML_RESTRICT x1 = &x[ib + 1];
@@ -321,6 +322,7 @@ void ggml_vec_dot_mxfp4_q8_0(int n, float * GGML_RESTRICT s, size_t bs, const vo
         v_acc = vec_madd(v_xy1f, v_d1, v_acc);
     }
 
+    #pragma GCC unroll 8
     for (; ib < nb; ++ib) {
         const block_mxfp4 * GGML_RESTRICT x0 = &x[ib + 0];
         const block_q8_0  * GGML_RESTRICT y0 = &y[ib + 0];

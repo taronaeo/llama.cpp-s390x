@@ -4,8 +4,8 @@ ARG UBUNTU_VERSION=24.04
 ### Build Llama.cpp stage
 FROM gcc:${GCC_VERSION} AS build
 
-RUN --mount=type=cache,target=/var/cache/apt \
-    --mount=type=cache,target=/var/lib/apt/lists \
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt/lists,sharing=locked \
     apt update -y && \
     apt upgrade -y && \
     apt install -y --no-install-recommends \
@@ -51,11 +51,12 @@ COPY --from=build /opt/llama.cpp/gguf-py /llama.cpp/gguf-py
 ### Base image
 FROM ubuntu:${UBUNTU_VERSION} AS base
 
-RUN --mount=type=cache,target=/var/cache/apt \
-    --mount=type=cache,target=/var/lib/apt/lists \
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt/lists,sharing=locked \
     apt update -y && \
     apt install -y --no-install-recommends \
         # WARNING: Do not use libopenblas-openmp-dev. libopenblas-dev is faster.
+        # See: https://github.com/ggml-org/llama.cpp/pull/15915#issuecomment-3317166506
         curl libgomp1 libopenblas-dev && \
     apt autoremove -y && \
     apt clean -y && \
@@ -73,8 +74,8 @@ FROM base AS full
 ENV PATH="/root/.cargo/bin:${PATH}"
 WORKDIR /app
 
-RUN --mount=type=cache,target=/var/cache/apt \
-    --mount=type=cache,target=/var/lib/apt/lists \
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt/lists,sharing=locked \
     apt update -y && \
     apt install -y \
         git cmake libjpeg-dev \

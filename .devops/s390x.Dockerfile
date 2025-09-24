@@ -2,7 +2,7 @@ ARG GCC_VERSION=15.2.0
 ARG UBUNTU_VERSION=24.04
 
 ### Build Llama.cpp stage
-FROM --platform=linux/s390x gcc:${GCC_VERSION} AS build
+FROM gcc:${GCC_VERSION} AS build
 
 RUN --mount=type=cache,target=/var/cache/apt \
     --mount=type=cache,target=/var/lib/apt/lists \
@@ -40,7 +40,7 @@ COPY requirements     /opt/llama.cpp/gguf-py/requirements
 
 
 ### Collect all llama.cpp binaries, libraries and distro libraries
-FROM --platform=linux/s390x scratch AS collector
+FROM scratch AS collector
 
 # Copy llama.cpp binaries and libraries
 COPY --from=build /opt/llama.cpp/bin     /llama.cpp/bin
@@ -49,7 +49,7 @@ COPY --from=build /opt/llama.cpp/gguf-py /llama.cpp/gguf-py
 
 
 ### Base image
-FROM --platform=linux/s390x ubuntu:${UBUNTU_VERSION} AS base
+FROM ubuntu:${UBUNTU_VERSION} AS base
 
 RUN --mount=type=cache,target=/var/cache/apt \
     --mount=type=cache,target=/var/lib/apt/lists \
@@ -68,7 +68,7 @@ COPY --from=collector /llama.cpp/lib /usr/lib/s390x-linux-gnu
 
 
 ### Full
-FROM --platform=linux/s390x base AS full
+FROM base AS full
 
 ENV PATH="/root/.cargo/bin:${PATH}"
 WORKDIR /app
@@ -97,7 +97,7 @@ ENTRYPOINT [ "/app/tools.sh" ]
 
 
 ### CLI Only
-FROM --platform=linux/s390x base AS light
+FROM base AS light
 
 WORKDIR /llama.cpp/bin
 
@@ -108,7 +108,7 @@ ENTRYPOINT [ "/llama.cpp/bin/llama-cli" ]
 
 
 ### Server
-FROM --platform=linux/s390x base AS server
+FROM base AS server
 
 ENV LLAMA_ARG_HOST=0.0.0.0
 

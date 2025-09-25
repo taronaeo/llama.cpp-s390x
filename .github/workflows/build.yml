@@ -194,9 +194,8 @@ jobs:
             os: ubuntu-22.04-arm
           - build: 's390x'
             os: ubuntu-24.04-s390x
-          # ppc64le is failing test-thread-safety tests for some reason
-          # - build: 'ppc64le'
-          #   os: ubuntu-24.04-ppc64le
+          - build: 'ppc64le'
+            os: ubuntu-24.04-ppc64le
 
     runs-on: ${{ matrix.os }}
 

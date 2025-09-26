@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 
+// TODO: reimplement this structure in endian-independent way
 struct unicode_cpt_flags {
     enum {
         UNDEFINED       = 0x0001,

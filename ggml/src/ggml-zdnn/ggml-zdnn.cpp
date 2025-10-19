@@ -3,6 +3,7 @@
 #include "ggml-backend-impl.h"
 
 #include "ggml-zdnn/common.hpp"
+#include "ggml-zdnn/addf.hpp"
 #include "ggml-zdnn/mmf.hpp"
 #include "ggml-zdnn/utils.hpp"
 #include "ggml.h"
@@ -12,9 +13,21 @@
 #include <csignal>  // raise(SIGTRAP)
 #include <unistd.h>
 
-static void ggml_zdnn_compute_forward_mul_mat(
+void ggml_zdnn_compute_forward_add(
     const ggml_backend_zdnn_context * ctx,
-          ggml_tensor * dst) {
+                        ggml_tensor * dst) {
+
+    const ggml_tensor * src0 = dst->src[0];
+    const ggml_tensor * src1 = dst->src[1];
+
+    // TODO: implement support for quantized types
+    // we currently only support f32, f16, and bf16
+    ggml_zdnn_add_f(ctx, src0, src1, dst);
+}
+
+void ggml_zdnn_compute_forward_mul_mat(
+    const ggml_backend_zdnn_context * ctx,
+                        ggml_tensor * dst) {
 
     const ggml_tensor * src0 = dst->src[0];  // weights
     const ggml_tensor * src1 = dst->src[1];  // inputs
@@ -29,6 +42,10 @@ static bool ggml_zdnn_compute_forward(
     ggml_tensor * dst) {
 
     switch (dst->op) {
+        case GGML_OP_ADD:
+            {
+                ggml_zdnn_compute_forward_add(ctx, dst);
+            } break;
         case GGML_OP_MUL_MAT:
             {
                 ggml_zdnn_compute_forward_mul_mat(ctx, dst);
@@ -80,6 +97,33 @@ static bool ggml_zdnn_supports_op(const ggml_backend_zdnn_device_context * ctx_d
         case GGML_OP_TRANSPOSE:
         case GGML_OP_PERMUTE:
             return true;
+
+        case GGML_OP_ADD:
+            {
+                const ggml_tensor * src0 = op->src[0];
+                const ggml_tensor * src1 = op->src[1];
+
+                if (!ggml_are_same_shape(src0, src1)) return false;
+                if (!ggml_is_contiguous(src0) || !ggml_is_contiguous(src1)) return false;
+
+                switch (src0->type) {
+                    case GGML_TYPE_F32:
+                    case GGML_TYPE_F16:
+                    case GGML_TYPE_BF16:
+                        return true;
+                    default:
+                        return false;
+                }
+
+                switch (src1->type) {
+                    case GGML_TYPE_F32:
+                    case GGML_TYPE_F16:
+                    case GGML_TYPE_BF16:
+                        return true;
+                    default:
+                        return false;
+                }
+            } break;
 
         case GGML_OP_MUL_MAT:
             {

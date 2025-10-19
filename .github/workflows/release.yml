@@ -134,7 +134,7 @@ jobs:
         include:
           - build: 'x64'
             os: ubuntu-22.04
-          - build: 's390x-z15' # z15 because our CI runners are on z15
+          - build: 's390x' # z15 because our CI runners are on z15
             os: ubuntu-22.04-s390x
           # GGML_BACKEND_DL and GGML_CPU_ALL_VARIANTS are not currently supported on arm
           # - build: 'arm64'
@@ -164,14 +164,24 @@ jobs:
       - name: Build
         id: cmake_build
         run: |
-          cmake -B build \
-            -DCMAKE_INSTALL_RPATH='$ORIGIN' \
-            -DCMAKE_BUILD_WITH_INSTALL_RPATH=ON \
-            -DGGML_BACKEND_DL=ON \
-            -DGGML_NATIVE=OFF \
-            -DGGML_CPU_ALL_VARIANTS=ON \
-            -DLLAMA_FATAL_WARNINGS=ON \
-            ${{ env.CMAKE_ARGS }}
+          if [ "${{ matrix.build }}" = "s390x" ]; then
+            cmake -B build \
+              -DCMAKE_INSTALL_RPATH='$ORIGIN' \
+              -DCMAKE_BUILD_WITH_INSTALL_RPATH=ON \
+              -DGGML_BACKEND_DL=ON \
+              -DGGML_NATIVE=OFF \
+              -DLLAMA_FATAL_WARNINGS=ON \
+              ${{ env.CMAKE_ARGS }}
+          else
+            cmake -B build \
+              -DCMAKE_INSTALL_RPATH='$ORIGIN' \
+              -DCMAKE_BUILD_WITH_INSTALL_RPATH=ON \
+              -DGGML_BACKEND_DL=ON \
+              -DGGML_NATIVE=OFF \
+              -DGGML_CPU_ALL_VARIANTS=ON \
+              -DLLAMA_FATAL_WARNINGS=ON \
+              ${{ env.CMAKE_ARGS }}
+            fi
           cmake --build build --config Release -j $(nproc)
 
       - name: Determine tag name

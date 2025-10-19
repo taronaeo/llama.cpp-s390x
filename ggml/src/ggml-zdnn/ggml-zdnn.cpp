@@ -13,7 +13,7 @@
 #include <csignal>  // raise(SIGTRAP)
 #include <unistd.h>
 
-void ggml_zdnn_compute_forward_add(
+static void ggml_zdnn_compute_forward_add(
     const ggml_backend_zdnn_context * ctx,
                         ggml_tensor * dst) {
 
@@ -25,7 +25,7 @@ void ggml_zdnn_compute_forward_add(
     ggml_zdnn_add_f(ctx, src0, src1, dst);
 }
 
-void ggml_zdnn_compute_forward_mul_mat(
+static void ggml_zdnn_compute_forward_mul_mat(
     const ggml_backend_zdnn_context * ctx,
                         ggml_tensor * dst) {
 

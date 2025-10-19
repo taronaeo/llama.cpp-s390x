@@ -164,24 +164,14 @@ jobs:
       - name: Build
         id: cmake_build
         run: |
-          if [ "${{ matrix.build }}" = "s390x-z15" ]; then
-            cmake -B build \
-              -DCMAKE_INSTALL_RPATH='$ORIGIN' \
-              -DCMAKE_BUILD_WITH_INSTALL_RPATH=ON \
-              -DGGML_BACKEND_DL=ON \
-              -DGGML_NATIVE=OFF \
-              -DLLAMA_FATAL_WARNINGS=ON \
-              ${{ env.CMAKE_ARGS }}
-          else
-            cmake -B build \
-              -DCMAKE_INSTALL_RPATH='$ORIGIN' \
-              -DCMAKE_BUILD_WITH_INSTALL_RPATH=ON \
-              -DGGML_BACKEND_DL=ON \
-              -DGGML_NATIVE=OFF \
-              -DGGML_CPU_ALL_VARIANTS=ON \
-              -DLLAMA_FATAL_WARNINGS=ON \
-              ${{ env.CMAKE_ARGS }}
-            fi
+          cmake -B build \
+            -DCMAKE_INSTALL_RPATH='$ORIGIN' \
+            -DCMAKE_BUILD_WITH_INSTALL_RPATH=ON \
+            -DGGML_BACKEND_DL=ON \
+            -DGGML_NATIVE=OFF \
+            -DGGML_CPU_ALL_VARIANTS=ON \
+            -DLLAMA_FATAL_WARNINGS=ON \
+            ${{ env.CMAKE_ARGS }}
           cmake --build build --config Release -j $(nproc)
 
       - name: Determine tag name

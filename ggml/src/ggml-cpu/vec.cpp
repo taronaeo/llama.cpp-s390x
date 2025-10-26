@@ -360,6 +360,10 @@ void ggml_vec_silu_f32(const int n, float * y, const float * x) {
     for (; i + 3 < n; i += 4) {
         vst1q_f32(y + i, ggml_v_silu(vld1q_f32(x + i)));
     }
+#elif defined(__VXE__) || defined(__VXE2__)
+    for (; i + 3 < n; i += 4) {
+        vec_xst(ggml_v_silu(vec_xl(0, x + i)), 0, y + i);
+    }
 #endif
     for (; i < n; ++i) {
         y[i] = ggml_silu_f32(x[i]);
@@ -397,6 +401,10 @@ void ggml_vec_swiglu_f32(const int n, float * y, const float * x, const float * 
         vfloat32m2_t vg = __riscv_vle32_v_f32m2(&g[i], vl);
         vfloat32m2_t vy = __riscv_vfmul_vv_f32m2(ggml_v_silu_m2(vx, vl), vg, vl);
         __riscv_vse32_v_f32m2(&y[i], vy, vl);
+    }
+#elif defined(__VXE__) || defined(__VXE2__)
+    for (; i + 3 < n; i += 4) {
+        vec_xst(vec_mul(ggml_v_silu(vec_xl(0, x + i)), vec_xl(0, g + i)), 0, y + i);
     }
 #endif
     for (; i < n; ++i) {

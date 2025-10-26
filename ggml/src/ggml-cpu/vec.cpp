@@ -532,6 +532,13 @@ ggml_float ggml_vec_soft_max_f32(const int n, float * y, const float * x, float 
         vsum = __riscv_vfwredusum_vs_f32m2_f64m1(val, vsum, avl);
     }
     return (ggml_float)__riscv_vfmv_f_s_f64m1_f64(vsum);
+#elif defined(__VXE__) || defined(__VXE2__)
+    for (; i + 3 < n; i += 4) {
+        float32x4_t val = ggml_v_expf(vec_sub(vec_xl(0, x + i),
+                                              vec_splats(max)));
+        vec_xst(val, 0, y + i);
+        sum += (ggml_float)vec_hsum_f32x4(val);
+    }
 #endif
     for (; i < n; ++i) {
         float val = expf(x[i] - max);

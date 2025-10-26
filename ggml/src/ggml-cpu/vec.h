@@ -1315,7 +1315,7 @@ inline static float32x4_t ggml_v_expf(float32x4_t x) {
         return vec_madd(j, k, k);
 
     const uint32x4_t d = vec_and(vec_cmple(n, vec_splats(0.0f)), vec_splats(0x82000000));
-    const float32x4_t s1 = vec_float(vec_add(d, vec_splats(0x7f000000)));
+    const float32x4_t s1 = vec_add(vec_float(d), vec_splats(0x7f000000));
     const float32x4_t s2 = vec_float(vec_sub(e, d));
 
     const uint32x4_t large_mask = vec_cmpgt(vec_abs(n), vec_splats(192.0f));

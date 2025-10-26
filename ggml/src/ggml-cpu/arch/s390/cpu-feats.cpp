@@ -1,3 +1,4 @@
+#include "ggml-impl.h"
 #include "ggml-backend-impl.h"
 
 #if defined(__s390x__)

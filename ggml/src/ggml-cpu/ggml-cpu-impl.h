@@ -60,14 +60,12 @@ struct ggml_compute_params {
 #endif
 
 #if defined(__s390x__) && defined(__VEC__)
-#if defined(GGML_VXE)
 #ifndef __VXE__
 #define __VXE__
 #endif  // __VXE__
 #ifndef __VXE2__
 #define __VXE2__
 #endif  // __VXE2__
-#endif  // GGML_VXE
 #endif  // __s390x__ && __VEC__
 
 #if defined(__ARM_FEATURE_SVE) && defined(__linux__)
@@ -486,25 +484,13 @@ inline static int16x8_t vec_padd_s16(int16x8_t a, int16x8_t b) {
  * @see https://github.com/ggml-org/llama.cpp/pull/14037
  */
 inline static float vec_hsum_f32x4(float32x4_t v) {
-#if defined(__VXE__) || defined(__VXE2__)
-    // vec_reve requires z14+ (VXE)
     float32x4_t v_temp = v + vec_reve(v);
     return v_temp[0] + v_temp[1];
-#else
-    // Fallback for z13 (baseline VX without VXE)
-    return v[0] + v[1] + v[2] + v[3];
-#endif
 }
 
 inline static int32_t vec_hsum_i32x4(int32x4_t v) {
-#if defined(__VXE__) || defined(__VXE2__)
-    // vec_reve requires z14+ (VXE)
     int32x4_t v_temp = v + vec_reve(v);
     return v_temp[0] + v_temp[1];
-#else
-    // Fallback for z13 (baseline VX without VXE)
-    return v[0] + v[1] + v[2] + v[3];
-#endif
 }
 
 inline static int32x4_t ggml_vec_dot(int32x4_t acc, int8x16_t a, int8x16_t b) {

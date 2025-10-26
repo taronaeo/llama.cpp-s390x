@@ -360,10 +360,10 @@ void ggml_vec_silu_f32(const int n, float * y, const float * x) {
     for (; i + 3 < n; i += 4) {
         vst1q_f32(y + i, ggml_v_silu(vld1q_f32(x + i)));
     }
-#elif defined(__VXE__) || defined(__VXE2__)
-    for (; i + 3 < n; i += 4) {
-        vec_xst(ggml_v_silu(vec_xl(0, x + i)), 0, y + i);
-    }
+// #elif defined(__VXE__) || defined(__VXE2__)
+//     for (; i + 3 < n; i += 4) {
+//         vec_xst(ggml_v_silu(vec_xl(0, x + i)), 0, y + i);
+//     }
 #endif
     for (; i < n; ++i) {
         y[i] = ggml_silu_f32(x[i]);
@@ -541,6 +541,7 @@ ggml_float ggml_vec_soft_max_f32(const int n, float * y, const float * x, float 
     }
     return (ggml_float)__riscv_vfmv_f_s_f64m1_f64(vsum);
 #elif defined(__VXE__) || defined(__VXE2__)
+    GGML_LOG_INFO("%s: Using VXE for softmax\n", __func__);
     for (; i + 3 < n; i += 4) {
         float32x4_t val = ggml_v_expf(vec_sub(vec_xl(0, x + i),
                                               vec_splats(max)));

@@ -509,6 +509,8 @@ function(ggml_add_cpu_backend_variant_impl tag_name)
             list(APPEND ARCH_FLAGS -mvx -mzvector)
             list(APPEND ARCH_DEFINITIONS GGML_VXE)
         endif()
+
+        ggml_add_cpu_backend_features(${GGML_CPU_NAME} arm ${ARCH_DEFINITIONS})
     elseif (CMAKE_SYSTEM_PROCESSOR MATCHES "wasm")
         message(STATUS "Wasm detected")
         list (APPEND GGML_CPU_SOURCES ggml-cpu/arch/wasm/quants.c)

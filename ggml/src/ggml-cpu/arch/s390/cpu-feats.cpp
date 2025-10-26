@@ -1,4 +1,3 @@
-#include "ggml-impl.h"
 #include "ggml-backend-impl.h"
 
 #if defined(__s390x__)
@@ -23,15 +22,13 @@ struct s390x_features {
     bool has_nnpa = false;
 
     s390x_features() {
-        uint32_t hwcap  = getauxval(AT_HWCAP);
-        uint32_t hwcap2 = getauxval(AT_HWCAP2);
+        uint32_t hwcap = getauxval(AT_HWCAP);
+        // NOTE: use hwcap2 with DFLT for z17 and later
+        // uint32_t hwcap2 = getauxval(AT_HWCAP2);
 
         has_vxe  = !!(hwcap & HWCAP_VXRS_EXT);
         has_vxe2 = !!(hwcap & HWCAP_VXRS_EXT2);
         has_nnpa = !!(hwcap & HWCAP_NNPA);
-
-        GGML_LOG_INFO("s390x features detected: VXE=%d, VXE2=%d, NNPA=%d",
-                      has_vxe, has_vxe2, has_nnpa);
     }
 };
 

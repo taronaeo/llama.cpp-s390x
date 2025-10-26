@@ -66,6 +66,13 @@ inline static void ggml_vec_add_f32 (const int n, float * z, const float * x, co
         __m256 vz = _mm256_add_ps(vx, vy);
         _mm256_storeu_ps(z + i, vz);
     }
+#elif defined(__VXE__) || defined(__VXE2__)
+    for (; i + 4 < n; i += 4) {
+        const float32x4_t vx = vec_xl(0, x + i);
+        const float32x4_t vy = vec_xl(0, y + i);
+        const float32x4_t vz = vec_add(vx, vy);
+        vec_xst(vz, 0, z + i);
+    }
 #endif
     for (; i < n; ++i) {
         z[i] = x[i] + y[i];
@@ -1277,6 +1284,48 @@ inline static vfloat32m2_t ggml_v_silu_m2(vfloat32m2_t x, int vl) {
     const vfloat32m2_t exp_neg_x = ggml_v_expf_m2(neg_x, vl);
     const vfloat32m2_t one_plus_exp_neg_x = __riscv_vfadd_vf_f32m2(exp_neg_x, 1.0f, vl);
     return __riscv_vfdiv_vv_f32m2(x, one_plus_exp_neg_x, vl);
+}
+
+#elif defined(__VXE__) || defined(__VXE2__)
+
+// adapted from arm limited optimized routine
+// the maximum error is 1.45358 plus 0.5 ulps
+// numbers above 88.38 will flush to infinity
+// numbers beneath -103.97 will flush to zero
+inline static float32x4_t ggml_v_expf(float32x4_t x) {
+    const float32x4_t r = vec_splats(0x1.8p23f);
+    const float32x4_t z = vec_madd(x, vec_splats(0x1.715476p+0f), r);
+    const float32x4_t n = vec_sub(z, r);
+    // TODO: check if its vec_msub or vec_nmsub
+    const float32x4_t b = vec_nmsub(n, vec_splats(0x1.7f7d1cp-20f),
+                                    vec_nmsub(n, vec_splats(0x1.62e4p-1f), x));
+    const uint32x4_t e = vec_sl(vec_unsigned(z), 23);
+    const float32x4_t k = (float32x4_t)vec_add(e, (uint32x4_t)vec_splats(1));
+    const uint32x4_t c = (uint32x4_t)vec_cmpgt(vec_abs(n), vec_splats(126.0f));
+    const float32x4_t u = vec_mul(b, b);
+    const float32x4_t j = vec_madd(
+        vec_madd(
+            vec_madd(vec_splats(0x1.0e4020p-7f), b, vec_splats(0x1.573e2ep-5f)),
+            u,
+            vec_madd(vec_splats(0x1.555e66p-3f), b, vec_splats(0x1.fffdb6p-2f))),
+        u,
+        vec_mul(vec_splats(0x1.ffffecp-1f), b));
+
+    if (!vec_any_ne(c, vec_splats(0u)))
+        return vec_madd(j, k, k);
+
+    const uint32x4_t d = vec_and(vec_cmple(n, vec_splats(0.0f)), vec_splats(0x82000000));
+    const float32x4_t s1 = vec_float(vec_add(d, vec_splats(0x7f000000)));
+    const float32x4_t s2 = vec_float(vec_sub(e, d));
+
+    const uint32x4_t large_mask = vec_cmpgt(vec_abs(n), vec_splats(192.0f));
+
+    const float32x4_t large_result = vec_mul(s1, s1);
+    const float32x4_t medium_result = vec_mul(vec_madd(s2, j, s2), s1);
+    const float32x4_t normal_result = vec_madd(k, j, k);
+
+    const float32x4_t combined = vec_sel(normal_result, medium_result, vec_bool(c));
+    return vec_sel(combined, large_result, vec_bool(large_mask));
 }
 
 #endif // __ARM_NEON / __AVX2__ / __SSE2__ / __riscv_v_intrinsic

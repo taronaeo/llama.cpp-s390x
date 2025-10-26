@@ -1324,8 +1324,8 @@ inline static float32x4_t ggml_v_expf(float32x4_t x) {
     const float32x4_t medium_result = vec_mul(vec_madd(s2, j, s2), s1);
     const float32x4_t normal_result = vec_madd(k, j, k);
 
-    const float32x4_t combined = vec_sel(normal_result, medium_result, vec_bool(c));
-    return vec_sel(combined, large_result, vec_bool(large_mask));
+    const float32x4_t combined = vec_sel(normal_result, medium_result, c);
+    return vec_sel(combined, large_result, large_mask);
 }
 
 #endif // __ARM_NEON / __AVX2__ / __SSE2__ / __riscv_v_intrinsic

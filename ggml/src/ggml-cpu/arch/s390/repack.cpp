@@ -40,7 +40,7 @@ void ggml_quantize_mat_q8_0_4x4(const float * GGML_RESTRICT x, void * GGML_RESTR
         float32x4_t amaxv[8];
 
         for (int row_iter = 0; row_iter < 4; row_iter++) {
-            for (int j = 0; j < 8; j++) srcv[row_iter][j] = vec_xl(x + row_iter * k + i * 32 + 4 * j);
+            for (int j = 0; j < 8; j++) srcv[row_iter][j] = vec_xl(0, x + row_iter * k + i * 32 + 4 * j);
             for (int j = 0; j < 8; j++) asrcv[j] = vec_abs(srcv[row_iter][j]);
 
             for (int j = 0; j < 4; j++) amaxv[2 * j] = vec_max(asrcv[2 * j], asrcv[2 * j + 1]);

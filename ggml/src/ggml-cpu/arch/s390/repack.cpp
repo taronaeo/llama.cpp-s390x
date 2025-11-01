@@ -192,3 +192,107 @@ void ggml_quantize_mat_q8_0_4x8(const float * GGML_RESTRICT x, void * GGML_RESTR
     ggml_quantize_mat_q8_0_4x8_generic(x, vy, k);
 #endif
 }
+
+void ggml_gemv_q4_0_4x4_q8_0(int n, float * GGML_RESTRICT s, size_t bs, const void * GGML_RESTRICT vx, const void * GGML_RESTRICT vy, int nr, int nc) {
+    const int qk = QK8_0;
+    const int nb = n / qk;
+    const int ncols_interleaved = 4;
+    const int blocklen = 4;
+
+    assert (n % qk == 0);
+    assert (nc % ncols_interleaved == 0);
+
+    UNUSED(s);
+    UNUSED(bs);
+    UNUSED(vx);
+    UNUSED(vy);
+    UNUSED(nr);
+    UNUSED(nc);
+    UNUSED(nb);
+    UNUSED(ncols_interleaved);
+    UNUSED(blocklen);
+
+#if defined(__VXE__) || defined(__VXE2__)
+    const block_q4_0x4 * b_ptr = (const block_q4_0x4 *) vx;
+
+    for (int c = 0; c < nc; c += ncols_interleaved) {
+        const block_q8_0 * a_ptr = (const block_q8_0 *) vy;
+        float32x4_t acc = vec_splats(0.0f);
+
+        for (int b = 0; b < nb; b++) {
+            int8x16_t b0 = vec_xl(0, (const int8_t *) b_ptr->qs + 0);
+            int8x16_t b1 = vec_xl(0, (const int8_t *) b_ptr->qs + 16);
+            int8x16_t b2 = vec_xl(0, (const int8_t *) b_ptr->qs + 32);
+            int8x16_t b3 = vec_xl(0, (const int8_t *) b_ptr->qs + 48);
+
+            // Load 4 FP16 values from b_ptr->d
+            // TODO: DOUBLE CHECK
+            float bd[4];
+            for (int i = 0; i < 4; i++) {
+                bd[i] = GGML_CPU_FP16_TO_FP32(b_ptr->d[i]);
+            }
+
+            int8x16_t a0 = vec_xl(0, a_ptr->qs);
+            int8x16_t a1 = vec_xl(0, a_ptr->qs + qk/2);
+            float ad = GGML_CPU_FP16_TO_FP32(a_ptr->d);
+
+            int32x4_t ret = vec_splats(0);
+
+            // Shift left by 4 bits (multiply by 16)
+            int8x16_t b0_shift = vec_sl(b0, vec_splats((unsigned char)4));
+            int8x16_t b1_shift = vec_sl(b1, vec_splats((unsigned char)4));
+            int8x16_t b2_shift = vec_sl(b2, vec_splats((unsigned char)4));
+            int8x16_t b3_shift = vec_sl(b3, vec_splats((unsigned char)4));
+
+            // Mask for keeping upper 4 bits (0xf0)
+            int8x16_t mask = vec_splats((signed char)0xf0);
+            int8x16_t b0_masked = vec_and(b0, mask);
+            int8x16_t b1_masked = vec_and(b1, mask);
+            int8x16_t b2_masked = vec_and(b2, mask);
+            int8x16_t b3_masked = vec_and(b3, mask);
+
+            // Perform dot products manually (s390x doesn't have direct vdotq equivalent)
+            // For each lane of a0/a1, multiply with b vectors and accumulate
+            int32_t dot_results[4] = {0, 0, 0, 0};
+
+            for (int lane = 0; lane < 4; lane++) {
+                int8x16_t a0_broadcast = vec_splats(vec_extract(a0, lane * 4));
+                int8x16_t a1_broadcast = vec_splats(vec_extract(a1, lane * 4));
+
+                // Multiply and sum for this lane
+                for (int i = 0; i < 16; i++) {
+                    dot_results[0] += vec_extract(b0_shift, i) * vec_extract(a0_broadcast, i);
+                    dot_results[1] += vec_extract(b1_shift, i) * vec_extract(a0_broadcast, i);
+                    dot_results[2] += vec_extract(b2_shift, i) * vec_extract(a0_broadcast, i);
+                    dot_results[3] += vec_extract(b3_shift, i) * vec_extract(a0_broadcast, i);
+
+                    dot_results[0] += vec_extract(b0_masked, i) * vec_extract(a1_broadcast, i);
+                    dot_results[1] += vec_extract(b1_masked, i) * vec_extract(a1_broadcast, i);
+                    dot_results[2] += vec_extract(b2_masked, i) * vec_extract(a1_broadcast, i);
+                    dot_results[3] += vec_extract(b3_masked, i) * vec_extract(a1_broadcast, i);
+                }
+            }
+
+            // Convert int32 to float and divide by 16 (compensate for shift)
+            float32x4_t ret_f = {
+                (float)dot_results[0] / 16.0f,
+                (float)dot_results[1] / 16.0f,
+                (float)dot_results[2] / 16.0f,
+                (float)dot_results[3] / 16.0f
+            };
+
+            // Multiply ad with each bd element
+            float32x4_t scale = {ad * bd[0], ad * bd[1], ad * bd[2], ad * bd[3]};
+
+            acc = vec_madd(ret_f, scale, acc);
+
+            a_ptr++;
+            b_ptr++;
+        }
+        vec_xst(acc, 0, s);
+        s += ncols_interleaved;
+    }
+    return;
+#endif
+    ggml_gemv_q4_0_4x4_q8_0_generic(n, s, bs, vx, vy, nr, nc);
+}

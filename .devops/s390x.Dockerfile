@@ -24,8 +24,9 @@ RUN --mount=type=cache,target=/root/.ccache \
         -DCMAKE_C_COMPILER_LAUNCHER=ccache \
         -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
         -DLLAMA_BUILD_TESTS=OFF \
-        -DGGML_BACKEND_DL=OFF \
         -DGGML_NATIVE=OFF \
+        -DGGML_BACKEND_DL=ON \
+        -DGGML_CPU_ALL_VARIANTS=ON \
         -DGGML_BLAS=ON \
         -DGGML_BLAS_VENDOR=OpenBLAS && \
     cmake --build build --config Release -j $(nproc) && \

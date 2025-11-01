@@ -47,7 +47,10 @@ void ggml_quantize_mat_q8_0_4x4(const float * GGML_RESTRICT x, void * GGML_RESTR
             for (int j = 0; j < 2; j++) amaxv[4 * j] = vec_max(amaxv[4 * j], amaxv[4 * j + 2]);
             for (int j = 0; j < 1; j++) amaxv[8 * j] = vec_max(amaxv[8 * j], amaxv[8 * j + 4]);
 
-            const float amax = vec_max(amaxv[0]);
+            const float amax = MAX(MAX(vec_extract(amaxv[0], 0),
+                                       vec_extract(amaxv[0], 1)),
+                                   MAX(vec_extract(amaxv[0], 2),
+                                       vec_extract(amaxv[0], 3)));
 
             const float d = amax / ((1 << 7) - 1);
             id[row_iter] = d ? 1.0f / d : 0.0f;
@@ -115,7 +118,10 @@ void ggml_quantize_mat_q8_0_4x8(const float * GGML_RESTRICT x, void * GGML_RESTR
             for (int j = 0; j < 2; j++) amaxv[4 * j] = vec_max(amaxv[4 * j], amaxv[4 * j + 2]);
             for (int j = 0; j < 1; j++) amaxv[8 * j] = vec_max(amaxv[8 * j], amaxv[8 * j + 4]);
 
-            const float amax = vec_max(amaxv[0]);
+            const float amax = MAX(MAX(vec_extract(amaxv[0], 0),
+                                       vec_extract(amaxv[0], 1)),
+                                   MAX(vec_extract(amaxv[0], 2),
+                                       vec_extract(amaxv[0], 3)));
 
             const float d = amax / ((1 << 7) - 1);
             id[row_iter] = d ? 1.0f / d : 0.0f;

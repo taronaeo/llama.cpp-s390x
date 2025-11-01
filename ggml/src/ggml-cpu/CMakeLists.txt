@@ -504,10 +504,15 @@ function(ggml_add_cpu_backend_variant_impl tag_name)
             endforeach()
         endif()
 
-        if (GGML_VXE OR GGML_INTERNAL_VXE)
-            message(STATUS "VX/VXE/VXE2 enabled")
+        if (GGML_VXE OR GGML_INTERNAL_VXE2)
+            message(STATUS "VXE2 enabled")
             list(APPEND ARCH_FLAGS -mvx -mzvector)
-            list(APPEND ARCH_DEFINITIONS GGML_VXE)
+            list(APPEND ARCH_DEFINITIONS GGML_USE_VXE2)
+        endif()
+
+        if (GGML_INTERNAL_NNPA)
+            message(STATUS "NNPA enabled")
+            list(APPEND ARCH_DEFINITIONS GGML_USE_NNPA)
         endif()
 
         ggml_add_cpu_backend_features(${GGML_CPU_NAME} s390 ${ARCH_DEFINITIONS})

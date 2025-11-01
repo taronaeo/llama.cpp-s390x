@@ -236,13 +236,11 @@ void ggml_gemv_q4_0_4x4_q8_0(int n, float * GGML_RESTRICT s, size_t bs, const vo
             int8x16_t a1 = vec_xl(0, a_ptr->qs + qk/2);
             float ad = GGML_CPU_FP16_TO_FP32(a_ptr->d);
 
-            int32x4_t ret = vec_splats(0);
-
             // Shift left by 4 bits (multiply by 16)
-            int8x16_t b0_shift = vec_sl(b0, vec_splats((unsigned char)4));
-            int8x16_t b1_shift = vec_sl(b1, vec_splats((unsigned char)4));
-            int8x16_t b2_shift = vec_sl(b2, vec_splats((unsigned char)4));
-            int8x16_t b3_shift = vec_sl(b3, vec_splats((unsigned char)4));
+            int8x16_t b0_shift = (int8x16_t)vec_sl((uint8x16_t)b0, vec_splats((unsigned char)4));
+            int8x16_t b1_shift = (int8x16_t)vec_sl((uint8x16_t)b1, vec_splats((unsigned char)4));
+            int8x16_t b2_shift = (int8x16_t)vec_sl((uint8x16_t)b2, vec_splats((unsigned char)4));
+            int8x16_t b3_shift = (int8x16_t)vec_sl((uint8x16_t)b3, vec_splats((unsigned char)4));
 
             // Mask for keeping upper 4 bits (0xf0)
             int8x16_t mask = vec_splats((signed char)0xf0);

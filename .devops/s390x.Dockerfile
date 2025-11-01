@@ -104,6 +104,7 @@ FROM base AS light
 WORKDIR /llama.cpp/bin
 
 # Copy llama.cpp binaries and libraries
+COPY --from=collector /llama.cpp/bin/*.so /llama.cpp/bin
 COPY --from=collector /llama.cpp/bin/llama-cli /llama.cpp/bin
 
 ENTRYPOINT [ "/llama.cpp/bin/llama-cli" ]
@@ -117,6 +118,7 @@ ENV LLAMA_ARG_HOST=0.0.0.0
 WORKDIR /llama.cpp/bin
 
 # Copy llama.cpp binaries and libraries
+COPY --from=collector /llama.cpp/bin/*.so /llama.cpp/bin
 COPY --from=collector /llama.cpp/bin/llama-server /llama.cpp/bin
 
 EXPOSE 8080

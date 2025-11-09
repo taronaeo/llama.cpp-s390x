@@ -72,34 +72,15 @@ class Metadata:
         metadata = Metadata.apply_metadata_heuristic(metadata, model_card, hf_params, model_path, total_params)
 
         if gen_config:
-            # Standard generation_config.json parameters
-            if metadata.sampler_top_k is None and "top_k" in gen_config:
-                metadata.sampler_top_k = int(gen_config["top_k"])
-
-            if metadata.sampler_top_p is None and "top_p" in gen_config:
-                metadata.sampler_top_p = float(gen_config["top_p"])
-
-            if metadata.sampler_min_p is None and "min_p" in gen_config:
-                metadata.sampler_min_p = float(gen_config["min_p"])
-
-            if metadata.sampler_temp is None and "temperature" in gen_config:
-                metadata.sampler_temp = float(gen_config["temperature"])
-
-            # Non-standard generation_config.json parameters
-            if metadata.sampler_penalty_last_n is None and "penalty_last_n" in gen_config:
-                metadata.sampler_penalty_last_n = int(gen_config["penalty_last_n"])
-
-            if metadata.sampler_penalty_repeat is None and "penalty_repeat" in gen_config:
-                metadata.sampler_penalty_repeat = float(gen_config["penalty_repeat"])
-
-            if metadata.sampler_mirostat is None and "mirostat" in gen_config:
-                metadata.sampler_mirostat = int(gen_config["mirostat"])
-
-            if metadata.sampler_mirostat_tau is None and "mirostat_tau" in gen_config:
-                metadata.sampler_mirostat_tau = float(gen_config["mirostat_tau"])
-
-            if metadata.sampler_mirostat_eta is None and "mirostat_eta" in gen_config:
-                metadata.sampler_mirostat_eta = float(gen_config["mirostat_eta"])
+            metadata.sampler_top_k          = gen_config.get("top_k", metadata.sampler_top_k)
+            metadata.sampler_top_p          = gen_config.get("top_p", metadata.sampler_top_p)
+            metadata.sampler_min_p          = gen_config.get("min_p", metadata.sampler_min_p)
+            metadata.sampler_temp           = gen_config.get("temperature", metadata.sampler_temp)
+            metadata.sampler_penalty_last_n = gen_config.get("penalty_last_n", metadata.sampler_penalty_last_n)
+            metadata.sampler_penalty_repeat = gen_config.get("penalty_repeat", metadata.sampler_penalty_repeat)
+            metadata.sampler_mirostat       = gen_config.get("mirostat", metadata.sampler_mirostat)
+            metadata.sampler_mirostat_tau   = gen_config.get("mirostat_tau", metadata.sampler_mirostat_tau)
+            metadata.sampler_mirostat_eta   = gen_config.get("mirostat_eta", metadata.sampler_mirostat_eta)
 
         # Metadata Override File Provided
         # This is based on LLM_KV_NAMES mapping in llama.cpp

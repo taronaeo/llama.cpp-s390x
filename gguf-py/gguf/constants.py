@@ -26,15 +26,15 @@ class Keys:
         FILE_TYPE                  = "general.file_type"
 
         # Recommended Sampler Parameters
-        SAMPLER_TOP_K             = "general.sampler.top_k"
-        SAMPLER_TOP_P             = "general.sampler.top_p"
-        SAMPLER_MIN_P             = "general.sampler.min_p"
-        SAMPLER_TEMP              = "general.sampler.temp"
-        SAMPLER_PENALTY_LAST_N    = "general.sampler.penalty_last_n"
-        SAMPLER_PENALTY_REPEAT    = "general.sampler.penalty_repeat"
-        SAMPLER_MIROSTAT          = "general.sampler.mirostat"
-        SAMPLER_MIROSTAT_TAU      = "general.sampler.mirostat_tau"
-        SAMPLER_MIROSTAT_ETA      = "general.sampler.mirostat_eta"
+        SAMPLER_TOP_K              = "general.sampler.top_k"
+        SAMPLER_TOP_P              = "general.sampler.top_p"
+        SAMPLER_MIN_P              = "general.sampler.min_p"
+        SAMPLER_TEMP               = "general.sampler.temp"
+        SAMPLER_PENALTY_LAST_N     = "general.sampler.penalty_last_n"
+        SAMPLER_PENALTY_REPEAT     = "general.sampler.penalty_repeat"
+        SAMPLER_MIROSTAT           = "general.sampler.mirostat"
+        SAMPLER_MIROSTAT_TAU       = "general.sampler.mirostat_tau"
+        SAMPLER_MIROSTAT_ETA       = "general.sampler.mirostat_eta"
 
         # Authorship Metadata
         NAME                       = "general.name"

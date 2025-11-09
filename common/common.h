@@ -165,6 +165,19 @@ struct common_params_sampling {
     bool    no_perf            = false; // disable performance metrics
     bool    timing_per_token   = false;
 
+    uint16_t sampling_mask = 0; // bitfield to track user-specified samplers
+    enum sampling_mask_bits : uint16_t {
+        SAMPLING_MASK_BITS_TOP_K          = 1 << 0,
+        SAMPLING_MASK_BITS_TOP_P          = 1 << 1,
+        SAMPLING_MASK_BITS_MIN_P          = 1 << 2,
+        SAMPLING_MASK_BITS_TEMP           = 1 << 3,
+        SAMPLING_MASK_BITS_PENALTY_LAST_N = 1 << 4,
+        SAMPLING_MASK_BITS_PENALTY_REPEAT = 1 << 5,
+        SAMPLING_MASK_BITS_MIROSTAT       = 1 << 6,
+        SAMPLING_MASK_BITS_MIROSTAT_TAU   = 1 << 7,
+        SAMPLING_MASK_BITS_MIROSTAT_ETA   = 1 << 8,
+    };
+
     std::vector<std::string> dry_sequence_breakers = {"\n", ":", "\"", "*"};     // default sequence breakers for DRY
 
 

@@ -946,6 +946,45 @@ std::vector<common_file_info> fs_list_files(const std::string & path) {
 // Model utils
 //
 
+static inline void common_init_sampler_from_model(
+    const llama_model * model,
+    common_params_sampling & sparams) {
+
+    const uint16_t mask = sparams.sampling_mask;
+
+    auto get_int32 = [&](const char * key, int32_t & dst, uint16_t user_override) {
+        if (mask & user_override) return;
+
+        char buf[64] = {0};
+        if (llama_model_meta_val_str(model, key, buf, sizeof(buf)) > 0) {
+            char * end = nullptr;
+            int32_t v = strtol(buf, &end, 10);
+            if (end && end != buf) dst = v;
+        }
+    };
+
+    auto get_float = [&](const char * key, float & dst, uint16_t user_override) {
+        if (mask & user_override) return;
+
+        char buf[128] = {0};
+        if (llama_model_meta_val_str(model, key, buf, sizeof(buf)) > 0) {
+            char * end = nullptr;
+            float v = strtof(buf, &end);
+            if (end && end != buf) dst = v;
+        }
+    };
+
+    get_int32("general.sampler.top_k",          sparams.top_k,          common_params_sampling::SAMPLING_MASK_BITS_TOP_K);
+    get_float("general.sampler.top_p",          sparams.top_p,          common_params_sampling::SAMPLING_MASK_BITS_TOP_P);
+    get_float("general.sampler.min_p",          sparams.min_p,          common_params_sampling::SAMPLING_MASK_BITS_MIN_P);
+    get_float("general.sampler.temp",           sparams.temp,           common_params_sampling::SAMPLING_MASK_BITS_TEMP);
+    get_int32("general.sampler.penalty_last_n", sparams.penalty_last_n, common_params_sampling::SAMPLING_MASK_BITS_PENALTY_LAST_N);
+    get_float("general.sampler.penalty_repeat", sparams.penalty_repeat, common_params_sampling::SAMPLING_MASK_BITS_PENALTY_REPEAT);
+    get_int32("general.sampler.mirostat",       sparams.mirostat,       common_params_sampling::SAMPLING_MASK_BITS_MIROSTAT);
+    get_float("general.sampler.mirostat_tau",   sparams.mirostat_tau,   common_params_sampling::SAMPLING_MASK_BITS_MIROSTAT_TAU);
+    get_float("general.sampler.mirostat_eta",   sparams.mirostat_eta,   common_params_sampling::SAMPLING_MASK_BITS_MIROSTAT_ETA);
+}
+
 struct common_init_result common_init_from_params(common_params & params) {
     common_init_result iparams;
     auto mparams = common_model_params_to_llama(params);
@@ -956,6 +995,8 @@ struct common_init_result common_init_from_params(common_params & params) {
             __func__, params.model.path.c_str());
         return iparams;
     }
+
+    common_init_sampler_from_model(model, params.sampling);
 
     const llama_vocab * vocab = llama_model_get_vocab(model);
 

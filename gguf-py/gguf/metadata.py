@@ -17,6 +17,17 @@ logger = logging.getLogger("metadata")
 
 @dataclass
 class Metadata:
+    # Recommended Sampler Parameters to be written to GGUF KV Store
+    sampler_top_k: Optional[int] = None
+    sampler_top_p: Optional[float] = None
+    sampler_min_p: Optional[float] = None
+    sampler_temp: Optional[float] = None
+    sampler_penalty_last_n: Optional[int] = None
+    sampler_penalty_repeat: Optional[float] = None
+    sampler_mirostat: Optional[int] = None
+    sampler_mirostat_tau: Optional[float] = None
+    sampler_mirostat_eta: Optional[float] = None
+
     # Authorship Metadata to be written to GGUF KV Store
     name: Optional[str] = None
     author: Optional[str] = None
@@ -62,6 +73,16 @@ class Metadata:
         # Metadata Override File Provided
         # This is based on LLM_KV_NAMES mapping in llama.cpp
         metadata_override = Metadata.load_metadata_override(metadata_override_path)
+
+        metadata.sampler_top_k          = metadata_override.get(Keys.General.SAMPLER_TOP_K,   metadata.sampler_top_k)
+        metadata.sampler_top_p          = metadata_override.get(Keys.General.SAMPLER_TOP_P,   metadata.sampler_top_p)
+        metadata.sampler_min_p          = metadata_override.get(Keys.General.SAMPLER_MIN_P,   metadata.sampler_min_p)
+        metadata.sampler_temp           = metadata_override.get(Keys.General.SAMPLER_TEMP,    metadata.sampler_temp)
+        metadata.sampler_penalty_last_n = metadata_override.get(Keys.General.SAMPLER_PENALTY_LAST_N, metadata.sampler_penalty_last_n)
+        metadata.sampler_penalty_repeat = metadata_override.get(Keys.General.SAMPLER_PENALTY_REPEAT,     metadata.sampler_penalty_repeat)
+        metadata.sampler_mirostat       = metadata_override.get(Keys.General.SAMPLER_MIROSTAT,         metadata.sampler_mirostat)
+        metadata.sampler_mirostat_tau   = metadata_override.get(Keys.General.SAMPLER_MIROSTAT_TAU,    metadata.sampler_mirostat_tau)
+        metadata.sampler_mirostat_eta   = metadata_override.get(Keys.General.SAMPLER_MIROSTAT_ETA,    metadata.sampler_mirostat_eta)
 
         metadata.name            = metadata_override.get(Keys.General.NAME,            metadata.name)
         metadata.author          = metadata_override.get(Keys.General.AUTHOR,          metadata.author)
@@ -546,6 +567,26 @@ class Metadata:
 
     def set_gguf_meta_model(self, gguf_writer: gguf.GGUFWriter):
         assert self.name is not None
+
+        if self.sampler_top_k is not None:
+            gguf_writer.add_sampler_top_k(self.sampler_top_k)
+        if self.sampler_top_p is not None:
+            gguf_writer.add_sampler_top_p(self.sampler_top_p)
+        if self.sampler_min_p is not None:
+            gguf_writer.add_sampler_min_p(self.sampler_min_p)
+        if self.sampler_temp is not None:
+            gguf_writer.add_sampler_temp(self.sampler_temp)
+        if self.sampler_penalty_last_n is not None:
+            gguf_writer.add_sampler_penalty_last_n(self.sampler_penalty_last_n)
+        if self.sampler_penalty_repeat is not None:
+            gguf_writer.add_sampler_penalty_repeat(self.sampler_penalty_repeat)
+        if self.sampler_mirostat is not None:
+            gguf_writer.add_sampler_mirostat(self.sampler_mirostat)
+        if self.sampler_mirostat_tau is not None:
+            gguf_writer.add_sampler_mirostat_tau(self.sampler_mirostat_tau)
+        if self.sampler_mirostat_eta is not None:
+            gguf_writer.add_sampler_mirostat_eta(self.sampler_mirostat_eta)
+
         gguf_writer.add_name(self.name)
 
         if self.author is not None:

@@ -496,6 +496,33 @@ class GGUFWriter:
     def add_file_type(self, ftype: int) -> None:
         self.add_uint32(Keys.General.FILE_TYPE, ftype)
 
+    def add_sampler_top_k(self, top_k: int) -> None:
+        self.add_int32(Keys.General.SAMPLER_TOP_K, top_k)
+
+    def add_sampler_top_p(self, top_p: float) -> None:
+        self.add_float32(Keys.General.SAMPLER_TOP_P, top_p)
+
+    def add_sampler_min_p(self, min_p: float) -> None:
+        self.add_float32(Keys.General.SAMPLER_MIN_P, min_p)
+
+    def add_sampler_temp(self, temp: float) -> None:
+        self.add_float32(Keys.General.SAMPLER_TEMP, temp)
+
+    def add_sampler_penalty_last_n(self, penalty_last_n: int) -> None:
+        self.add_int32(Keys.General.SAMPLER_PENALTY_LAST_N, penalty_last_n)
+
+    def add_sampler_penalty_repeat(self, penalty_repeat: float) -> None:
+        self.add_float32(Keys.General.SAMPLER_PENALTY_REPEAT, penalty_repeat)
+
+    def add_sampler_mirostat(self, mirostat: int) -> None:
+        self.add_int32(Keys.General.SAMPLER_MIROSTAT, mirostat)
+
+    def add_sampler_mirostat_tau(self, mirostat_tau: float) -> None:
+        self.add_float32(Keys.General.SAMPLER_MIROSTAT_TAU, mirostat_tau)
+
+    def add_sampler_mirostat_eta(self, mirostat_eta: float) -> None:
+        self.add_float32(Keys.General.SAMPLER_MIROSTAT_ETA, mirostat_eta)
+
     def add_name(self, name: str) -> None:
         self.add_string(Keys.General.NAME, name)
 

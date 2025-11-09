@@ -8,6 +8,7 @@
 #include "common.h"
 #include "log.h"
 #include "llama.h"
+#include "sampling.h"
 
 #include <algorithm>
 #include <cinttypes>
@@ -973,6 +974,17 @@ static inline void common_init_sampler_from_model(
             if (end && end != buf) dst = v;
         }
     };
+
+    // Sampler sequence
+    if (!(mask & common_params_sampling::SAMPLING_MASK_BITS_SAMPLERS)) {
+        char buf[512] = {0};
+        if (llama_model_meta_val_str(model, "general.sampler.sequence", buf, sizeof(buf)) > 0) {
+            const std::vector<std::string> sampler_names = string_split<std::string>(std::string(buf), ';');
+            if (!sampler_names.empty()) {
+                sparams.samplers = common_sampler_types_from_names(sampler_names, true);
+            }
+        }
+    }
 
     get_int32("general.sampler.top_k",           sparams.top_k,           common_params_sampling::SAMPLING_MASK_BITS_TOP_K);
     get_float("general.sampler.top_p",           sparams.top_p,           common_params_sampling::SAMPLING_MASK_BITS_TOP_P);

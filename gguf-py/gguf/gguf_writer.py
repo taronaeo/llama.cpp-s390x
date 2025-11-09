@@ -496,6 +496,9 @@ class GGUFWriter:
     def add_file_type(self, ftype: int) -> None:
         self.add_uint32(Keys.General.FILE_TYPE, ftype)
 
+    def add_sampler_sequence(self, sequence: str) -> None:
+        self.add_string(Keys.General.SAMPLER_SEQUENCE, sequence)
+
     def add_sampler_top_k(self, top_k: int) -> None:
         self.add_int32(Keys.General.SAMPLER_TOP_K, top_k)
 

@@ -18,6 +18,7 @@ logger = logging.getLogger("metadata")
 @dataclass
 class Metadata:
     # Recommended Sampler Parameters to be written to GGUF KV Store
+    sampler_sequence: Optional[str] = None
     sampler_top_k: Optional[int] = None
     sampler_top_p: Optional[float] = None
     sampler_min_p: Optional[float] = None
@@ -74,22 +75,24 @@ class Metadata:
         metadata = Metadata.apply_metadata_heuristic(metadata, model_card, hf_params, model_path, total_params)
 
         if gen_config:
-            metadata.sampler_top_k           = gen_config.get("top_k", metadata.sampler_top_k)
-            metadata.sampler_top_p           = gen_config.get("top_p", metadata.sampler_top_p)
-            metadata.sampler_min_p           = gen_config.get("min_p", metadata.sampler_min_p)
+            metadata.sampler_sequence        = gen_config.get("sequence",        metadata.sampler_sequence)
+            metadata.sampler_top_k           = gen_config.get("top_k",           metadata.sampler_top_k)
+            metadata.sampler_top_p           = gen_config.get("top_p",           metadata.sampler_top_p)
+            metadata.sampler_min_p           = gen_config.get("min_p",           metadata.sampler_min_p)
             metadata.sampler_xtc_probability = gen_config.get("xtc_probability", metadata.sampler_xtc_probability)
-            metadata.sampler_xtc_threshold   = gen_config.get("xtc_threshold", metadata.sampler_xtc_threshold)
-            metadata.sampler_temp            = gen_config.get("temperature", metadata.sampler_temp)
-            metadata.sampler_penalty_last_n  = gen_config.get("penalty_last_n", metadata.sampler_penalty_last_n)
-            metadata.sampler_penalty_repeat  = gen_config.get("penalty_repeat", metadata.sampler_penalty_repeat)
-            metadata.sampler_mirostat        = gen_config.get("mirostat", metadata.sampler_mirostat)
-            metadata.sampler_mirostat_tau    = gen_config.get("mirostat_tau", metadata.sampler_mirostat_tau)
-            metadata.sampler_mirostat_eta    = gen_config.get("mirostat_eta", metadata.sampler_mirostat_eta)
+            metadata.sampler_xtc_threshold   = gen_config.get("xtc_threshold",   metadata.sampler_xtc_threshold)
+            metadata.sampler_temp            = gen_config.get("temperature",     metadata.sampler_temp)
+            metadata.sampler_penalty_last_n  = gen_config.get("penalty_last_n",  metadata.sampler_penalty_last_n)
+            metadata.sampler_penalty_repeat  = gen_config.get("penalty_repeat",  metadata.sampler_penalty_repeat)
+            metadata.sampler_mirostat        = gen_config.get("mirostat",        metadata.sampler_mirostat)
+            metadata.sampler_mirostat_tau    = gen_config.get("mirostat_tau",    metadata.sampler_mirostat_tau)
+            metadata.sampler_mirostat_eta    = gen_config.get("mirostat_eta",    metadata.sampler_mirostat_eta)
 
         # Metadata Override File Provided
         # This is based on LLM_KV_NAMES mapping in llama.cpp
         metadata_override = Metadata.load_metadata_override(metadata_override_path)
 
+        metadata.sampler_sequence        = metadata_override.get(Keys.General.SAMPLER_SEQUENCE,        metadata.sampler_sequence)
         metadata.sampler_top_k           = metadata_override.get(Keys.General.SAMPLER_TOP_K,           metadata.sampler_top_k)
         metadata.sampler_top_p           = metadata_override.get(Keys.General.SAMPLER_TOP_P,           metadata.sampler_top_p)
         metadata.sampler_min_p           = metadata_override.get(Keys.General.SAMPLER_MIN_P,           metadata.sampler_min_p)
@@ -603,6 +606,8 @@ class Metadata:
     def set_gguf_meta_model(self, gguf_writer: gguf.GGUFWriter):
         assert self.name is not None
 
+        if self.sampler_sequence is not None:
+            gguf_writer.add_sampler_sequence(self.sampler_sequence)
         if self.sampler_top_k is not None:
             gguf_writer.add_sampler_top_k(self.sampler_top_k)
         if self.sampler_top_p is not None:

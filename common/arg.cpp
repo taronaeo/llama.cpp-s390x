@@ -1232,6 +1232,7 @@ common_params_context common_params_parser_init(common_params & params, llama_ex
         [](common_params & params, const std::string & value) {
             const auto sampler_names = string_split<std::string>(value, ';');
             params.sampling.samplers = common_sampler_types_from_names(sampler_names, true);
+            params.sampling.sampling_mask |= common_params_sampling::SAMPLING_MASK_BITS_SAMPLERS;
         }
     ).set_sparam());
     add_opt(common_arg(

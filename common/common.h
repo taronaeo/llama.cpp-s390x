@@ -167,17 +167,18 @@ struct common_params_sampling {
 
     uint16_t sampling_mask = 0; // bitfield to track user-specified samplers
     enum sampling_mask_bits : uint16_t {
-        SAMPLING_MASK_BITS_TOP_K           = 1 << 0,
-        SAMPLING_MASK_BITS_TOP_P           = 1 << 1,
-        SAMPLING_MASK_BITS_MIN_P           = 1 << 2,
-        SAMPLING_MASK_BITS_XTC_PROBABILITY = 1 << 3,
-        SAMPLING_MASK_BITS_XTC_THRESHOLD   = 1 << 4,
-        SAMPLING_MASK_BITS_TEMP            = 1 << 5,
-        SAMPLING_MASK_BITS_PENALTY_LAST_N  = 1 << 6,
-        SAMPLING_MASK_BITS_PENALTY_REPEAT  = 1 << 7,
-        SAMPLING_MASK_BITS_MIROSTAT        = 1 << 8,
-        SAMPLING_MASK_BITS_MIROSTAT_TAU    = 1 << 9,
-        SAMPLING_MASK_BITS_MIROSTAT_ETA    = 1 << 10,
+        SAMPLING_MASK_BITS_SAMPLERS        = 1 << 0,
+        SAMPLING_MASK_BITS_TOP_K           = 1 << 1,
+        SAMPLING_MASK_BITS_TOP_P           = 1 << 2,
+        SAMPLING_MASK_BITS_MIN_P           = 1 << 3,
+        SAMPLING_MASK_BITS_XTC_PROBABILITY = 1 << 4,
+        SAMPLING_MASK_BITS_XTC_THRESHOLD   = 1 << 5,
+        SAMPLING_MASK_BITS_TEMP            = 1 << 6,
+        SAMPLING_MASK_BITS_PENALTY_LAST_N  = 1 << 7,
+        SAMPLING_MASK_BITS_PENALTY_REPEAT  = 1 << 8,
+        SAMPLING_MASK_BITS_MIROSTAT        = 1 << 9,
+        SAMPLING_MASK_BITS_MIROSTAT_TAU    = 1 << 10,
+        SAMPLING_MASK_BITS_MIROSTAT_ETA    = 1 << 11,
     };
 
     std::vector<std::string> dry_sequence_breakers = {"\n", ":", "\"", "*"};     // default sequence breakers for DRY

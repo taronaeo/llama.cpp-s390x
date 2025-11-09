@@ -26,6 +26,7 @@ class Keys:
         FILE_TYPE                  = "general.file_type"
 
         # Recommended Sampler Parameters
+        SAMPLER_SEQUENCE           = "general.sampler.sequence"
         SAMPLER_TOP_K              = "general.sampler.top_k"
         SAMPLER_TOP_P              = "general.sampler.top_p"
         SAMPLER_MIN_P              = "general.sampler.min_p"

@@ -29,6 +29,8 @@ class Keys:
         SAMPLER_TOP_K              = "general.sampler.top_k"
         SAMPLER_TOP_P              = "general.sampler.top_p"
         SAMPLER_MIN_P              = "general.sampler.min_p"
+        SAMPLER_XTC_PROBABILITY    = "general.sampler.xtc_probability"
+        SAMPLER_XTC_THRESHOLD      = "general.sampler.xtc_threshold"
         SAMPLER_TEMP               = "general.sampler.temp"
         SAMPLER_PENALTY_LAST_N     = "general.sampler.penalty_last_n"
         SAMPLER_PENALTY_REPEAT     = "general.sampler.penalty_repeat"

@@ -505,6 +505,12 @@ class GGUFWriter:
     def add_sampler_min_p(self, min_p: float) -> None:
         self.add_float32(Keys.General.SAMPLER_MIN_P, min_p)
 
+    def add_sampler_xtc_probability(self, xtc_probability: float) -> None:
+        self.add_float32(Keys.General.SAMPLER_XTC_PROBABILITY, xtc_probability)
+
+    def add_sampler_xtc_threshold(self, xtc_threshold: float) -> None:
+        self.add_float32(Keys.General.SAMPLER_XTC_THRESHOLD, xtc_threshold)
+
     def add_sampler_temp(self, temp: float) -> None:
         self.add_float32(Keys.General.SAMPLER_TEMP, temp)
 

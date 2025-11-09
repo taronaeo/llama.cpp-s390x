@@ -974,15 +974,17 @@ static inline void common_init_sampler_from_model(
         }
     };
 
-    get_int32("general.sampler.top_k",          sparams.top_k,          common_params_sampling::SAMPLING_MASK_BITS_TOP_K);
-    get_float("general.sampler.top_p",          sparams.top_p,          common_params_sampling::SAMPLING_MASK_BITS_TOP_P);
-    get_float("general.sampler.min_p",          sparams.min_p,          common_params_sampling::SAMPLING_MASK_BITS_MIN_P);
-    get_float("general.sampler.temp",           sparams.temp,           common_params_sampling::SAMPLING_MASK_BITS_TEMP);
-    get_int32("general.sampler.penalty_last_n", sparams.penalty_last_n, common_params_sampling::SAMPLING_MASK_BITS_PENALTY_LAST_N);
-    get_float("general.sampler.penalty_repeat", sparams.penalty_repeat, common_params_sampling::SAMPLING_MASK_BITS_PENALTY_REPEAT);
-    get_int32("general.sampler.mirostat",       sparams.mirostat,       common_params_sampling::SAMPLING_MASK_BITS_MIROSTAT);
-    get_float("general.sampler.mirostat_tau",   sparams.mirostat_tau,   common_params_sampling::SAMPLING_MASK_BITS_MIROSTAT_TAU);
-    get_float("general.sampler.mirostat_eta",   sparams.mirostat_eta,   common_params_sampling::SAMPLING_MASK_BITS_MIROSTAT_ETA);
+    get_int32("general.sampler.top_k",           sparams.top_k,           common_params_sampling::SAMPLING_MASK_BITS_TOP_K);
+    get_float("general.sampler.top_p",           sparams.top_p,           common_params_sampling::SAMPLING_MASK_BITS_TOP_P);
+    get_float("general.sampler.min_p",           sparams.min_p,           common_params_sampling::SAMPLING_MASK_BITS_MIN_P);
+    get_float("general.sampler.xtc_probability", sparams.xtc_probability, common_params_sampling::SAMPLING_MASK_BITS_XTC_PROBABILITY);
+    get_float("general.sampler.xtc_threshold",   sparams.xtc_threshold,   common_params_sampling::SAMPLING_MASK_BITS_XTC_THRESHOLD);
+    get_float("general.sampler.temp",            sparams.temp,            common_params_sampling::SAMPLING_MASK_BITS_TEMP);
+    get_int32("general.sampler.penalty_last_n",  sparams.penalty_last_n,  common_params_sampling::SAMPLING_MASK_BITS_PENALTY_LAST_N);
+    get_float("general.sampler.penalty_repeat",  sparams.penalty_repeat,  common_params_sampling::SAMPLING_MASK_BITS_PENALTY_REPEAT);
+    get_int32("general.sampler.mirostat",        sparams.mirostat,        common_params_sampling::SAMPLING_MASK_BITS_MIROSTAT);
+    get_float("general.sampler.mirostat_tau",    sparams.mirostat_tau,    common_params_sampling::SAMPLING_MASK_BITS_MIROSTAT_TAU);
+    get_float("general.sampler.mirostat_eta",    sparams.mirostat_eta,    common_params_sampling::SAMPLING_MASK_BITS_MIROSTAT_ETA);
 }
 
 struct common_init_result common_init_from_params(common_params & params) {

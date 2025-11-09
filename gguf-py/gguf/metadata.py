@@ -21,6 +21,8 @@ class Metadata:
     sampler_top_k: Optional[int] = None
     sampler_top_p: Optional[float] = None
     sampler_min_p: Optional[float] = None
+    sampler_xtc_probability: Optional[float] = None
+    sampler_xtc_threshold: Optional[float] = None
     sampler_temp: Optional[float] = None
     sampler_penalty_last_n: Optional[int] = None
     sampler_penalty_repeat: Optional[float] = None
@@ -72,29 +74,33 @@ class Metadata:
         metadata = Metadata.apply_metadata_heuristic(metadata, model_card, hf_params, model_path, total_params)
 
         if gen_config:
-            metadata.sampler_top_k          = gen_config.get("top_k", metadata.sampler_top_k)
-            metadata.sampler_top_p          = gen_config.get("top_p", metadata.sampler_top_p)
-            metadata.sampler_min_p          = gen_config.get("min_p", metadata.sampler_min_p)
-            metadata.sampler_temp           = gen_config.get("temperature", metadata.sampler_temp)
-            metadata.sampler_penalty_last_n = gen_config.get("penalty_last_n", metadata.sampler_penalty_last_n)
-            metadata.sampler_penalty_repeat = gen_config.get("penalty_repeat", metadata.sampler_penalty_repeat)
-            metadata.sampler_mirostat       = gen_config.get("mirostat", metadata.sampler_mirostat)
-            metadata.sampler_mirostat_tau   = gen_config.get("mirostat_tau", metadata.sampler_mirostat_tau)
-            metadata.sampler_mirostat_eta   = gen_config.get("mirostat_eta", metadata.sampler_mirostat_eta)
+            metadata.sampler_top_k           = gen_config.get("top_k", metadata.sampler_top_k)
+            metadata.sampler_top_p           = gen_config.get("top_p", metadata.sampler_top_p)
+            metadata.sampler_min_p           = gen_config.get("min_p", metadata.sampler_min_p)
+            metadata.sampler_xtc_probability = gen_config.get("xtc_probability", metadata.sampler_xtc_probability)
+            metadata.sampler_xtc_threshold   = gen_config.get("xtc_threshold", metadata.sampler_xtc_threshold)
+            metadata.sampler_temp            = gen_config.get("temperature", metadata.sampler_temp)
+            metadata.sampler_penalty_last_n  = gen_config.get("penalty_last_n", metadata.sampler_penalty_last_n)
+            metadata.sampler_penalty_repeat  = gen_config.get("penalty_repeat", metadata.sampler_penalty_repeat)
+            metadata.sampler_mirostat        = gen_config.get("mirostat", metadata.sampler_mirostat)
+            metadata.sampler_mirostat_tau    = gen_config.get("mirostat_tau", metadata.sampler_mirostat_tau)
+            metadata.sampler_mirostat_eta    = gen_config.get("mirostat_eta", metadata.sampler_mirostat_eta)
 
         # Metadata Override File Provided
         # This is based on LLM_KV_NAMES mapping in llama.cpp
         metadata_override = Metadata.load_metadata_override(metadata_override_path)
 
-        metadata.sampler_top_k          = metadata_override.get(Keys.General.SAMPLER_TOP_K,          metadata.sampler_top_k)
-        metadata.sampler_top_p          = metadata_override.get(Keys.General.SAMPLER_TOP_P,          metadata.sampler_top_p)
-        metadata.sampler_min_p          = metadata_override.get(Keys.General.SAMPLER_MIN_P,          metadata.sampler_min_p)
-        metadata.sampler_temp           = metadata_override.get(Keys.General.SAMPLER_TEMP,           metadata.sampler_temp)
-        metadata.sampler_penalty_last_n = metadata_override.get(Keys.General.SAMPLER_PENALTY_LAST_N, metadata.sampler_penalty_last_n)
-        metadata.sampler_penalty_repeat = metadata_override.get(Keys.General.SAMPLER_PENALTY_REPEAT, metadata.sampler_penalty_repeat)
-        metadata.sampler_mirostat       = metadata_override.get(Keys.General.SAMPLER_MIROSTAT,       metadata.sampler_mirostat)
-        metadata.sampler_mirostat_tau   = metadata_override.get(Keys.General.SAMPLER_MIROSTAT_TAU,   metadata.sampler_mirostat_tau)
-        metadata.sampler_mirostat_eta   = metadata_override.get(Keys.General.SAMPLER_MIROSTAT_ETA,   metadata.sampler_mirostat_eta)
+        metadata.sampler_top_k           = metadata_override.get(Keys.General.SAMPLER_TOP_K,           metadata.sampler_top_k)
+        metadata.sampler_top_p           = metadata_override.get(Keys.General.SAMPLER_TOP_P,           metadata.sampler_top_p)
+        metadata.sampler_min_p           = metadata_override.get(Keys.General.SAMPLER_MIN_P,           metadata.sampler_min_p)
+        metadata.sampler_xtc_probability = metadata_override.get(Keys.General.SAMPLER_XTC_PROBABILITY, metadata.sampler_xtc_probability)
+        metadata.sampler_xtc_threshold   = metadata_override.get(Keys.General.SAMPLER_XTC_THRESHOLD,   metadata.sampler_xtc_threshold)
+        metadata.sampler_temp            = metadata_override.get(Keys.General.SAMPLER_TEMP,            metadata.sampler_temp)
+        metadata.sampler_penalty_last_n  = metadata_override.get(Keys.General.SAMPLER_PENALTY_LAST_N,  metadata.sampler_penalty_last_n)
+        metadata.sampler_penalty_repeat  = metadata_override.get(Keys.General.SAMPLER_PENALTY_REPEAT,  metadata.sampler_penalty_repeat)
+        metadata.sampler_mirostat        = metadata_override.get(Keys.General.SAMPLER_MIROSTAT,        metadata.sampler_mirostat)
+        metadata.sampler_mirostat_tau    = metadata_override.get(Keys.General.SAMPLER_MIROSTAT_TAU,    metadata.sampler_mirostat_tau)
+        metadata.sampler_mirostat_eta    = metadata_override.get(Keys.General.SAMPLER_MIROSTAT_ETA,    metadata.sampler_mirostat_eta)
 
         metadata.name            = metadata_override.get(Keys.General.NAME,            metadata.name)
         metadata.author          = metadata_override.get(Keys.General.AUTHOR,          metadata.author)
@@ -603,6 +609,10 @@ class Metadata:
             gguf_writer.add_sampler_top_p(self.sampler_top_p)
         if self.sampler_min_p is not None:
             gguf_writer.add_sampler_min_p(self.sampler_min_p)
+        if self.sampler_xtc_probability is not None:
+            gguf_writer.add_sampler_xtc_probability(self.sampler_xtc_probability)
+        if self.sampler_xtc_threshold is not None:
+            gguf_writer.add_sampler_xtc_threshold(self.sampler_xtc_threshold)
         if self.sampler_temp is not None:
             gguf_writer.add_sampler_temp(self.sampler_temp)
         if self.sampler_penalty_last_n is not None:

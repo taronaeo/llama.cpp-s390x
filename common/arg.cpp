@@ -1300,6 +1300,7 @@ common_params_context common_params_parser_init(common_params & params, llama_ex
         string_format("xtc probability (default: %.1f, 0.0 = disabled)", (double)params.sampling.xtc_probability),
         [](common_params & params, const std::string & value) {
             params.sampling.xtc_probability = std::stof(value);
+            params.sampling.sampling_mask |= common_params_sampling::SAMPLING_MASK_BITS_XTC_PROBABILITY;
         }
     ).set_sparam());
     add_opt(common_arg(
@@ -1307,6 +1308,7 @@ common_params_context common_params_parser_init(common_params & params, llama_ex
         string_format("xtc threshold (default: %.1f, 1.0 = disabled)", (double)params.sampling.xtc_threshold),
         [](common_params & params, const std::string & value) {
             params.sampling.xtc_threshold = std::stof(value);
+            params.sampling.sampling_mask |= common_params_sampling::SAMPLING_MASK_BITS_XTC_THRESHOLD;
         }
     ).set_sparam());
     add_opt(common_arg(

@@ -65,10 +65,41 @@ class Metadata:
 
         model_card = Metadata.load_model_card(model_path)
         hf_params = Metadata.load_hf_parameters(model_path)
+        gen_config = Metadata.load_generation_config(model_path)
         # TODO: load adapter_config.json when possible, it usually contains the base model of the LoRA adapter
 
         # heuristics
         metadata = Metadata.apply_metadata_heuristic(metadata, model_card, hf_params, model_path, total_params)
+
+        if gen_config:
+            # Standard generation_config.json parameters
+            if metadata.sampler_top_k is None and "top_k" in gen_config:
+                metadata.sampler_top_k = int(gen_config["top_k"])
+
+            if metadata.sampler_top_p is None and "top_p" in gen_config:
+                metadata.sampler_top_p = float(gen_config["top_p"])
+
+            if metadata.sampler_min_p is None and "min_p" in gen_config:
+                metadata.sampler_min_p = float(gen_config["min_p"])
+
+            if metadata.sampler_temp is None and "temperature" in gen_config:
+                metadata.sampler_temp = float(gen_config["temperature"])
+
+            # Non-standard generation_config.json parameters
+            if metadata.sampler_penalty_last_n is None and "penalty_last_n" in gen_config:
+                metadata.sampler_penalty_last_n = int(gen_config["penalty_last_n"])
+
+            if metadata.sampler_penalty_repeat is None and "penalty_repeat" in gen_config:
+                metadata.sampler_penalty_repeat = float(gen_config["penalty_repeat"])
+
+            if metadata.sampler_mirostat is None and "mirostat" in gen_config:
+                metadata.sampler_mirostat = int(gen_config["mirostat"])
+
+            if metadata.sampler_mirostat_tau is None and "mirostat_tau" in gen_config:
+                metadata.sampler_mirostat_tau = float(gen_config["mirostat_tau"])
+
+            if metadata.sampler_mirostat_eta is None and "mirostat_eta" in gen_config:
+                metadata.sampler_mirostat_eta = float(gen_config["mirostat_eta"])
 
         # Metadata Override File Provided
         # This is based on LLM_KV_NAMES mapping in llama.cpp
@@ -192,6 +223,23 @@ class Metadata:
 
         with open(config_path, "r", encoding="utf-8") as f:
             return json.load(f)
+
+    @staticmethod
+    def load_generation_config(model_path: Optional[Path] = None) -> dict[str, Any]:
+        if model_path is None or not model_path.is_dir():
+            return {}
+
+        generation_config_path = model_path / "generation_config.json"
+
+        if not generation_config_path.is_file():
+            return {}
+
+        try:
+            with open(generation_config_path, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except (json.JSONDecodeError, IOError) as e:
+            # not all models have valid generation_config.json
+            return {}
 
     @staticmethod
     def id_to_title(string):

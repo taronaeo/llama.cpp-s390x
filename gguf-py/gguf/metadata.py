@@ -74,15 +74,15 @@ class Metadata:
         # This is based on LLM_KV_NAMES mapping in llama.cpp
         metadata_override = Metadata.load_metadata_override(metadata_override_path)
 
-        metadata.sampler_top_k          = metadata_override.get(Keys.General.SAMPLER_TOP_K,   metadata.sampler_top_k)
-        metadata.sampler_top_p          = metadata_override.get(Keys.General.SAMPLER_TOP_P,   metadata.sampler_top_p)
-        metadata.sampler_min_p          = metadata_override.get(Keys.General.SAMPLER_MIN_P,   metadata.sampler_min_p)
-        metadata.sampler_temp           = metadata_override.get(Keys.General.SAMPLER_TEMP,    metadata.sampler_temp)
+        metadata.sampler_top_k          = metadata_override.get(Keys.General.SAMPLER_TOP_K,          metadata.sampler_top_k)
+        metadata.sampler_top_p          = metadata_override.get(Keys.General.SAMPLER_TOP_P,          metadata.sampler_top_p)
+        metadata.sampler_min_p          = metadata_override.get(Keys.General.SAMPLER_MIN_P,          metadata.sampler_min_p)
+        metadata.sampler_temp           = metadata_override.get(Keys.General.SAMPLER_TEMP,           metadata.sampler_temp)
         metadata.sampler_penalty_last_n = metadata_override.get(Keys.General.SAMPLER_PENALTY_LAST_N, metadata.sampler_penalty_last_n)
-        metadata.sampler_penalty_repeat = metadata_override.get(Keys.General.SAMPLER_PENALTY_REPEAT,     metadata.sampler_penalty_repeat)
-        metadata.sampler_mirostat       = metadata_override.get(Keys.General.SAMPLER_MIROSTAT,         metadata.sampler_mirostat)
-        metadata.sampler_mirostat_tau   = metadata_override.get(Keys.General.SAMPLER_MIROSTAT_TAU,    metadata.sampler_mirostat_tau)
-        metadata.sampler_mirostat_eta   = metadata_override.get(Keys.General.SAMPLER_MIROSTAT_ETA,    metadata.sampler_mirostat_eta)
+        metadata.sampler_penalty_repeat = metadata_override.get(Keys.General.SAMPLER_PENALTY_REPEAT, metadata.sampler_penalty_repeat)
+        metadata.sampler_mirostat       = metadata_override.get(Keys.General.SAMPLER_MIROSTAT,       metadata.sampler_mirostat)
+        metadata.sampler_mirostat_tau   = metadata_override.get(Keys.General.SAMPLER_MIROSTAT_TAU,   metadata.sampler_mirostat_tau)
+        metadata.sampler_mirostat_eta   = metadata_override.get(Keys.General.SAMPLER_MIROSTAT_ETA,   metadata.sampler_mirostat_eta)
 
         metadata.name            = metadata_override.get(Keys.General.NAME,            metadata.name)
         metadata.author          = metadata_override.get(Keys.General.AUTHOR,          metadata.author)

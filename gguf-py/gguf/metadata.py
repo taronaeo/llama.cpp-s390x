@@ -227,7 +227,7 @@ class Metadata:
         try:
             with open(generation_config_path, "r", encoding="utf-8") as f:
                 return json.load(f)
-        except (json.JSONDecodeError, IOError) as e:
+        except (json.JSONDecodeError, IOError):
             # not all models have valid generation_config.json
             return {}
 

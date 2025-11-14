@@ -181,7 +181,7 @@ struct common_params_sampling {
     bool    no_perf            = false; // disable performance metrics
     bool    timing_per_token   = false;
 
-    uint64_t sampling_config = 0; // bitfield to track user-specified samplers
+    uint64_t user_sampling_config = 0; // bitfield to track user-specified samplers
 
     std::vector<std::string> dry_sequence_breakers = {"\n", ":", "\"", "*"};     // default sequence breakers for DRY
 

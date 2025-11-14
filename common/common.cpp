@@ -951,7 +951,7 @@ static inline void common_init_sampler_from_model(
     const llama_model * model,
     common_params_sampling & sparams) {
 
-    const uint64_t config = sparams.sampling_config;
+    const uint64_t config = sparams.user_sampling_config;
 
     auto get_int32 = [&](const char * key, int32_t & dst, uint64_t user_config) {
         if (config & user_config) return;

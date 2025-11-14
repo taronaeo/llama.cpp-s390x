@@ -951,10 +951,10 @@ static inline void common_init_sampler_from_model(
     const llama_model * model,
     common_params_sampling & sparams) {
 
-    const uint16_t mask = sparams.sampling_mask;
+    const uint64_t config = sparams.sampling_config;
 
-    auto get_int32 = [&](const char * key, int32_t & dst, uint16_t user_override) {
-        if (mask & user_override) return;
+    auto get_int32 = [&](const char * key, int32_t & dst, uint64_t user_config) {
+        if (config & user_config) return;
 
         char buf[64] = {0};
         if (llama_model_meta_val_str(model, key, buf, sizeof(buf)) > 0) {
@@ -964,8 +964,8 @@ static inline void common_init_sampler_from_model(
         }
     };
 
-    auto get_float = [&](const char * key, float & dst, uint16_t user_override) {
-        if (mask & user_override) return;
+    auto get_float = [&](const char * key, float & dst, uint64_t user_config) {
+        if (config & user_config) return;
 
         char buf[128] = {0};
         if (llama_model_meta_val_str(model, key, buf, sizeof(buf)) > 0) {
@@ -975,10 +975,10 @@ static inline void common_init_sampler_from_model(
         }
     };
 
-    // Sampler sequence
-    if (!(mask & common_params_sampling::SAMPLING_MASK_BITS_SAMPLERS)) {
+    // Sampling sequence
+    if (!(config & common_params_sampling_config::COMMON_PARAMS_SAMPLING_CONFIG_SAMPLERS)) {
         char buf[512] = {0};
-        if (llama_model_meta_val_str(model, "general.sampler.sequence", buf, sizeof(buf)) > 0) {
+        if (llama_model_meta_val_str(model, "general.sampling.sequence", buf, sizeof(buf)) > 0) {
             const std::vector<std::string> sampler_names = string_split<std::string>(std::string(buf), ';');
             if (!sampler_names.empty()) {
                 sparams.samplers = common_sampler_types_from_names(sampler_names, true);
@@ -986,17 +986,17 @@ static inline void common_init_sampler_from_model(
         }
     }
 
-    get_int32("general.sampler.top_k",           sparams.top_k,           common_params_sampling::SAMPLING_MASK_BITS_TOP_K);
-    get_float("general.sampler.top_p",           sparams.top_p,           common_params_sampling::SAMPLING_MASK_BITS_TOP_P);
-    get_float("general.sampler.min_p",           sparams.min_p,           common_params_sampling::SAMPLING_MASK_BITS_MIN_P);
-    get_float("general.sampler.xtc_probability", sparams.xtc_probability, common_params_sampling::SAMPLING_MASK_BITS_XTC_PROBABILITY);
-    get_float("general.sampler.xtc_threshold",   sparams.xtc_threshold,   common_params_sampling::SAMPLING_MASK_BITS_XTC_THRESHOLD);
-    get_float("general.sampler.temp",            sparams.temp,            common_params_sampling::SAMPLING_MASK_BITS_TEMP);
-    get_int32("general.sampler.penalty_last_n",  sparams.penalty_last_n,  common_params_sampling::SAMPLING_MASK_BITS_PENALTY_LAST_N);
-    get_float("general.sampler.penalty_repeat",  sparams.penalty_repeat,  common_params_sampling::SAMPLING_MASK_BITS_PENALTY_REPEAT);
-    get_int32("general.sampler.mirostat",        sparams.mirostat,        common_params_sampling::SAMPLING_MASK_BITS_MIROSTAT);
-    get_float("general.sampler.mirostat_tau",    sparams.mirostat_tau,    common_params_sampling::SAMPLING_MASK_BITS_MIROSTAT_TAU);
-    get_float("general.sampler.mirostat_eta",    sparams.mirostat_eta,    common_params_sampling::SAMPLING_MASK_BITS_MIROSTAT_ETA);
+    get_int32("general.sampling.top_k",           sparams.top_k,           common_params_sampling_config::COMMON_PARAMS_SAMPLING_CONFIG_TOP_K);
+    get_float("general.sampling.top_p",           sparams.top_p,           common_params_sampling_config::COMMON_PARAMS_SAMPLING_CONFIG_TOP_P);
+    get_float("general.sampling.min_p",           sparams.min_p,           common_params_sampling_config::COMMON_PARAMS_SAMPLING_CONFIG_MIN_P);
+    get_float("general.sampling.xtc_probability", sparams.xtc_probability, common_params_sampling_config::COMMON_PARAMS_SAMPLING_CONFIG_XTC_PROBABILITY);
+    get_float("general.sampling.xtc_threshold",   sparams.xtc_threshold,   common_params_sampling_config::COMMON_PARAMS_SAMPLING_CONFIG_XTC_THRESHOLD);
+    get_float("general.sampling.temp",            sparams.temp,            common_params_sampling_config::COMMON_PARAMS_SAMPLING_CONFIG_TEMP);
+    get_int32("general.sampling.penalty_last_n",  sparams.penalty_last_n,  common_params_sampling_config::COMMON_PARAMS_SAMPLING_CONFIG_PENALTY_LAST_N);
+    get_float("general.sampling.penalty_repeat",  sparams.penalty_repeat,  common_params_sampling_config::COMMON_PARAMS_SAMPLING_CONFIG_PENALTY_REPEAT);
+    get_int32("general.sampling.mirostat",        sparams.mirostat,        common_params_sampling_config::COMMON_PARAMS_SAMPLING_CONFIG_MIROSTAT);
+    get_float("general.sampling.mirostat_tau",    sparams.mirostat_tau,    common_params_sampling_config::COMMON_PARAMS_SAMPLING_CONFIG_MIROSTAT_TAU);
+    get_float("general.sampling.mirostat_eta",    sparams.mirostat_eta,    common_params_sampling_config::COMMON_PARAMS_SAMPLING_CONFIG_MIROSTAT_ETA);
 }
 
 struct common_init_result common_init_from_params(common_params & params) {

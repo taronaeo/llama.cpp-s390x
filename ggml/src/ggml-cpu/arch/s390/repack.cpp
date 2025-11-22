@@ -55,11 +55,20 @@ void ggml_gemv_q4_0_4x4_q8_0(int n, float * GGML_RESTRICT s, size_t bs, const vo
             int8x16_t  b1 = vec_xl(0, (const int8_t *) b_ptr->qs + 16);
             int8x16_t  b2 = vec_xl(0, (const int8_t *) b_ptr->qs + 32);
             int8x16_t  b3 = vec_xl(0, (const int8_t *) b_ptr->qs + 48);
-            float32x4_t bd = vec_splats(0, GGML_COMPUTE_FP16_TO_FP32(b_ptr->d));
+
+            float32x4_t bd;
+            {
+                bd = (float32x4_t){
+                    GGML_COMPUTE_FP16_TO_FP32(b_ptr->d[0]),
+                    GGML_COMPUTE_FP16_TO_FP32(b_ptr->d[1]),
+                    GGML_COMPUTE_FP16_TO_FP32(b_ptr->d[2]),
+                    GGML_COMPUTE_FP16_TO_FP32(b_ptr->d[3])
+                }
+            }
 
             int8x16_t  a0 = vec_xl(0, (const int8_t *) a_ptr->qs);
             int8x16_t  a1 = vec_xl(0, (const int8_t *) a_ptr->qs + qk/2);
-            float32x4_t ad = vec_splats(0, GGML_COMPUTE_FP16_TO_FP32(&a_ptr->d));
+            float32x4_t ad = vec_splats(GGML_COMPUTE_FP16_TO_FP32(a_ptr->d));
 
             int32x4_t ret = vec_splats(0);
 

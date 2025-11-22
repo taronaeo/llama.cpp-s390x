@@ -511,7 +511,7 @@ inline static int32x4_t ggml_vec_dot(int32x4_t acc, int8x16_t a, int8x16_t b) {
  *              a[i * 4 + 3] * b[lane * 4 + 3];
  * }
 */
-inline static int32x4_t vec_madd_lane_s8(int32x4_t acc, int8x16_t a, int8x16_t b, int32_t lane) {
+inline static int32x4_t vec_madd_lane_s8(int32x4_t acc, int8x16_t v_a, int8x16_t v_b, int32_t lane) {
     uchar8x16_t v_m = {
         (unsigned char)(lane * 4 + 0), (unsigned char)(lane * 4 + 1), (unsigned char)(lane * 4 + 2), (unsigned char)(lane * 4 + 3),
         (unsigned char)(lane * 4 + 0), (unsigned char)(lane * 4 + 1), (unsigned char)(lane * 4 + 2), (unsigned char)(lane * 4 + 3),

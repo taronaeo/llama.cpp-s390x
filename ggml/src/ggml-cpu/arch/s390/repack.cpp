@@ -57,8 +57,8 @@ void ggml_gemv_q4_0_4x4_q8_0(int n, float * GGML_RESTRICT s, size_t bs, const vo
             int8x16_t  b3 = vec_xl(0, (const int8_t *) b_ptr->qs + 48);
             uint16x8_t bd = vec_xl(0, (const uint16_t *) b_ptr->d);
 
-            int8x16_t  a0 = vec_xl(0, a_ptr->qs);
-            int8x16_t  a1 = vec_xl(0, a_ptr->qs + qk/2);
+            int8x16_t  a0 = vec_xl(0, (const int8_t *) a_ptr->qs);
+            int8x16_t  a1 = vec_xl(0, (const int8_t *) a_ptr->qs + qk/2);
             uint16x8_t ad = vec_xl(0, (const uint16_t *) &a_ptr->d);
 
             int32x4_t ret = vec_splats(0);
@@ -73,14 +73,18 @@ void ggml_gemv_q4_0_4x4_q8_0(int n, float * GGML_RESTRICT s, size_t bs, const vo
             ret = vec_madd_lane_s8(ret, b2 & 0xf0U, a1, 2);
             ret = vec_madd_lane_s8(ret, b3 & 0xf0U, a1, 3);
 
-            int32x4_t adf = { GGML_COMPUTE_FP16_TO_FP32(ad[0]), GGML_COMPUTE_FP16_TO_FP32(ad[1]), GGML_COMPUTE_FP16_TO_FP32(ad[2]), GGML_COMPUTE_FP16_TO_FP32(ad[3]) };
-            int32x4_t bdf = { GGML_COMPUTE_FP16_TO_FP32(bd[0]), GGML_COMPUTE_FP16_TO_FP32(bd[1]), GGML_COMPUTE_FP16_TO_FP32(bd[2]), GGML_COMPUTE_FP16_TO_FP32(bd[3]) };
+            // TODO: Double check this implementation
+            int64x2_t ad_ = (int64x2_t)vec_mergeh((int16x8_t)(ad), (int16x8_t)(ad));
+            int64x2_t bd_ = (int64x2_t)vec_mergeh((int16x8_t)(bd), (int16x8_t)(bd));
+            int32x4_t adi = vec_unpackl((int16x8_t)ad_);
+            int32x4_t bdi = vec_unpackl((int16x8_t)bd_);
 
+            // TODO: Double check this implementation
             acc = vec_madd(
                 vec_float(ret),
                 vec_mul(
-                    vec_float(adf),
-                    vec_float(bdf)
+                    vec_float(adi),
+                    vec_float(bdi)
                 ),
             acc);
 
@@ -88,6 +92,7 @@ void ggml_gemv_q4_0_4x4_q8_0(int n, float * GGML_RESTRICT s, size_t bs, const vo
             b_ptr++;
         }
 
+        // TODO: Double check this implementation
         vec_xst(acc, 0, (float *)(s));
         s += ncols_interleaved;
     }

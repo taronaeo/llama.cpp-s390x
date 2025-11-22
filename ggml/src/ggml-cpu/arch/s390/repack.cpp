@@ -73,11 +73,14 @@ void ggml_gemv_q4_0_4x4_q8_0(int n, float * GGML_RESTRICT s, size_t bs, const vo
             ret = vec_madd_lane_s8(ret, b2 & 0xf0U, a1, 2);
             ret = vec_madd_lane_s8(ret, b3 & 0xf0U, a1, 3);
 
+            int32x4_t adf = { GGML_COMPUTE_FP16_TO_FP32(ad[0]), GGML_COMPUTE_FP16_TO_FP32(ad[1]), GGML_COMPUTE_FP16_TO_FP32(ad[2]), GGML_COMPUTE_FP16_TO_FP32(ad[3]) };
+            int32x4_t bdf = { GGML_COMPUTE_FP16_TO_FP32(bd[0]), GGML_COMPUTE_FP16_TO_FP32(bd[1]), GGML_COMPUTE_FP16_TO_FP32(bd[2]), GGML_COMPUTE_FP16_TO_FP32(bd[3]) };
+
             acc = vec_madd(
                 vec_float(ret),
                 vec_mul(
-                    GGML_CPU_COMPUTE_FP16_TO_FP32(ad),
-                    GGML_CPU_COMPUTE_FP16_TO_FP32(bd)
+                    vec_float(adf),
+                    vec_float(bdf)
                 ),
             acc);
 

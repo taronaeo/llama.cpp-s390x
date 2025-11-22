@@ -512,29 +512,28 @@ inline static int32x4_t ggml_vec_dot(int32x4_t acc, int8x16_t a, int8x16_t b) {
  * }
 */
 inline static int32x4_t vec_madd_lane_s8(int32x4_t acc, int8x16_t a, int8x16_t b, int32_t lane) {
-    // step 1: create 0..3 mask to broadcast lane elements
-    const uchar8x16_t v_m = {
-        (unsigned char)(lane + 0), (unsigned char)(lane + 0), (unsigned char)(lane + 0), (unsigned char)(lane + 0),
-        (unsigned char)(lane + 1), (unsigned char)(lane + 1), (unsigned char)(lane + 1), (unsigned char)(lane + 1),
-        (unsigned char)(lane + 2), (unsigned char)(lane + 2), (unsigned char)(lane + 2), (unsigned char)(lane + 2),
-        (unsigned char)(lane + 3), (unsigned char)(lane + 3), (unsigned char)(lane + 3), (unsigned char)(lane + 3)
-    };
+    uchar8x16_t v_m = {
+        (unsigned char)(lane * 4 + 0), (unsigned char)(lane * 4 + 1), (unsigned char)(lane * 4 + 2), (unsigned char)(lane * 4 + 3),
+        (unsigned char)(lane * 4 + 0), (unsigned char)(lane * 4 + 1), (unsigned char)(lane * 4 + 2), (unsigned char)(lane * 4 + 3),
+        (unsigned char)(lane * 4 + 0), (unsigned char)(lane * 4 + 1), (unsigned char)(lane * 4 + 2), (unsigned char)(lane * 4 + 3),
+        (unsigned char)(lane * 4 + 0), (unsigned char)(lane * 4 + 1), (unsigned char)(lane * 4 + 2), (unsigned char)(lane * 4 + 3)
+    }; // 0..3 mask
+    int8x16_t v_bm = vec_perm(v_b, v_b, v_m); // broadcast 0..3 elements via mask
 
-    // step 2: broadcast lane elements via mask
-    const int8x16_t v_a = a;
-    const int8x16_t v_b = vec_perm(b, b, v_m);
+    int16x8_t v_abe = vec_mule(v_a, v_bm); // multiply even elements
+    int16x8_t v_abo = vec_mulo(v_a, v_bm); // multiply odd elements
+    int16x8_t v_ab = vec_add(v_abe, v_abo); // add even and odd results
 
-    // step 3: multiply-accumulate
-    const int16x8_t v_abe = vec_mule(v_a, v_b);
-    const int16x8_t v_abo = vec_mulo(v_a, v_b);
-    const int16x8_t v_ab = vec_add(v_abe, v_abo);
+    // start of pairwise addition
+    const uchar8x16_t v_maske = {  0,  1,  4,  5,  8,  9, 12, 13,
+                                  16, 17, 20, 21, 24, 25, 28, 29 };
+    int16x8_t v_ab_o = vec_pack((int32x4_t)v_ab, (int32x4_t)v_ab);
+    int16x8_t v_ab_e = vec_perm(v_ab, v_ab, v_maske);
+    int16x8_t v_ab_ = vec_add(v_ab_o, v_ab_e);
+    // end of pairwise addition
 
-    // step 4: pairwise add
-    const int16x8_t v_ab_ = vec_padd_s16(v_ab, v_ab);
-
-    // step 5: widen and accumulate
-    const int32x4_t v_abf = vec_unpackl(v_ab_);
-    const int32x4_t v_acc = vec_add(acc, v_abf);
+    int32x4_t v_abf = vec_unpackl(v_ab_); // lengthen to int32x4_t
+    int32x4_t v_acc = vec_add(acc, v_abf); // accumulate
 
     return v_acc;
 }

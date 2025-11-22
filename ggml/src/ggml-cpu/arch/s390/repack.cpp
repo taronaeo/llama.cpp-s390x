@@ -63,7 +63,7 @@ void ggml_gemv_q4_0_4x4_q8_0(int n, float * GGML_RESTRICT s, size_t bs, const vo
                     GGML_COMPUTE_FP16_TO_FP32(b_ptr->d[1]),
                     GGML_COMPUTE_FP16_TO_FP32(b_ptr->d[2]),
                     GGML_COMPUTE_FP16_TO_FP32(b_ptr->d[3])
-                }
+                };
             }
 
             int8x16_t  a0 = vec_xl(0, (const int8_t *) a_ptr->qs);

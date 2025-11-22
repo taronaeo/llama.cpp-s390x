@@ -55,11 +55,11 @@ void ggml_gemv_q4_0_4x4_q8_0(int n, float * GGML_RESTRICT s, size_t bs, const vo
             int8x16_t  b1 = vec_xl(0, (const int8_t *) b_ptr->qs + 16);
             int8x16_t  b2 = vec_xl(0, (const int8_t *) b_ptr->qs + 32);
             int8x16_t  b3 = vec_xl(0, (const int8_t *) b_ptr->qs + 48);
-            uint16x8_t bd = vec_xl(0, (const uint16_t *) b_ptr->d);
+            float32x4_t bd = vec_splats(0, GGML_COMPUTE_FP16_TO_FP32(b_ptr->d));
 
             int8x16_t  a0 = vec_xl(0, (const int8_t *) a_ptr->qs);
             int8x16_t  a1 = vec_xl(0, (const int8_t *) a_ptr->qs + qk/2);
-            uint16x8_t ad = vec_xl(0, (const uint16_t *) &a_ptr->d);
+            float32x4_t ad = vec_splats(0, GGML_COMPUTE_FP16_TO_FP32(&a_ptr->d));
 
             int32x4_t ret = vec_splats(0);
 
@@ -74,18 +74,9 @@ void ggml_gemv_q4_0_4x4_q8_0(int n, float * GGML_RESTRICT s, size_t bs, const vo
             ret = vec_madd_lane_s8(ret, b3 & 0xf0U, a1, 3);
 
             // TODO: Double check this implementation
-            int64x2_t ad_ = (int64x2_t)vec_mergeh((int16x8_t)(ad), (int16x8_t)(ad));
-            int64x2_t bd_ = (int64x2_t)vec_mergeh((int16x8_t)(bd), (int16x8_t)(bd));
-            int32x4_t adi = vec_unpackl((int16x8_t)ad_);
-            int32x4_t bdi = vec_unpackl((int16x8_t)bd_);
-
-            // TODO: Double check this implementation
             acc = vec_madd(
                 vec_float(ret),
-                vec_mul(
-                    vec_float(adi),
-                    vec_float(bdi)
-                ),
+                vec_mul(ad, bd),
             acc);
 
             a_ptr++;

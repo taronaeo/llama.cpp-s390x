@@ -5,7 +5,6 @@
 #include <future>
 #include <vector>
 #include <cstring>
-#include <memory>
 
 #if defined(GGML_BLAS_USE_ACCELERATE)
 #   include <Accelerate/Accelerate.h>
@@ -28,226 +27,16 @@ struct ggml_backend_blas_context {
 #endif
 };
 
-struct ggml_backend_blas_tensor_extra {
-    float * dequantized = nullptr;
-    size_t  size_bytes  = 0;
-    bool    owns_data   = false;
-};
+static void ggml_backend_blas_mul_mat(
+        ggml_backend_blas_context * ctx,
+        ggml_tensor * dst) {
 
-struct ggml_backend_blas_buffer_context {
-    ggml_backend_buffer_t host_buffer = nullptr;
-    std::vector<std::unique_ptr<ggml_backend_blas_tensor_extra>> extras;
-};
-
-static ggml_backend_dev_t ggml_backend_blas_reg_get_device(ggml_backend_reg_t reg, size_t index);
-ggml_backend_reg_t ggml_backend_blas_reg(void);
-
-static void ggml_backend_blas_buffer_free_buffer(ggml_backend_buffer_t buffer) {
-    ggml_backend_blas_buffer_context * ctx = (ggml_backend_blas_buffer_context *) buffer->context;
-
-    if (ctx == nullptr) {
-        return;
-    }
-
-    for (auto & extra : ctx->extras) {
-        if (extra && extra->owns_data) {
-            free(extra->dequantized);
-        }
-    }
-
-    if (ctx->host_buffer) {
-        ggml_backend_buffer_free(ctx->host_buffer);
-    }
-
-    delete ctx;
-}
-
-static void * ggml_backend_blas_buffer_get_base(ggml_backend_buffer_t buffer) {
-    ggml_backend_blas_buffer_context * ctx = (ggml_backend_blas_buffer_context *) buffer->context;
-    return ggml_backend_buffer_get_base(ctx->host_buffer);
-}
-
-static enum ggml_status ggml_backend_blas_buffer_init_tensor(ggml_backend_buffer_t buffer, ggml_tensor * tensor) {
-    ggml_backend_blas_buffer_context * ctx = (ggml_backend_blas_buffer_context *) buffer->context;
-
-    if (tensor->view_src != NULL) {
-        auto * src_extra = (ggml_backend_blas_tensor_extra *) tensor->view_src->extra;
-        if (src_extra != nullptr && src_extra->dequantized != nullptr) {
-            auto extra = std::make_unique<ggml_backend_blas_tensor_extra>();
-            GGML_ASSERT(tensor->view_offs % ggml_type_size(tensor->type) == 0);
-            const size_t elem_offset = tensor->view_offs / ggml_type_size(tensor->type);
-            extra->dequantized = src_extra->dequantized + elem_offset;
-            const size_t byte_offset = elem_offset * sizeof(float);
-            extra->size_bytes  = src_extra->size_bytes > byte_offset ? src_extra->size_bytes - byte_offset : 0;
-            extra->owns_data   = false;
-            tensor->extra      = extra.get();
-            ctx->extras.push_back(std::move(extra));
-        } else {
-            tensor->extra = tensor->view_src->extra;
-        }
-        return GGML_STATUS_SUCCESS;
-    }
-
-    const bool can_pre_dequantize = buffer->usage == GGML_BACKEND_BUFFER_USAGE_WEIGHTS &&
-        tensor->type != GGML_TYPE_F32 && ggml_is_contiguous(tensor) && ggml_get_type_traits(tensor->type)->to_float != nullptr;
-
-    std::unique_ptr<ggml_backend_blas_tensor_extra> extra;
-    if (can_pre_dequantize) {
-        extra = std::make_unique<ggml_backend_blas_tensor_extra>();
-        extra->size_bytes = ggml_nelements(tensor) * sizeof(float);
-        extra->dequantized = (float *) ggml_aligned_malloc(extra->size_bytes);
-
-        if (extra->dequantized == nullptr) {
-            return GGML_STATUS_ALLOC_FAILED;
-        }
-
-        extra->owns_data = true;
-        tensor->extra    = extra.get();
-    }
-
-    if (ctx->host_buffer->iface.init_tensor) {
-        GGML_ASSERT(ctx->host_buffer->iface.init_tensor(ctx->host_buffer, tensor) == GGML_STATUS_SUCCESS);
-    }
-
-    if (extra) {
-        ctx->extras.push_back(std::move(extra));
-    }
-
-    return GGML_STATUS_SUCCESS;
-}
-
-static void ggml_backend_blas_buffer_memset_tensor(ggml_backend_buffer_t buffer, ggml_tensor * tensor, uint8_t value, size_t offset, size_t size) {
-    memset((char *) tensor->data + offset, value, size);
-
-    ggml_backend_blas_tensor_extra * extra = (ggml_backend_blas_tensor_extra *) tensor->extra;
-    if (extra != nullptr && extra->dequantized != nullptr && offset == 0 && size == ggml_nbytes(tensor)) {
-        memset(extra->dequantized, value, extra->size_bytes);
-    }
-
-    GGML_UNUSED(buffer);
-}
-
-static void ggml_backend_blas_buffer_set_tensor(ggml_backend_buffer_t buffer, ggml_tensor * tensor, const void * data, size_t offset, size_t size) {
-    memcpy((char *) tensor->data + offset, data, size);
-
-    ggml_backend_blas_tensor_extra * extra = (ggml_backend_blas_tensor_extra *) tensor->extra;
-    if (extra != nullptr && extra->dequantized != nullptr) {
-        const auto * type_traits = ggml_get_type_traits(tensor->type);
-        GGML_ASSERT(type_traits->to_float != nullptr);
-
-        const size_t type_size = ggml_type_size(tensor->type);
-        GGML_ASSERT(offset % type_size == 0);
-        GGML_ASSERT(size   % type_size == 0);
-
-        const size_t elem_offset = offset / type_size;
-        const size_t elem_count  = size   / type_size;
-
-        type_traits->to_float((const char *) tensor->data + offset, extra->dequantized + elem_offset, elem_count);
-    }
-
-    GGML_UNUSED(buffer);
-}
-
-static void ggml_backend_blas_buffer_get_tensor(ggml_backend_buffer_t buffer, const ggml_tensor * tensor, void * data, size_t offset, size_t size) {
-    memcpy(data, (const char *) tensor->data + offset, size);
-
-    GGML_UNUSED(buffer);
-}
-
-static void ggml_backend_blas_buffer_clear(ggml_backend_buffer_t buffer, uint8_t value) {
-    ggml_backend_blas_buffer_context * ctx = (ggml_backend_blas_buffer_context *) buffer->context;
-    memset(ggml_backend_buffer_get_base(ctx->host_buffer), value, ggml_backend_buffer_get_size(ctx->host_buffer));
-}
-
-static void ggml_backend_blas_buffer_reset(ggml_backend_buffer_t buffer) {
-    ggml_backend_blas_buffer_context * ctx = (ggml_backend_blas_buffer_context *) buffer->context;
-
-    for (auto & extra : ctx->extras) {
-        if (extra && extra->owns_data) {
-            free(extra->dequantized);
-        }
-    }
-    ctx->extras.clear();
-
-    if (ctx->host_buffer->iface.reset) {
-        ctx->host_buffer->iface.reset(ctx->host_buffer);
-    }
-}
-
-static ggml_backend_buffer_i ggml_backend_blas_buffer_i = {
-    /* .free_buffer   = */ ggml_backend_blas_buffer_free_buffer,
-    /* .get_base      = */ ggml_backend_blas_buffer_get_base,
-    /* .init_tensor   = */ ggml_backend_blas_buffer_init_tensor,
-    /* .memset_tensor = */ ggml_backend_blas_buffer_memset_tensor,
-    /* .set_tensor    = */ ggml_backend_blas_buffer_set_tensor,
-    /* .get_tensor    = */ ggml_backend_blas_buffer_get_tensor,
-    /* .cpy_tensor    = */ NULL,
-    /* .clear         = */ ggml_backend_blas_buffer_clear,
-    /* .reset         = */ ggml_backend_blas_buffer_reset,
-};
-
-static const char * ggml_backend_blas_buffer_type_get_name(ggml_backend_buffer_type_t buft) {
-    return "BLAS";
-
-    GGML_UNUSED(buft);
-}
-
-static ggml_backend_buffer_t ggml_backend_blas_buffer_type_alloc_buffer(ggml_backend_buffer_type_t buft, size_t size) {
-    ggml_backend_blas_buffer_context * ctx = new ggml_backend_blas_buffer_context();
-    ctx->host_buffer = ggml_backend_buft_alloc_buffer(ggml_backend_cpu_buffer_type(), size);
-
-    if (ctx->host_buffer == nullptr) {
-        delete ctx;
-        return nullptr;
-    }
-
-    return ggml_backend_buffer_init(buft, ggml_backend_blas_buffer_i, ctx, size);
-}
-
-static size_t ggml_backend_blas_buffer_type_get_alignment(ggml_backend_buffer_type_t buft) {
-    return ggml_backend_buft_get_alignment(ggml_backend_cpu_buffer_type());
-
-    GGML_UNUSED(buft);
-}
-
-static bool ggml_backend_blas_buffer_type_is_host(ggml_backend_buffer_type_t buft) {
-    return ggml_backend_buft_is_host(ggml_backend_cpu_buffer_type());
-
-    GGML_UNUSED(buft);
-}
-
-static ggml_backend_buffer_type_t ggml_backend_blas_buffer_type(void) {
-    static ggml_backend_buffer_type ggml_backend_buffer_type_blas = {
-        /* .iface   = */ {
-            /* .get_name       = */ ggml_backend_blas_buffer_type_get_name,
-            /* .alloc_buffer   = */ ggml_backend_blas_buffer_type_alloc_buffer,
-            /* .get_alignment  = */ ggml_backend_blas_buffer_type_get_alignment,
-            /* .get_max_size   = */ NULL,
-            /* .get_alloc_size = */ NULL,
-            /* .is_host        = */ ggml_backend_blas_buffer_type_is_host,
-        },
-        /* .device  = */ nullptr,
-        /* .context = */ NULL,
-    };
-
-    if (ggml_backend_buffer_type_blas.device == nullptr) {
-        ggml_backend_buffer_type_blas.device = ggml_backend_blas_reg_get_device(ggml_backend_blas_reg(), 0);
-    }
-
-    return &ggml_backend_buffer_type_blas;
-}
-
-static void ggml_backend_blas_mul_mat(ggml_backend_blas_context * ctx, struct ggml_tensor * dst) {
-    const struct ggml_tensor * src0 = dst->src[0];
-    const struct ggml_tensor * src1 = dst->src[1];
-
-    const ggml_backend_blas_tensor_extra * extra = (ggml_backend_blas_tensor_extra *) src0->extra;
-
-    const bool has_pre_dequant = extra != nullptr && extra->dequantized != nullptr;
+    const ggml_tensor * src0 = dst->src[0];
+    const ggml_tensor * src1 = dst->src[1];
 
     GGML_TENSOR_BINARY_OP_LOCALS
 
-    const enum ggml_type type = src0->type;
+    const ggml_type type = src0->type;
 
     GGML_ASSERT(ne0 == ne01);
     GGML_ASSERT(ne1 == ne11);
@@ -269,7 +58,7 @@ static void ggml_backend_blas_mul_mat(ggml_backend_blas_context * ctx, struct gg
     const int64_t r3 = ne13/ne03;
 
     const int64_t ne_plane      = ne01*ne00;
-    const size_t  desired_wsize = (type == GGML_TYPE_F32 || has_pre_dequant) ? 0 : ne03*ne02*ne_plane*sizeof(float);
+    const size_t  desired_wsize = type == GGML_TYPE_F32 ? 0 : ne03*ne02*ne_plane*sizeof(float);
 
     if (ctx->work_size < desired_wsize) {
         ctx->work_data.reset(new char[desired_wsize]);
@@ -278,14 +67,14 @@ static void ggml_backend_blas_mul_mat(ggml_backend_blas_context * ctx, struct gg
     void * wdata = ctx->work_data.get();
 
     // convert src0 to float
-    if (!has_pre_dequant && type != GGML_TYPE_F32) {
+    if (type != GGML_TYPE_F32) {
         const auto * type_traits = ggml_get_type_traits(type);
         ggml_to_float_t const to_float = type_traits->to_float;
 
         for (int64_t i03 = 0; i03 < ne03; i03++) {
             for (int64_t i02 = 0; i02 < ne02; i02++) {
-                const void  *       x      = (char *)  src0->data + i02*nb02          + i03*nb03;
-                      float * const wplane = (float *) wdata      + i02*ne_plane      + i03*ne02*ne_plane;
+                const void  *       x      = (char *)  src0->data + i02*nb02     + i03*nb03;
+                      float * const wplane = (float *) wdata      + i02*ne_plane + i03*ne02*ne_plane;
 
                 const int min_cols_per_thread = 4096;
                 const int min_rows_per_thread = std::max((int)(min_cols_per_thread/ne00), 1);
@@ -298,8 +87,8 @@ static void ggml_backend_blas_mul_mat(ggml_backend_blas_context * ctx, struct gg
                 }
 #else
                 for (int i = 1; i < n_threads; i++) {
-                    const int64_t start =       i*ne01/n_threads;
-                    const int64_t end   = (i + 1)*ne01/n_threads;
+                    const int64_t start = (i + 0) * ne01/n_threads;
+                    const int64_t end   = (i + 1) * ne01/n_threads;
                     if (start < end) {
                         ctx->tasks.push_back(std::async(std::launch::async, [=]() {
                             for (int64_t i01 = start; i01 < end; i01++) {
@@ -350,9 +139,7 @@ static void ggml_backend_blas_mul_mat(ggml_backend_blas_context * ctx, struct gg
             const float * y = (float *) ((char *) src1->data + i12*nb12 + i13*nb13);
                   float * d = (float *) ((char *)  dst->data + i12*nb2  + i13*nb3);
 
-            if (has_pre_dequant) {
-                x = extra->dequantized + (i03*ne02 + i02)*ne_plane;
-            } else if (type != GGML_TYPE_F32) {
+            if (type != GGML_TYPE_F32) {
                 x = (float *) wdata + i02*ne_plane + i03*ne02*ne_plane;
             }
 
@@ -361,6 +148,135 @@ static void ggml_backend_blas_mul_mat(ggml_backend_blas_context * ctx, struct gg
                         1.0f,   y, ne10,
                                 x, ne00,
                         0.0f,   d, ne01);
+        }
+    }
+}
+
+static void ggml_backend_blas_mul_mat_id(
+        ggml_backend_blas_context * ctx,
+        ggml_tensor * dst) {
+
+    const ggml_tensor * src0 = dst->src[0];
+    const ggml_tensor * src1 = dst->src[1];
+    const ggml_tensor * ids  = dst->src[2];
+
+    GGML_TENSOR_BINARY_OP_LOCALS
+
+    const ggml_type type = src0->type;
+
+    GGML_ASSERT(nb00 == ggml_type_size(type));
+    GGML_ASSERT(nb10 == ggml_type_size(src1->type));
+
+    GGML_ASSERT(nb0 == sizeof(float));
+    GGML_ASSERT(nb0 <= nb1);
+    GGML_ASSERT(nb1 <= nb2);
+    GGML_ASSERT(nb2 <= nb3);
+
+    GGML_ASSERT(ne03 == 1);
+    GGML_ASSERT(ne13 == 1);
+    GGML_ASSERT(ne3  == 1);
+
+    GGML_ASSERT(src1->type == GGML_TYPE_F32);
+    GGML_ASSERT(ids->type  == GGML_TYPE_I32);
+
+    const int64_t ne_plane      = ne01*ne00;
+    const size_t  desired_wsize = type == GGML_TYPE_F32
+                                    ? 0
+                                    : ne03*ne02*ne_plane*sizeof(float);
+
+    if (ctx->work_size < desired_wsize) {
+        ctx->work_data.reset(new char[desired_wsize]);
+        ctx->work_size = desired_wsize;
+    }
+    void * wdata = ctx->work_data.get();
+
+    // convert src0 to float
+    if (type != GGML_TYPE_F32) {
+        const auto * type_traits = ggml_get_type_traits(type);
+        ggml_to_float_t const to_float = type_traits->to_float;
+
+        for (int64_t i03 = 0; i03 < ne03; i03++) {
+            for (int64_t i02 = 0; i02 < ne02; i02++) {
+                const void  *       x      = (char *)  src0->data + i02*nb02     + i03*nb03;
+                      float * const wplane = (float *) wdata      + i02*ne_plane + i03*ne02*ne_plane;
+
+                const int min_cols_per_thread = 4096;
+                const int min_rows_per_thread = std::max((int)(min_cols_per_thread/ne00), 1);
+                const int n_threads = std::max(std::min(ctx->n_threads, (int)(ne01/min_rows_per_thread)), 1);
+
+#ifdef GGML_USE_OPENMP
+                #pragma omp parallel for num_threads(n_threads)
+                for (int64_t i01 = 0; i01 < ne01; i01++) {
+                    to_float((const char *) x + i01*nb01, wplane + i01*ne00, ne00);
+                }
+#else
+                for (int i = 1; i < n_threads; i++) {
+                    const int64_t start = (i + 0)*ne01/n_threads;
+                    const int64_t end   = (i + 1)*ne01/n_threads;
+                    if (start < end) {
+                        ctx->tasks.push_back(std::async(std::launch::async, [=]() {
+                            for (int64_t i01 = start; i01 < end; i01++) {
+                                to_float((const char *) x + i01*nb01, wplane + i01*ne00, ne00);
+                            }
+                        }));
+                    }
+                }
+                {
+                    // reuse the current thread for the first task
+                    const int64_t start = 0;
+                    const int64_t end   = ne01/n_threads;
+                    for (int64_t i01 = start; i01 < end; i01++) {
+                        to_float((const char *) x + i01*nb01, wplane + i01*ne00, ne00);
+                    }
+                }
+#endif
+            }
+        }
+
+#ifndef GGML_USE_OPENMP
+        // wait for all tasks to finish
+        for (auto & task : ctx->tasks) {
+            task.get();
+        }
+        ctx->tasks.clear();
+#endif
+    }
+
+#if defined(OPENBLAS_VERSION)
+    openblas_set_num_threads(ctx->n_threads);
+#endif
+
+#if defined(GGML_BLAS_USE_BLIS)
+    bli_thread_set_num_threads(ctx->n_threads);
+#endif
+
+#if defined(GGML_BLAS_USE_NVPL)
+    nvpl_blas_set_num_threads(ctx->n_threads);
+#endif
+
+    const int n_ids    = ids->ne[0];
+    const int n_tokens = ids->ne[1];
+
+    for (int t = 0; t < n_tokens; ++t) {
+        for (int e = 0; e < n_ids; ++e) {
+            const int32_t expert = *(const int32_t *) ((const char *) ids->data + e*ids->nb[0] + t*ids->nb[1]);
+            GGML_ASSERT(expert >= 0 && expert < ne02);
+
+            const int e_src1 = e % ne11;
+
+            const float * a = (float *) ((char *) src0->data + expert*nb02);
+            const float * b = (float *) ((char *) src1->data + e_src1*nb11 + t*nb12);
+                  float * d = (float *) ((char *)  dst->data + e*nb1      + t*nb2);
+
+            if (type != GGML_TYPE_F32) {
+                a = (float *) wdata + expert*ne_plane;
+            }
+
+            cblas_sgemv(CblasRowMajor, CblasNoTrans,
+                        ne01, ne00,
+                        1.0f, a, ne00,
+                              b, 1,
+                        0.0f, d, 1);
         }
     }
 }
@@ -449,6 +365,10 @@ static enum ggml_status ggml_backend_blas_graph_compute(ggml_backend_t backend, 
         switch (node->op) {
             case GGML_OP_MUL_MAT:
                 ggml_backend_blas_mul_mat(ctx, node);
+                break;
+
+            case GGML_OP_MUL_MAT_ID:
+                ggml_backend_blas_mul_mat_id(ctx, node);
                 break;
 
             case GGML_OP_OUT_PROD:
@@ -589,7 +509,7 @@ static ggml_backend_t ggml_backend_blas_device_init_backend(ggml_backend_dev_t d
 }
 
 static ggml_backend_buffer_type_t ggml_backend_blas_device_get_buffer_type(ggml_backend_dev_t dev) {
-    return ggml_backend_blas_buffer_type();
+    return ggml_backend_cpu_buffer_type();
 
     GGML_UNUSED(dev);
 }
@@ -631,6 +551,17 @@ static bool ggml_backend_blas_device_supports_op(ggml_backend_dev_t dev, const s
                    ggml_is_contiguous(src1) &&
                    src1->type == GGML_TYPE_F32 &&
                    (ne0 >= min_batch && ne1 >= min_batch && ne10 >= min_batch) &&
+                   (src0->type == GGML_TYPE_F32 || ggml_get_type_traits(src0->type)->to_float != NULL);
+        }
+
+        case GGML_OP_MUL_MAT_ID:
+        {
+            const ggml_tensor * src0 = op->src[0];
+            const ggml_tensor * src1 = op->src[1];
+
+            return ggml_is_contiguous(src0) &&
+                   ggml_is_contiguous(src1) &&
+                   src1->type == GGML_TYPE_F32 &&
                    (src0->type == GGML_TYPE_F32 || ggml_get_type_traits(src0->type)->to_float != NULL);
         }
 
@@ -711,7 +642,6 @@ static void * ggml_backend_blas_get_proc_address(ggml_backend_reg_t reg, const c
     return NULL;
 
     GGML_UNUSED(reg);
-    GGML_UNUSED(name);
 }
 
 static const struct ggml_backend_reg_i ggml_backend_blas_reg_i = {

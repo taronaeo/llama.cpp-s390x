@@ -67,8 +67,6 @@ static enum ggml_status ggml_backend_blas_buffer_init_tensor(
         return GGML_STATUS_SUCCESS;
     }
 
-    void * ctx = buffer->context;
-
     if (tensor->type != GGML_TYPE_F32) {
         ggml_backend_blas_buffer * extra = new ggml_backend_blas_buffer;
         extra->data = ggml_aligned_malloc(ggml_nelements(tensor) * sizeof(float)); // sizeof(float) because dequantized
@@ -78,7 +76,6 @@ static enum ggml_status ggml_backend_blas_buffer_init_tensor(
     }
 
     return GGML_STATUS_SUCCESS;
-    GGML_UNUSED(ctx);
 }
 
 static void ggml_backend_blas_buffer_memset_tensor(
@@ -265,33 +262,8 @@ static ggml_backend_buffer_type_t ggml_backend_blas_buffer_type(void) {
 }
 
 struct ggml_backend_blas_context {
-    int device;
-
-    int               n_threads;
-    ggml_threadpool_t threadpool;
-
-    uint8_t *         work_data;
-    size_t            work_size;
-
-    ggml_abort_callback abort_callback;
-    void *              abort_callback_data;
-
-    // std::unique_ptr<char[]> work_data;
-    // size_t work_size = 0;
-// #ifndef GGML_USE_OPENMP
-//     std::vector<std::future<void>> tasks;
-// #endif
-//     ggml_cgraph * gf;
+    int n_threads;
 };
-
-// struct ggml_backend_blas_context {
-//     int n_threads = GGML_DEFAULT_N_THREADS;
-//     std::unique_ptr<char[]> work_data;
-//     size_t work_size = 0;
-// #ifndef GGML_USE_OPENMP
-//     std::vector<std::future<void>> tasks;
-// #endif
-// };
 
 static void ggml_backend_blas_mul_mat(
         ggml_backend_blas_context * ctx,
@@ -322,9 +294,7 @@ static void ggml_backend_blas_mul_mat(
     // broadcast factors
     const int64_t r2 = ne12/ne02;
     const int64_t r3 = ne13/ne03;
-
-    const int64_t ne_plane      = ne01*ne00;
-    const size_t  desired_wsize = type == GGML_TYPE_F32 ? 0 : ne03*ne02*ne_plane*sizeof(float);
+    const int64_t ne_plane = ne01*ne00;
 
     const ggml_backend_blas_buffer * extra = (ggml_backend_blas_buffer *)src0->extra;
 
@@ -349,6 +319,8 @@ static void ggml_backend_blas_mul_mat(
                         0.0f,   d, ne01);
         }
     }
+
+    GGML_UNUSED(ctx);
 }
 
 
@@ -361,7 +333,6 @@ static const char * ggml_backend_blas_get_name(ggml_backend_t backend) {
 static void ggml_backend_blas_free(ggml_backend_t backend) {
     ggml_backend_blas_context * ctx = (ggml_backend_blas_context *)backend->context;
 
-    delete[] ctx->work_data;
     delete ctx;
     delete backend;
 }
@@ -423,12 +394,7 @@ ggml_backend_t ggml_backend_blas_init(void) {
         return NULL;
     }
 
-    ctx->n_threads           = GGML_DEFAULT_N_THREADS;
-    ctx->threadpool          = NULL;
-    ctx->work_data           = nullptr;
-    ctx->work_size           = 0;
-    ctx->abort_callback      = NULL;
-    ctx->abort_callback_data = nullptr;
+    ctx->n_threads = GGML_DEFAULT_N_THREADS;
 
     ggml_backend_t blas_backend = new ggml_backend {
         /* .guid    = */ ggml_backend_blas_guid(),
@@ -468,10 +434,7 @@ void ggml_backend_blas_set_n_threads(ggml_backend_t backend, int n_threads) {
 #endif
 }
 
-struct ggml_backend_blas_device_context {
-    int blas_device;
-    int blas_device_ref_count;
-};
+struct ggml_backend_blas_device_context {};
 
 static const char * ggml_backend_blas_device_get_name(ggml_backend_dev_t dev) {
     return "BLAS";

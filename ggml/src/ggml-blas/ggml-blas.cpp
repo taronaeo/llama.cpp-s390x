@@ -315,7 +315,7 @@ static void ggml_backend_blas_mul_mat(
                         ne1, ne01, ne10,
                         1.0f,   y, ne10,
                                 x, ne00,
-                        0.0f,   d, nb1/nb0);
+                        0.0f,   d, ne01);
         }
     }
 }

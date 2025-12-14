@@ -25,11 +25,15 @@
 
 struct ggml_backend_blas_buffer {
     void * data;  // dequantized data
-    size_t size;
+    size_t size;  // ggml_nelements * sizeof(float)
 };
 
 struct ggml_backend_blas_buffer_type_context {
     int n_threads;
+
+#ifndef GGML_USE_OPENMP
+    std::vector<std::future<void>> tasks;
+#endif
 };
 
 // BLAS backend - buffer
@@ -132,12 +136,42 @@ static void ggml_backend_blas_buffer_set_tensor(
                 const int min_rows_per_thread = std::max((int)(min_cols_per_thread / ne00), 1);
                 const int n_threads = std::max(std::min(buft_ctx->n_threads, (int)(ne01 / min_rows_per_thread)), 1);
 
+#ifdef GGML_USE_OPENMP
                 #pragma omp parallel for num_threads(n_threads)
                 for (int64_t i01 = 0; i01 < ne01; i01++) {
                     to_float((const char *)x + i01*nb01, wplane + i01*ne00, ne00);
                 }
+#else
+                for (int i = 1; i < n_threads; i++) {
+                    const int64_t start = (i + 0) * ne01/n_threads;
+                    const int64_t end   = (i + 1) * ne01/n_threads;
+                    if (start < end) {
+                        buft_ctx->tasks.push_back(std::async(std::launch::async, [=]() {
+                            for (int64_t i01 = start; i01 < end; i01++) {
+                                to_float((const char *)x + i01*nb01, wplane + i01*ne00, ne00);
+                            }
+                        }));
+                    }
+                }
+                {
+                    // reuse the current thread for the first task
+                    const int64_t start = 0;
+                    const int64_t end   = ne01/n_threads;
+                    for (int64_t i01 = start; i01 < end; i01++) {
+                        to_float((const char *)x + i01*nb01, wplane + i01*ne00, ne00);
+                    }
+                }
+#endif
             }
         }
+
+#ifndef GGML_USE_OPENMP
+        // wait for all tasks to finish
+        for (auto & task : buft_ctx->tasks) {
+            task.get();
+        }
+        buft_ctx->tasks.clear();
+#endif
     }
 }
 
@@ -185,7 +219,6 @@ static ggml_backend_buffer_t ggml_backend_blas_buffer_type_alloc_buffer(
         ggml_backend_buffer_type_t buft,
         size_t size) {
 
-    // TODO: contains dequantized data
     void * data = ggml_aligned_malloc(size);
     if (data == nullptr) {
         GGML_LOG_ERROR("%s: failed to allocate buffer of size %zu\n", __func__, size);
@@ -210,6 +243,9 @@ static bool ggml_backend_blas_buffer_type_is_host(ggml_backend_buffer_type_t buf
 static ggml_backend_buffer_type_t ggml_backend_blas_buffer_type(void) {
     static ggml_backend_blas_buffer_type_context buft_ctx = {
         /* .n_threads = */ (int)std::thread::hardware_concurrency(),
+#ifndef GGML_USE_OPENMP
+        /* .tasks     = */ std::vector<std::future<void>>(),
+#endif
     };
 
     static ggml_backend_buffer_type ggml_backend_blas_buffer_type = {
@@ -432,7 +468,6 @@ void ggml_backend_blas_set_n_threads(ggml_backend_t backend, int n_threads) {
 #endif
 }
 
-// TODO: maybe implement description?
 struct ggml_backend_blas_device_context {
     int blas_device;
     int blas_device_ref_count;

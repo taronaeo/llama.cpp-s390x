@@ -80,10 +80,10 @@ static enum ggml_status ggml_backend_blas_buffer_init_tensor(
 
 static void ggml_backend_blas_buffer_memset_tensor(
         ggml_backend_buffer_t buffer,
-        ggml_tensor * tensor,
-        uint8_t value,
-        size_t offset,
-        size_t size) {
+        ggml_tensor         * tensor,
+        uint8_t               value,
+        size_t                offset,
+        size_t                size) {
 
     GGML_ASSERT(tensor);
     memset((char *)tensor->data + offset, value, size);

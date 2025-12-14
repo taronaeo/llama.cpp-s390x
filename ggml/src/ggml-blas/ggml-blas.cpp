@@ -76,6 +76,8 @@ static enum ggml_status ggml_backend_blas_buffer_init_tensor(
     }
 
     return GGML_STATUS_SUCCESS;
+
+    GGML_UNUSED(buffer);
 }
 
 static void ggml_backend_blas_buffer_memset_tensor(
@@ -170,6 +172,8 @@ static void ggml_backend_blas_buffer_set_tensor(
         buft_ctx->tasks.clear();
 #endif
     }
+
+    GGML_UNUSED(nb00);
 }
 
 static void ggml_backend_blas_buffer_get_tensor(

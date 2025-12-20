@@ -28,6 +28,20 @@ struct ggml_backend_blas_buffer {
     size_t size;  // ggml_nelements * sizeof(float)
 };
 
+struct ggml_backend_blas_buffer_context {
+    void * data;
+    size_t size;
+    std::vector<ggml_backend_blas_buffer *> buffers;
+
+    ~ggml_backend_blas_buffer_context() {
+        ggml_aligned_free(data, size);
+        for (auto * extra : buffers) {
+            ggml_aligned_free(extra->data, extra->size);
+            delete extra;
+        }
+    }
+};
+
 struct ggml_backend_blas_buffer_type_context {
     int n_threads;
 
@@ -41,14 +55,15 @@ struct ggml_backend_blas_buffer_type_context {
 static void ggml_backend_blas_buffer_free_buffer(ggml_backend_buffer_t buffer) {
     GGML_ASSERT(buffer);
 
-    ggml_backend_blas_buffer * buf_ctx = (ggml_backend_blas_buffer *)buffer->context;
-    ggml_aligned_free(buf_ctx->data, buf_ctx->size);
-    ggml_aligned_free(buffer->context, buffer->size);
+    ggml_backend_blas_buffer_context * ctx = (ggml_backend_blas_buffer_context *)buffer->context;
+    delete ctx;
 }
 
 static void * ggml_backend_blas_buffer_get_base(ggml_backend_buffer_t buffer) {
     GGML_ASSERT(buffer);
-    uintptr_t data = (uintptr_t)buffer->context;
+
+    ggml_backend_blas_buffer_context * ctx = (ggml_backend_blas_buffer_context *)buffer->context;
+    uintptr_t data = (uintptr_t)ctx->data;
 
     // align the buffer
     if (data % TENSOR_ALIGNMENT != 0) {
@@ -68,16 +83,17 @@ static enum ggml_status ggml_backend_blas_buffer_init_tensor(
     }
 
     if (tensor->type != GGML_TYPE_F32) {
+        ggml_backend_blas_buffer_context * ctx = (ggml_backend_blas_buffer_context *)buffer->context;
         ggml_backend_blas_buffer * extra = new ggml_backend_blas_buffer;
+
         extra->data = ggml_aligned_malloc(ggml_nelements(tensor) * sizeof(float)); // sizeof(float) because dequantized
         extra->size = ggml_nelements(tensor) * sizeof(float);
 
         tensor->extra = extra;
+        ctx->buffers.push_back(extra);
     }
 
     return GGML_STATUS_SUCCESS;
-
-    GGML_UNUSED(buffer);
 }
 
 static void ggml_backend_blas_buffer_memset_tensor(
@@ -194,7 +210,9 @@ static void ggml_backend_blas_buffer_clear(
         uint8_t value) {
 
     GGML_ASSERT(buffer);
-    memset(buffer->context, value, buffer->size);
+
+    ggml_backend_blas_buffer_context * ctx = (ggml_backend_blas_buffer_context *)buffer->context;
+    memset(ctx->data, value, ctx->size);
 }
 
 static const ggml_backend_buffer_i ggml_backend_blas_buffer_i = {
@@ -226,7 +244,11 @@ static ggml_backend_buffer_t ggml_backend_blas_buffer_type_alloc_buffer(
         return NULL;
     }
 
-    return ggml_backend_buffer_init(buft, ggml_backend_blas_buffer_i, data, size);
+    ggml_backend_blas_buffer_context * ctx = new ggml_backend_blas_buffer_context;
+    ctx->data = data;
+    ctx->size = size;
+
+    return ggml_backend_buffer_init(buft, ggml_backend_blas_buffer_i, ctx, size);
 }
 
 static size_t ggml_backend_blas_buffer_type_get_alignment(ggml_backend_buffer_type_t buft) {

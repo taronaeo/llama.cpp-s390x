@@ -215,6 +215,17 @@ static void ggml_backend_blas_buffer_clear(
     memset(ctx->data, value, ctx->size);
 }
 
+static void ggml_backend_blas_buffer_reset(ggml_backend_buffer_t buffer) {
+    GGML_ASSERT(buffer);
+
+    ggml_backend_blas_buffer_context * ctx = (ggml_backend_blas_buffer_context *)buffer->context;
+    for (auto * extra : ctx->buffers) {
+        ggml_aligned_free(extra->data, extra->size);
+        delete extra;
+    }
+    ctx->buffers.clear();
+}
+
 static const ggml_backend_buffer_i ggml_backend_blas_buffer_i = {
     /* .free_buffer     = */ ggml_backend_blas_buffer_free_buffer,
     /* .get_base        = */ ggml_backend_blas_buffer_get_base,
@@ -224,7 +235,7 @@ static const ggml_backend_buffer_i ggml_backend_blas_buffer_i = {
     /* .get_tensor      = */ ggml_backend_blas_buffer_get_tensor,
     /* .cpy_tensor      = */ NULL,
     /* .clear           = */ ggml_backend_blas_buffer_clear,
-    /* .reset           = */ NULL,
+    /* .reset           = */ ggml_backend_blas_buffer_reset,
 };
 
 // BLAS backend buffer type

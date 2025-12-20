@@ -240,7 +240,7 @@ static const ggml_backend_buffer_i ggml_backend_blas_buffer_i = {
 // BLAS backend buffer type
 
 static const char * ggml_backend_blas_buffer_type_get_name(ggml_backend_buffer_type_t buft) {
-    return "BLAS";
+    return GGML_BLAS_NAME;
     GGML_UNUSED(buft);
 }
 
@@ -298,7 +298,7 @@ static ggml_backend_buffer_type_t ggml_backend_blas_buffer_type(void) {
 }
 
 static const char * ggml_backend_blas_get_name(ggml_backend_t backend) {
-    return "BLAS";
+    return GGML_BLAS_NAME;
 
     GGML_UNUSED(backend);
 }
@@ -422,7 +422,7 @@ void ggml_backend_blas_set_n_threads(ggml_backend_t backend, int n_threads) {
 }
 
 static const char * ggml_backend_blas_device_get_name(ggml_backend_dev_t dev) {
-    return "BLAS";
+    return GGML_BLAS_NAME;
 
     GGML_UNUSED(dev);
 }
@@ -439,7 +439,7 @@ static const char * ggml_backend_blas_device_get_description(ggml_backend_dev_t 
     #elif defined(OPENBLAS_VERSION)
         return "OpenBLAS";
     #else
-        return "BLAS";
+        return GGML_BLAS_NAME;
     #endif
 
     GGML_UNUSED(dev);
@@ -530,7 +530,7 @@ static bool ggml_backend_blas_device_supports_op(ggml_backend_dev_t dev, const g
 }
 
 static bool ggml_backend_blas_device_supports_buft(ggml_backend_dev_t dev, ggml_backend_buffer_type_t buft) {
-    return ggml_backend_buft_is_host(buft);
+    return buft->iface.get_name == ggml_backend_blas_buffer_type_get_name;
 
     GGML_UNUSED(dev);
 }
@@ -556,7 +556,7 @@ static const ggml_backend_device_i ggml_backend_blas_device_i = {
 // BLAS backend - backend (reg)
 
 static const char * ggml_backend_blas_reg_get_name(ggml_backend_reg_t reg) {
-    return "BLAS";
+    return GGML_BLAS_NAME;
 
     GGML_UNUSED(reg);
 }
@@ -599,7 +599,7 @@ static const ggml_backend_reg_i ggml_backend_blas_reg_i = {
 
 ggml_backend_reg_t ggml_backend_blas_reg(void) {
     static ggml_backend_reg ggml_backend_blas_reg = {
-        /* .api_version = */ GGML_BACKEND_API_VERSION,
+        /* .api_version = */ GGML_BLAS_VERSION,
         /* .iface       = */ ggml_backend_blas_reg_i,
         /* .context     = */ NULL,
     };

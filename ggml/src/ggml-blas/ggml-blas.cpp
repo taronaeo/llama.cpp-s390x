@@ -14,6 +14,19 @@
 #include <thread>
 #include <vector>
 
+#if defined(GGML_BLAS_USE_ACCELERATE)
+#   include <Accelerate/Accelerate.h>
+#elif defined(GGML_BLAS_USE_MKL)
+#   include <mkl.h>
+#elif defined(GGML_BLAS_USE_BLIS)
+#   include <blis.h>
+#elif defined(GGML_BLAS_USE_NVPL)
+#   include <nvpl_blas.h>
+#else
+#   include <cblas.h>
+#endif
+
+
 // BLAS backend - graph compute
 
 static void ggml_blas_compute_forward_mul_mat(
@@ -366,6 +379,16 @@ ggml_backend_t ggml_backend_blas_init(void) {
         /* .device  = */ ggml_backend_reg_dev_get(ggml_backend_blas_reg(), 0),
         /* .context = */ ctx,
     };
+
+#if defined(OPENBLAS_VERSION) && defined(GGML_USE_OPENMP)
+    if (openblas_get_parallel() != OPENBLAS_OPENMP) {
+        GGML_LOG_DEBUG("%s: warning: ggml is using OpenMP, but OpenBLAS was compiled without OpenMP support\n", __func__);
+    }
+#endif
+
+#if defined(BLIS_ENABLE_CBLAS) && defined(GGML_USE_OPENMP) && !defined(BLIS_ENABLE_OPENMP)
+    GGML_LOG_DEBUG("%s: warning: ggml is using OpenMP, but BLIS was compiled without OpenMP support\n", __func__);
+#endif
 
     if (blas_backend == NULL) {
         delete ctx;

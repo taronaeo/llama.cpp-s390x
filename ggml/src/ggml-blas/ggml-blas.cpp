@@ -6,6 +6,7 @@
 
 #include "ggml-blas/common.hpp"
 #include "ggml-blas/mmf.hpp"
+#include "ggml-blas/out-prod.hpp"
 
 #include <cstdint>
 #include <cstring>
@@ -16,13 +17,23 @@
 // BLAS backend - graph compute
 
 static void ggml_blas_compute_forward_mul_mat(
-    const ggml_backend_blas_context * ctx,
-          ggml_tensor * dst) {
+        const ggml_backend_blas_context * ctx,
+              ggml_tensor * dst) {
 
     const ggml_tensor * src0 = dst->src[0];  // weights
     const ggml_tensor * src1 = dst->src[1];  // inputs
 
     ggml_blas_mul_mat_f(ctx, src0, src1, dst);
+}
+
+static void ggml_blas_compute_forward_out_prod(
+        const ggml_backend_blas_context * ctx,
+              ggml_tensor * dst) {
+
+    const ggml_tensor * src0 = dst->src[0];  // inputs
+    const ggml_tensor * src1 = dst->src[1];  // weights
+
+    ggml_blas_out_prod_f(ctx, src0, src1, dst);
 }
 
 // BLAS backend - buffer
@@ -304,6 +315,11 @@ static ggml_status ggml_backend_blas_graph_compute(
                 {
                     ggml_blas_compute_forward_mul_mat(ctx, node);
                 } break;
+            case GGML_OP_OUT_PROD:
+                {
+                    ggml_blas_compute_forward_out_prod(ctx, node);
+                } break;
+
             default:
                 GGML_ABORT("%s: unsupported op %s\n", __func__, ggml_op_desc(node));
         }
@@ -471,6 +487,16 @@ static bool ggml_backend_blas_device_supports_op(ggml_backend_dev_t dev, const g
                    && src0->view_src == nullptr && src1->view_src == nullptr
                    && (ne0 >= min_batch && ne1 >= min_batch && ne10 >= min_batch)
                    && (src0->type == GGML_TYPE_F32 || ggml_get_type_traits(src0->type)->to_float != NULL);
+        }
+
+        case GGML_OP_OUT_PROD:
+        {
+            return src0->type == GGML_TYPE_F32
+                   && src1->type == GGML_TYPE_F32
+                   && ggml_is_matrix(src0)
+                   && ggml_is_matrix(src1)
+                   && ggml_is_contiguous(src0)
+                   && (ggml_is_contiguous(src1) || ggml_is_transposed(src1));
         }
 
         default:

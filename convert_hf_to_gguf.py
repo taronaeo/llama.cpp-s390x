@@ -141,16 +141,18 @@ class ModelBase:
         self.model_name = model_name
         self.dir_model_card = dir_model  # overridden in convert_lora_to_gguf.py
 
-        # Apply heuristics to figure out typical tensor encoding based on first layer tensor encoding type
+        # Apply heuristics to figure out typical tensor encoding based on most common dtype
         if self.ftype == gguf.LlamaFileType.GUESSED:
             # NOTE: can't use field "torch_dtype" in config.json, because some finetunes lie.
-            _, first_tensor = next(self.get_tensors())
-            if first_tensor.dtype == torch.float16:
-                logger.info(f"choosing --outtype f16 from first tensor type ({first_tensor.dtype})")
-                self.ftype = gguf.LlamaFileType.MOSTLY_F16
+            plurality_dtype = self.find_plurality_dtype(self.remote_hf_model_id)
+
+            if plurality_dtype:
+                self.ftype = plurality_dtype
+                ftype_str = plurality_dtype.name.replace("MOSTLY_", "")
+                logger.info(f"dtype heuristics detected {ftype_str} file type, setting ftype to {ftype_str.lower()} precision")
             else:
-                logger.info(f"choosing --outtype bf16 from first tensor type ({first_tensor.dtype})")
-                self.ftype = gguf.LlamaFileType.MOSTLY_BF16
+                self.ftype = gguf.LlamaFileType.MOSTLY_F16
+                logger.info("dtype heuristics could not detect model dtype, defaulting to f16 precision")
 
         self.dequant_model()
 
@@ -174,6 +176,32 @@ class ModelBase:
         if optional:
             return None
         raise KeyError(f"could not find any of: {keys}")
+
+    def find_plurality_dtype(self, remote_hf_model_id: str | None = None) -> gguf.LlamaFileType | None:
+        tensor_dtypes: dict[str, int] = {}
+        dtype_to_ftype = {
+            "F32":  gguf.LlamaFileType.ALL_F32,
+            "F16":  gguf.LlamaFileType.MOSTLY_F16,
+            "BF16": gguf.LlamaFileType.MOSTLY_BF16,
+        }
+
+        if remote_hf_model_id is not None:
+            remote_tensors = gguf.utility.SafetensorRemote.get_list_tensors_hf_model(remote_hf_model_id)
+            for tensor in remote_tensors.values():
+                dtype = tensor.dtype
+                tensor_dtypes[dtype] = tensor_dtypes.get(dtype, 0) + 1
+        else:
+            prefix = "model" if not self.is_mistral_format else "consolidated"
+            part_names = ModelBase.get_model_part_names(self.dir_model, prefix, ".safetensors")
+
+            for part_name in part_names:
+                with gguf.utility.SafetensorsLocal(self.dir_model / part_name) as model_part:
+                    for name in model_part.keys():
+                        data = model_part[name]
+                        tensor_dtypes[data.dtype] = tensor_dtypes.get(data.dtype, 0) + 1
+
+        plurality_dtype = max(tensor_dtypes, key=lambda k: tensor_dtypes[k])
+        return dtype_to_ftype.get(plurality_dtype)
 
     def index_tensors(self, remote_hf_model_id: str | None = None) -> dict[str, Callable[[], Tensor]]:
         tensors: dict[str, Callable[[], Tensor]] = {}
@@ -10557,8 +10585,8 @@ def parse_args() -> argparse.Namespace:
         help="path to write to; default: based on input. {ftype} will be replaced by the outtype.",
     )
     parser.add_argument(
-        "--outtype", type=str, choices=["f32", "f16", "bf16", "q8_0", "tq1_0", "tq2_0", "auto"], default="f16",
-        help="output format - use f32 for float32, f16 for float16, bf16 for bfloat16, q8_0 for Q8_0, tq1_0 or tq2_0 for ternary, and auto for the highest-fidelity 16-bit float type depending on the first loaded tensor type",
+        "--outtype", type=str, choices=["f32", "f16", "bf16", "q8_0", "tq1_0", "tq2_0", "auto"], default="auto",
+        help="output format - use f32 for float32, f16 for float16, bf16 for bfloat16, q8_0 for Q8_0, tq1_0 or tq2_0 for ternary, and auto for automatic detection based on the most common safetensor type",
     )
     parser.add_argument(
         "--bigendian", action="store_true",

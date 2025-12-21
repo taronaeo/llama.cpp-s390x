@@ -144,25 +144,21 @@ class ModelBase:
         # Apply heuristics to figure out typical tensor encoding based on first tensor's dtype
         # NOTE: can't use field "torch_dtype" in config.json, because some finetunes lie.
         if self.ftype == gguf.LlamaFileType.GUESSED:
-            ftype_str = None
-            dtype_to_ftype = {
-                torch.float16:  gguf.LlamaFileType.MOSTLY_F16,
-                torch.bfloat16: gguf.LlamaFileType.MOSTLY_BF16,
-            }
-
             for _, tensor in self.get_tensors():
                 if tensor.dim() < 2 and tensor.dtype == torch.float32:
                     continue
 
-                self.ftype = dtype_to_ftype[tensor.dtype]
-                ftype_str = self.ftype.name.replace("MOSTLY_", "").lower()
-
-                logger.info(f"heuristics detected {ftype_str} tensor dtype, setting ftype to {ftype_str}")
-                break
+                if tensor.dtype == torch.bfloat16:
+                    self.ftype = gguf.LlamaFileType.MOSTLY_BF16
+                    logger.info("heuristics detected bfloat16 tensor dtype, setting --outtype bf16")
+                    break
+                elif tensor.dtype == torch.float16:
+                    self.ftype = gguf.LlamaFileType.MOSTLY_F16
+                    logger.info("heuristics detected float16 tensor dtype, setting --outtype f16")
+                    break
             else:
                 self.ftype = gguf.LlamaFileType.MOSTLY_F16
-                ftype_str = self.ftype.name.replace("MOSTLY_", "").lower()
-                logger.info(f"heuristics unable to detect tensor dtype, defaulting to {ftype_str}")
+                logger.info("heuristics unable to detect tensor dtype, defaulting to --outtype f16")
 
         self.dequant_model()
 

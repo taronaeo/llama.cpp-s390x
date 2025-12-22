@@ -145,7 +145,7 @@ class ModelBase:
         # NOTE: can't use field "torch_dtype" in config.json, because some finetunes lie.
         if self.ftype == gguf.LlamaFileType.GUESSED:
             for _, tensor in self.get_tensors():
-                if tensor.dim() < 2 and tensor.dtype == torch.float32:
+                if tensor.dim() < 2:
                     continue
 
                 if tensor.dtype == torch.bfloat16:

@@ -500,7 +500,7 @@ static bool ggml_backend_blas_device_supports_op(ggml_backend_dev_t dev, const g
             const int64_t ne1  = dst->ne[1];
 
             // TODO: find the optimal value
-            const int64_t min_batch = 32;
+            const int64_t min_batch = 1024;
 
             return ggml_is_contiguous(src0)
                    && ggml_is_contiguous(src1)
@@ -508,7 +508,7 @@ static bool ggml_backend_blas_device_supports_op(ggml_backend_dev_t dev, const g
                    // NOTE: llama-bench creates views that somehow does not go through init_tensor
                    //       this prevents the uninitialized views from being used in BLAS
                    && src0->view_src == nullptr && src1->view_src == nullptr
-                   && (ne0 >= min_batch || ne1 >= min_batch || ne10 >= min_batch)
+                   && (ne0 >= min_batch && ne1 >= min_batch && ne10 >= min_batch)
                    && (src0->type == GGML_TYPE_F32 || ggml_get_type_traits(src0->type)->to_float != NULL);
         }
 

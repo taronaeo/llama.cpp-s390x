@@ -5,7 +5,26 @@
 - [Introduction](#introduction)
 - [GGML Backend API](#ggml-backend-api)
     - [Backend Registration](#backend-registration)
+        - [ggml_backend_custom_reg_get_name](#ggml_backend_custom_reg_get_name)
+        - [ggml_backend_custom_reg_get_device_count](#ggml_backend_custom_reg_get_device_count)
+        - [ggml_backend_custom_reg_get_device](#ggml_backend_custom_reg_get_device)
+        - [ggml_backend_custom_get_proc_address](#ggml_backend_custom_get_proc_address)
     - [Backend Device Registration](#backend-device-registration)
+        - [ggml_backend_custom_device_get_name](#ggml_backend_custom_device_get_name)
+        - [ggml_backend_custom_device_get_description](#ggml_backend_custom_device_get_description)
+        - [ggml_backend_custom_device_get_memory](#ggml_backend_custom_device_get_memory)
+        - [ggml_backend_custom_device_get_type](#ggml_backend_custom_device_get_type)
+        - [ggml_backend_custom_device_get_props](#ggml_backend_custom_device_get_props)
+        - [ggml_backend_custom_device_init_backend](#ggml_backend_custom_device_init_backend)
+        - [ggml_backend_custom_device_get_buffer_type](#ggml_backend_custom_device_get_buffer_type)
+        - [ggml_backend_custom_device_get_host_buffer_type](#ggml_backend_custom_device_get_host_buffer_type)
+        - [ggml_backend_custom_device_get_buffer_from_host_ptr](#ggml_backend_custom_device_get_buffer_from_host_ptr)
+        - [ggml_backend_custom_device_supports_op](#ggml_backend_custom_device_supports_op)
+        - [ggml_backend_custom_device_supports_buft](#ggml_backend_custom_device_supports_buft)
+        - [ggml_backend_custom_device_offload_op](#ggml_backend_custom_device_offload_op)
+        - [ggml_backend_custom_device_event_new](#ggml_backend_custom_device_event_new)
+        - [ggml_backend_custom_device_event_free](#ggml_backend_custom_device_event_free)
+        - [ggml_backend_custom_device_event_synchronize](#ggml_backend_custom_device_event_synchronize)
 - [Backend Structure](#backend-structure)
 - [Backend Components](#backend-components)
     - [Registering Custom Backend](#registering-custom-backend)
@@ -43,6 +62,8 @@ Backend Registration Interface
 
 <br />
 
+#### ggml_backend_custom_reg_get_name
+
 ```c++
 static const char * ggml_backend_custom_reg_get_name(ggml_backend_reg_t reg)
 ```
@@ -74,6 +95,8 @@ static const char * ggml_backend_metal_reg_get_name(ggml_backend_reg_t reg) {
 
 <br />
 
+#### ggml_backend_custom_reg_get_device_count
+
 ```c++
 static size_t ggml_backend_custom_reg_get_device_count(ggml_backend_reg_t reg)
 ```
@@ -104,6 +127,8 @@ static size_t ggml_backend_metal_reg_device_count(ggml_backend_reg_t reg) {
 </details>
 
 <br />
+
+#### ggml_backend_custom_reg_get_device
 
 ```c++
 static ggml_backend_dev_t ggml_backend_custom_reg_get_device(ggml_backend_reg_t reg, size_t index)
@@ -139,6 +164,8 @@ static ggml_backend_dev_t ggml_backend_metal_reg_device_get(ggml_backend_reg_t r
 </details>
 
 <br />
+
+#### ggml_backend_custom_get_proc_address
 
 ```c++
 static void * ggml_backend_custom_get_proc_address(ggml_backend_reg_t reg, const char * name)
@@ -290,6 +317,8 @@ static const ggml_backend_device_i ggml_backend_custom_device_interface = {
 
 Device Registration Interface
 
+#### ggml_backend_custom_device_get_name
+
 ```c++
 static const char * ggml_backend_custom_device_get_name(ggml_backend_dev_t dev)
 ```
@@ -325,6 +354,8 @@ static const char * ggml_backend_metal_device_get_name(ggml_backend_dev_t dev) {
 
 <br />
 
+#### ggml_backend_custom_device_get_description
+
 ```c++
 static const char * ggml_backend_custom_device_get_description(ggml_backend_dev_t dev)
 ```
@@ -358,11 +389,15 @@ static const char * ggml_backend_metal_device_get_description(ggml_backend_dev_t
 
 <br />
 
+#### ggml_backend_custom_device_get_memory
+
 ```c++
 static void ggml_backend_custom_device_get_memory(ggml_backend_dev_t dev, size_t * free, size_t * total)
 ```
 
 <br />
+
+#### ggml_backend_custom_device_get_type
 
 ```c++
 static enum ggml_backend_dev_type ggml_backend_custom_device_get_type(ggml_backend_dev_t dev)
@@ -370,11 +405,15 @@ static enum ggml_backend_dev_type ggml_backend_custom_device_get_type(ggml_backe
 
 <br />
 
+#### ggml_backend_custom_device_get_props
+
 ```c++
 static void ggml_backend_custom_device_get_props(ggml_backend_dev_t dev, ggml_backend_dev_props * props)
 ```
 
 <br />
+
+#### ggml_backend_custom_device_init_backend
 
 ```c++
 static ggml_backend_t ggml_backend_custom_device_init_backend(ggml_backend_dev_t dev, const char * params)
@@ -382,12 +421,16 @@ static ggml_backend_t ggml_backend_custom_device_init_backend(ggml_backend_dev_t
 
 <br />
 
+#### ggml_backend_custom_device_get_buffer_type
+
 ```c++
 
 static ggml_backend_buffer_type_t ggml_backend_custom_device_get_buffer_type(ggml_backend_dev_t dev)
 ```
 
 <br />
+
+#### ggml_backend_custom_device_get_host_buffer_type
 
 ```c++
 static ggml_backend_buffer_type_t ggml_backend_custom_device_get_host_buffer_type(ggml_backend_dev_t dev)
@@ -397,6 +440,8 @@ OPTIONAL -
 
 <br />
 
+#### ggml_backend_custom_device_get_buffer_from_host_ptr
+
 ```c++
 static ggml_backend_buffer_t ggml_backend_custom_device_get_buffer_from_host_ptr(ggml_backend_dev_t dev, void * ptr, size_t size, size_t max_tensor_size)
 ```
@@ -405,17 +450,23 @@ OPTIONAL -
 
 <br />
 
+#### ggml_backend_custom_device_supports_op
+
 ```c++
 static bool ggml_backend_custom_device_supports_op(ggml_backend_dev_t dev, const ggml_tensor * dst)
 ```
 
 <br />
 
+#### ggml_backend_custom_device_supports_buft
+
 ```c++
 static bool ggml_backend_custom_device_supports_buft(ggml_backend_dev_t dev, ggml_backend_buffer_type_t buft)
 ```
 
 <br />
+
+#### ggml_backend_custom_device_offload_op
 
 ```c++
 static bool ggml_backend_custom_device_offload_op(ggml_backend_dev_t dev, const ggml_tensor * op)
@@ -425,6 +476,8 @@ OPTIONAL -
 
 <br />
 
+#### ggml_backend_custom_device_event_new
+
 ```c++
 static ggml_backend_event_t ggml_backend_custom_device_event_new(ggml_backend_dev_t dev)
 ```
@@ -433,6 +486,8 @@ OPTIONAL -
 
 <br />
 
+#### ggml_backend_custom_device_event_free
+
 ```c++
 static void ggml_backend_custom_device_event_free(ggml_backend_dev_t dev, ggml_backend_event_t event)
 ```
@@ -440,6 +495,8 @@ static void ggml_backend_custom_device_event_free(ggml_backend_dev_t dev, ggml_b
 OPTIONAL -
 
 <br />
+
+#### ggml_backend_custom_device_event_synchronize
 
 ```c++
 static void ggml_backend_custom_device_event_synchronize(ggml_backend_dev_t dev, ggml_backend_event_t event)
@@ -546,5 +603,6 @@ static ggml_backend_dev_t ggml_backend_custom_reg_get_device(ggml_backend_reg_t 
 ### Registering Custom Backend Buffer
 
 ### Registering Custom Backend Buffer Type
+
 
 

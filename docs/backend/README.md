@@ -38,8 +38,7 @@ static const ggml_backend_reg_i ggml_backend_custom_reg_i = {
 };
 ```
 
-<!-- #### 1. `ggml_backend_custom_reg_get_name(ggml_backend_reg_t reg)` -->
-
+<br />
 
 ```c++
 static const char * ggml_backend_blas_reg_get_name(ggml_backend_reg_t reg)

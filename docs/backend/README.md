@@ -29,7 +29,21 @@ This guidebook serves as a point-of-reference documentation for implementing and
 
 ### Backend Registration
 
-#### 1. `ggml_backend_custom_reg_get_name(ggml_backend_reg_t reg)`
+```c++
+static const ggml_backend_reg_i ggml_backend_custom_reg_i = {
+    /* .get_name         = */ ggml_backend_custom_reg_get_name,
+    /* .get_device_count = */ ggml_backend_custom_reg_get_device_count,
+    /* .get_device       = */ ggml_backend_custom_reg_get_device,
+    /* .get_proc_address = */ ggml_backend_custom_get_proc_address,
+};
+```
+
+<!-- #### 1. `ggml_backend_custom_reg_get_name(ggml_backend_reg_t reg)` -->
+
+
+```c++
+static const char * ggml_backend_blas_reg_get_name(ggml_backend_reg_t reg)
+```
 
 Return the name of the backend.
 
@@ -241,19 +255,6 @@ static void * ggml_backend_cuda_reg_get_proc_address(ggml_backend_reg_t reg, con
 }
 ```
 </details>
-
-#### 5. `ggml_backend_reg_i`
-
-Backend registration interface to tie all the above mentioned registration functions together. For example,
-
-```c++
-static const ggml_backend_reg_i ggml_backend_custom_reg_i = {
-    /* .get_name         = */ ggml_backend_custom_reg_get_name,
-    /* .get_device_count = */ ggml_backend_custom_reg_get_device_count,
-    /* .get_device       = */ ggml_backend_custom_reg_get_device,
-    /* .get_proc_address = */ ggml_backend_custom_get_proc_address,
-};
-```
 
 <br />
 

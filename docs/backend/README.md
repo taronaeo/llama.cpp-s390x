@@ -5,6 +5,7 @@
 - [Introduction](#introduction)
 - [GGML Backend API](#ggml-backend-api)
     - [Backend Registration](#backend-registration)
+    - [Backend Device Registration](#backend-device-registration)
 - [Backend Structure](#backend-structure)
 - [Backend Components](#backend-components)
     - [Registering Custom Backend](#registering-custom-backend)
@@ -37,6 +38,8 @@ static const ggml_backend_reg_i ggml_backend_custom_reg_i = {
     /* .get_proc_address = */ ggml_backend_custom_get_proc_address,
 };
 ```
+
+Backend Registration Interface
 
 <br />
 
@@ -264,6 +267,28 @@ static void * ggml_backend_cuda_reg_get_proc_address(ggml_backend_reg_t reg, con
 <br />
 
 ### Backend Device Registration
+
+```c++
+static const ggml_backend_device_i ggml_backend_custom_device_interface = {
+    /* .get_name                = */ ggml_backend_custom_device_get_name,
+    /* .get_description         = */ ggml_backend_custom_device_get_description,
+    /* .get_memory              = */ ggml_backend_custom_device_get_memory,
+    /* .get_type                = */ ggml_backend_custom_device_get_type,
+    /* .get_props               = */ ggml_backend_custom_device_get_props,
+    /* .init_backend            = */ ggml_backend_custom_device_init_backend,
+    /* .get_buffer_type         = */ ggml_backend_custom_device_get_buffer_type,
+    /* .get_host_buffer_type    = */ ggml_backend_custom_device_get_host_buffer_type,
+    /* .buffer_from_host_ptr    = */ ggml_backend_custom_device_get_buffer_from_host_ptr,
+    /* .supports_op             = */ ggml_backend_custom_device_supports_op,
+    /* .supports_buft           = */ ggml_backend_custom_device_supports_buft,
+    /* .offload_op              = */ ggml_backend_custom_device_offload_op,
+    /* .event_new               = */ ggml_backend_custom_device_event_new,
+    /* .event_free              = */ ggml_backend_custom_device_event_free,
+    /* .event_synchronize       = */ ggml_backend_custom_device_event_synchronize,
+};
+```
+
+Device Registration Interface
 
 ```c++
 static const char * ggml_backend_custom_device_get_name(ggml_backend_dev_t dev)

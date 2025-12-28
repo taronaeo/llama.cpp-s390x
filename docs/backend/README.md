@@ -368,11 +368,15 @@ static ggml_backend_buffer_type_t ggml_backend_custom_device_get_buffer_type(ggm
 static ggml_backend_buffer_type_t ggml_backend_custom_device_get_host_buffer_type(ggml_backend_dev_t dev)
 ```
 
+OPTIONAL -
+
 <br />
 
 ```c++
 static ggml_backend_buffer_t ggml_backend_custom_device_get_buffer_from_host_ptr(ggml_backend_dev_t dev, void * ptr, size_t size, size_t max_tensor_size)
 ```
+
+OPTIONAL -
 
 <br />
 
@@ -392,11 +396,15 @@ static bool ggml_backend_custom_device_supports_buft(ggml_backend_dev_t dev, ggm
 static bool ggml_backend_custom_device_offload_op(ggml_backend_dev_t dev, const ggml_tensor * op)
 ```
 
+OPTIONAL -
+
 <br />
 
 ```c++
 static ggml_backend_event_t ggml_backend_custom_device_event_new(ggml_backend_dev_t dev)
 ```
+
+OPTIONAL -
 
 <br />
 
@@ -404,11 +412,15 @@ static ggml_backend_event_t ggml_backend_custom_device_event_new(ggml_backend_de
 static void ggml_backend_custom_device_event_free(ggml_backend_dev_t dev, ggml_backend_event_t event)
 ```
 
+OPTIONAL -
+
 <br />
 
 ```c++
 static void ggml_backend_custom_device_event_synchronize(ggml_backend_dev_t dev, ggml_backend_event_t event)
 ```
+
+OPTIONAL -
 
 <br />
 

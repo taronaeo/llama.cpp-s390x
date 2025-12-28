@@ -304,6 +304,33 @@ static const char * ggml_backend_metal_device_get_name(ggml_backend_dev_t dev) {
 static const char * ggml_backend_custom_device_get_description(ggml_backend_dev_t dev)
 ```
 
+Returns the description of the device. You can return the device model here.
+
+For example, NVIDIA RTX 2060.
+
+<details>
+<summary>CUDA Code Example</summary>
+
+```c++
+static const char * ggml_backend_cuda_device_get_description(ggml_backend_dev_t dev) {
+    ggml_backend_cuda_device_context * ctx = (ggml_backend_cuda_device_context *)dev->context;
+    return ctx->description.c_str();
+}
+```
+</details>
+
+<details>
+<summary>Metal Code Example</summary>
+
+```c++
+static const char * ggml_backend_metal_device_get_description(ggml_backend_dev_t dev) {
+    ggml_metal_device_t ctx_dev = (ggml_metal_device_t)dev->context;
+
+    return ggml_metal_device_get_props(ctx_dev)->name;
+}
+```
+</details>
+
 <br />
 
 ```c++

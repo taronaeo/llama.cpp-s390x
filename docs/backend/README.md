@@ -242,6 +242,82 @@ static void * ggml_backend_cuda_reg_get_proc_address(ggml_backend_reg_t reg, con
 ```
 </details>
 
+#### 5. `ggml_backend_reg_i`
+
+Backend registration interface to tie all the above mentioned registration functions together. For example,
+
+```c++
+static const ggml_backend_reg_i ggml_backend_custom_reg_i = {
+    /* .get_name         = */ ggml_backend_custom_reg_get_name,
+    /* .get_device_count = */ ggml_backend_custom_reg_get_device_count,
+    /* .get_device       = */ ggml_backend_custom_reg_get_device,
+    /* .get_proc_address = */ ggml_backend_custom_get_proc_address,
+};
+```
+
+<br />
+
+### Backend Device Registration
+
+#### 1. `ggml_backend_custom_device_get_name(ggml_backend_dev_t dev)`
+
+Returns the name of the device. It should be in the form of `device name[device number]` where `[]` is optional.
+
+For example, for backends with multiple devices: CUDA0, CUDA1. For backends with single devices: Metal.
+
+**NOTE**: The device name will be used in user-specified flags such as `-ot` to override tensors to a specific device.
+
+<details>
+<summary>CUDA Code Example</summary>
+
+```c++
+static const char * ggml_backend_cuda_device_get_name(ggml_backend_dev_t dev) {
+    ggml_backend_cuda_device_context * ctx = (ggml_backend_cuda_device_context *)dev->context;
+    return ctx->name.c_str();
+}
+```
+</details>
+
+<details>
+<summary>Metal Code Example</summary>
+
+```c++
+static const char * ggml_backend_metal_device_get_name(ggml_backend_dev_t dev) {
+    return "Metal";
+
+    GGML_UNUSED(dev);
+}
+```
+</details>
+
+#### 2. `ggml_backend_custom_device_get_description(ggml_backend_dev_t dev)`
+
+#### 3. `ggml_backend_custom_device_get_memory(ggml_backend_dev_t dev, size_t * free, size_t * total)`
+
+#### 4. `ggml_backend_custom_device_get_type(ggml_backend_dev_t dev)`
+
+#### 5. `ggml_backend_custom_device_get_props(ggml_backend_dev_t dev, ggml_backend_dev_props * props)`
+
+#### 6. `ggml_backend_custom_device_init_backend(ggml_backend_dev_t dev, const char * params)`
+
+#### 7. `ggml_backend_custom_device_get_buffer_type(ggml_backend_dev_t dev)`
+
+#### 8. `ggml_backend_custom_device_get_host_buffer_type(ggml_backend_dev_t dev)`
+
+#### 9. `ggml_backend_custom_device_get_buffer_from_host_ptr(ggml_backend_dev_t dev, void * ptr, size_t size, size_t max_tensor_size)`
+
+#### 10. `ggml_backend_custom_device_supports_op(ggml_backend_dev_t dev, const ggml_tensor * dst)`
+
+#### 11. `ggml_backend_custom_device_supports_buft(ggml_backend_dev_t dev, ggml_backend_buffer_type_t buft)`
+
+#### 12. `ggml_backend_custom_device_offload_op(ggml_backend_dev_t dev, const ggml_tensor * op)`
+
+#### 13. `ggml_backend_custom_device_event_new(ggml_backend_dev_t dev)`
+
+#### 14. `ggml_backend_custom_device_supports_buft(ggml_backend_dev_t dev, ggml_backend_buffer_type_t buft)`
+
+#### 15. `ggml_backend_custom_device_event_synchronize(ggml_backend_dev_t dev, ggml_backend_event_t event)`
+
 ## Backend Structure
 
 Every GGML custom backend consists of the following structure:

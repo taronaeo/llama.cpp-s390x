@@ -265,7 +265,9 @@ static void * ggml_backend_cuda_reg_get_proc_address(ggml_backend_reg_t reg, con
 
 ### Backend Device Registration
 
-#### 1. `ggml_backend_custom_device_get_name(ggml_backend_dev_t dev)`
+```c++
+static const char * ggml_backend_custom_device_get_name(ggml_backend_dev_t dev)
+```
 
 Returns the name of the device. It should be in the form of `device name[device number]` where `[]` is optional.
 
@@ -296,33 +298,92 @@ static const char * ggml_backend_metal_device_get_name(ggml_backend_dev_t dev) {
 ```
 </details>
 
-#### 2. `ggml_backend_custom_device_get_description(ggml_backend_dev_t dev)`
+<br />
 
-#### 3. `ggml_backend_custom_device_get_memory(ggml_backend_dev_t dev, size_t * free, size_t * total)`
+```c++
+static const char * ggml_backend_custom_device_get_description(ggml_backend_dev_t dev)
+```
 
-#### 4. `ggml_backend_custom_device_get_type(ggml_backend_dev_t dev)`
+<br />
 
-#### 5. `ggml_backend_custom_device_get_props(ggml_backend_dev_t dev, ggml_backend_dev_props * props)`
+```c++
+static void ggml_backend_custom_device_get_memory(ggml_backend_dev_t dev, size_t * free, size_t * total)
+```
 
-#### 6. `ggml_backend_custom_device_init_backend(ggml_backend_dev_t dev, const char * params)`
+<br />
 
-#### 7. `ggml_backend_custom_device_get_buffer_type(ggml_backend_dev_t dev)`
+```c++
+static enum ggml_backend_dev_type ggml_backend_custom_device_get_type(ggml_backend_dev_t dev)
+```
 
-#### 8. `ggml_backend_custom_device_get_host_buffer_type(ggml_backend_dev_t dev)`
+<br />
 
-#### 9. `ggml_backend_custom_device_get_buffer_from_host_ptr(ggml_backend_dev_t dev, void * ptr, size_t size, size_t max_tensor_size)`
+```c++
+static void ggml_backend_custom_device_get_props(ggml_backend_dev_t dev, ggml_backend_dev_props * props)
+```
 
-#### 10. `ggml_backend_custom_device_supports_op(ggml_backend_dev_t dev, const ggml_tensor * dst)`
+<br />
 
-#### 11. `ggml_backend_custom_device_supports_buft(ggml_backend_dev_t dev, ggml_backend_buffer_type_t buft)`
+```c++
+static ggml_backend_t ggml_backend_custom_device_init_backend(ggml_backend_dev_t dev, const char * params)
+```
 
-#### 12. `ggml_backend_custom_device_offload_op(ggml_backend_dev_t dev, const ggml_tensor * op)`
+<br />
 
-#### 13. `ggml_backend_custom_device_event_new(ggml_backend_dev_t dev)`
+```c++
 
-#### 14. `ggml_backend_custom_device_supports_buft(ggml_backend_dev_t dev, ggml_backend_buffer_type_t buft)`
+static ggml_backend_buffer_type_t ggml_backend_custom_device_get_buffer_type(ggml_backend_dev_t dev)
+```
 
-#### 15. `ggml_backend_custom_device_event_synchronize(ggml_backend_dev_t dev, ggml_backend_event_t event)`
+<br />
+
+```c++
+static ggml_backend_buffer_type_t ggml_backend_custom_device_get_host_buffer_type(ggml_backend_dev_t dev)
+```
+
+<br />
+
+```c++
+static ggml_backend_buffer_t ggml_backend_custom_device_get_buffer_from_host_ptr(ggml_backend_dev_t dev, void * ptr, size_t size, size_t max_tensor_size)
+```
+
+<br />
+
+```c++
+static bool ggml_backend_custom_device_supports_op(ggml_backend_dev_t dev, const ggml_tensor * dst)
+```
+
+<br />
+
+```c++
+static bool ggml_backend_custom_device_supports_buft(ggml_backend_dev_t dev, ggml_backend_buffer_type_t buft)
+```
+
+<br />
+
+```c++
+static bool ggml_backend_custom_device_offload_op(ggml_backend_dev_t dev, const ggml_tensor * op)
+```
+
+<br />
+
+```c++
+static ggml_backend_event_t ggml_backend_custom_device_event_new(ggml_backend_dev_t dev)
+```
+
+<br />
+
+```c++
+static void ggml_backend_custom_device_event_free(ggml_backend_dev_t dev, ggml_backend_event_t event)
+```
+
+<br />
+
+```c++
+static void ggml_backend_custom_device_event_synchronize(ggml_backend_dev_t dev, ggml_backend_event_t event)
+```
+
+<br />
 
 ## Backend Structure
 

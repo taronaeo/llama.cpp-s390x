@@ -41,7 +41,7 @@ static const ggml_backend_reg_i ggml_backend_custom_reg_i = {
 <br />
 
 ```c++
-static const char * ggml_backend_blas_reg_get_name(ggml_backend_reg_t reg)
+static const char * ggml_backend_custom_reg_get_name(ggml_backend_reg_t reg)
 ```
 
 Return the name of the backend.
@@ -72,7 +72,7 @@ static const char * ggml_backend_metal_reg_get_name(ggml_backend_reg_t reg) {
 <br />
 
 ```c++
-static size_t ggml_backend_blas_reg_get_device_count(ggml_backend_reg_t reg)
+static size_t ggml_backend_custom_reg_get_device_count(ggml_backend_reg_t reg)
 ```
 
 Returns the total number of available devices.
@@ -103,7 +103,7 @@ static size_t ggml_backend_metal_reg_device_count(ggml_backend_reg_t reg) {
 <br />
 
 ```c++
-static ggml_backend_dev_t ggml_backend_blas_reg_get_device(ggml_backend_reg_t reg, size_t index)
+static ggml_backend_dev_t ggml_backend_custom_reg_get_device(ggml_backend_reg_t reg, size_t index)
 ```
 
 Returns the GGML device interface via an index.
@@ -138,7 +138,7 @@ static ggml_backend_dev_t ggml_backend_metal_reg_device_get(ggml_backend_reg_t r
 <br />
 
 ```c++
-static void * ggml_backend_blas_get_proc_address(ggml_backend_reg_t reg, const char * name)
+static void * ggml_backend_custom_get_proc_address(ggml_backend_reg_t reg, const char * name)
 ```
 
 OPTIONAL - Registers pointers to custom functions in the backend

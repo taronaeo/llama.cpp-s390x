@@ -395,6 +395,56 @@ static const char * ggml_backend_metal_device_get_description(ggml_backend_dev_t
 static void ggml_backend_custom_device_get_memory(ggml_backend_dev_t dev, size_t * free, size_t * total)
 ```
 
+Returns the available and total memory of the device.
+
+<details>
+<summary>CUDA Code Example</summary>
+
+```c++
+static void ggml_backend_cuda_device_get_memory(ggml_backend_dev_t dev, size_t * free, size_t * total) {
+    ggml_backend_cuda_device_context * ctx = (ggml_backend_cuda_device_context *)dev->context;
+    ggml_cuda_set_device(ctx->device);
+    CUDA_CHECK(cudaMemGetInfo(free, total));
+
+// ref: https://github.com/ggml-org/llama.cpp/pull/17368
+#if defined(__linux__)
+    // Check if this is a UMA (Unified Memory Architecture) system
+    cudaDeviceProp prop;
+    CUDA_CHECK(cudaGetDeviceProperties(&prop, ctx->device));
+
+    // Check if UMA is explicitly enabled via environment variable
+    bool uma_env = getenv("GGML_CUDA_ENABLE_UNIFIED_MEMORY") != nullptr;
+    bool is_uma = prop.integrated > 0 || uma_env;
+
+    if (is_uma) {
+        // For UMA systems (like DGX Spark), use system memory info
+        long available_memory_kb = 0;
+        long free_swap_kb = 0;
+
+        if (ggml_backend_cuda_get_available_uma_memory(&available_memory_kb, &free_swap_kb) && available_memory_kb > 0) {
+            *free = (size_t)available_memory_kb * 1024;
+        } else {
+            GGML_LOG_ERROR("%s: /proc/meminfo reading failed, using cudaMemGetInfo\n", __func__);
+        }
+    }
+#endif // defined(__linux__)
+}
+
+```
+</details>
+
+<details>
+<summary>Metal Code Example</summary>
+
+```c++
+static void ggml_backend_metal_device_get_memory(ggml_backend_dev_t dev, size_t * free, size_t * total) {
+    ggml_metal_device_t ctx_dev = (ggml_metal_device_t)dev->context;
+
+    ggml_metal_device_get_memory(ctx_dev, free, total);
+}
+```
+</details>
+
 <br />
 
 #### ggml_backend_custom_device_get_type

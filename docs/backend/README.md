@@ -309,7 +309,19 @@ https://github.com/ggml-org/llama.cpp/blob/0db81098494023775a704a44042c317d36c91
 static ggml_backend_t ggml_backend_custom_device_init_backend(ggml_backend_dev_t dev, const char * params)
 ```
 
-Returns an initialized backend
+Returns an initialized backend of the device.
+
+<details>
+<summary>CUDA Code Example</summary>
+
+https://github.com/ggml-org/llama.cpp/blob/0db81098494023775a704a44042c317d36c91f24/ggml/src/ggml-cuda/ggml-cuda.cu#L4267-L4271
+</details>
+
+<details>
+<summary>Metal Code Example</summary>
+
+https://github.com/ggml-org/llama.cpp/blob/0db81098494023775a704a44042c317d36c91f24/ggml/src/ggml-metal/ggml-metal.cpp#L560-L583
+</details>
 
 <br />
 
@@ -320,6 +332,22 @@ Returns an initialized backend
 static ggml_backend_buffer_type_t ggml_backend_custom_device_get_buffer_type(ggml_backend_dev_t dev)
 ```
 
+Returns the preferred buffer type for the device.
+
+If you do not want to manage the buffer, you can return `ggml_backend_cpu_buffer_type()` instead.
+
+<details>
+<summary>CUDA Code Example</summary>
+
+https://github.com/ggml-org/llama.cpp/blob/0db81098494023775a704a44042c317d36c91f24/ggml/src/ggml-cuda/ggml-cuda.cu#L4273-L4276
+</details>
+
+<details>
+<summary>Metal Code Example</summary>
+
+https://github.com/ggml-org/llama.cpp/blob/0db81098494023775a704a44042c317d36c91f24/ggml/src/ggml-metal/ggml-metal.cpp#L585-L591
+</details>
+
 <br />
 
 #### ggml_backend_custom_device_get_host_buffer_type
@@ -328,7 +356,7 @@ static ggml_backend_buffer_type_t ggml_backend_custom_device_get_buffer_type(ggm
 static ggml_backend_buffer_type_t ggml_backend_custom_device_get_host_buffer_type(ggml_backend_dev_t dev)
 ```
 
-OPTIONAL -
+OPTIONAL - TODO -
 
 <br />
 
@@ -338,7 +366,7 @@ OPTIONAL -
 static ggml_backend_buffer_t ggml_backend_custom_device_get_buffer_from_host_ptr(ggml_backend_dev_t dev, void * ptr, size_t size, size_t max_tensor_size)
 ```
 
-OPTIONAL -
+OPTIONAL - TODO -
 
 <br />
 

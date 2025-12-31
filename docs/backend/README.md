@@ -439,7 +439,7 @@ https://github.com/ggml-org/llama.cpp/blob/0db81098494023775a704a44042c317d36c91
 static bool ggml_backend_custom_device_offload_op(ggml_backend_dev_t dev, const ggml_tensor * op)
 ```
 
-OPTIONAL -
+OPTIONAL - TODO -
 
 <br />
 
@@ -449,7 +449,7 @@ OPTIONAL -
 static ggml_backend_event_t ggml_backend_custom_device_event_new(ggml_backend_dev_t dev)
 ```
 
-OPTIONAL -
+OPTIONAL - TODO -
 
 <br />
 
@@ -459,7 +459,7 @@ OPTIONAL -
 static void ggml_backend_custom_device_event_free(ggml_backend_dev_t dev, ggml_backend_event_t event)
 ```
 
-OPTIONAL -
+OPTIONAL - TODO -
 
 <br />
 
@@ -469,7 +469,7 @@ OPTIONAL -
 static void ggml_backend_custom_device_event_synchronize(ggml_backend_dev_t dev, ggml_backend_event_t event)
 ```
 
-OPTIONAL -
+OPTIONAL - TODO -
 
 <br />
 

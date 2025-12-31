@@ -73,24 +73,13 @@ Return the name of the backend.
 <details>
 <summary>CUDA Code Example</summary>
 
-```c++
-static const char * ggml_backend_cuda_reg_get_name(ggml_backend_reg_t reg) {
-    GGML_UNUSED(reg);
-    return GGML_CUDA_NAME;  // CUDA
-}
-```
+https://github.com/ggml-org/llama.cpp/blob/0db81098494023775a704a44042c317d36c91f24/ggml/src/ggml-cuda/ggml-cuda.cu#L4734-L4737
 </details>
 
 <details>
 <summary>Metal Code Example</summary>
 
-```c++
-static const char * ggml_backend_metal_reg_get_name(ggml_backend_reg_t reg) {
-    return "Metal";
-
-    GGML_UNUSED(reg);
-}
-```
+https://github.com/ggml-org/llama.cpp/blob/0db81098494023775a704a44042c317d36c91f24/ggml/src/ggml-metal/ggml-metal.cpp#L658-L662
 </details>
 
 <br />
@@ -106,24 +95,13 @@ Returns the total number of available devices.
 <details>
 <summary>CUDA Code Example</summary>
 
-```c++
-static size_t ggml_backend_cuda_reg_get_device_count(ggml_backend_reg_t reg) {
-    ggml_backend_cuda_reg_context * ctx = (ggml_backend_cuda_reg_context *)reg->context;
-    return ctx->devices.size();
-}
-```
+https://github.com/ggml-org/llama.cpp/blob/0db81098494023775a704a44042c317d36c91f24/ggml/src/ggml-cuda/ggml-cuda.cu#L4739-L4742
 </details>
 
 <details>
 <summary>Metal Code Example</summary>
 
-```c++
-static size_t ggml_backend_metal_reg_device_count(ggml_backend_reg_t reg) {
-    return 1;
-
-    GGML_UNUSED(reg);
-}
-```
+https://github.com/ggml-org/llama.cpp/blob/0db81098494023775a704a44042c317d36c91f24/ggml/src/ggml-metal/ggml-metal.cpp#L664-L668
 </details>
 
 <br />
@@ -139,28 +117,13 @@ Returns the GGML device interface via an index.
 <details>
 <summary>CUDA Code Example</summary>
 
-```c++
-static ggml_backend_dev_t ggml_backend_cuda_reg_get_device(ggml_backend_reg_t reg, size_t index) {
-    ggml_backend_cuda_reg_context * ctx = (ggml_backend_cuda_reg_context *)reg->context;
-    GGML_ASSERT(index < ctx->devices.size());
-    return ctx->devices[index];
-}
-```
+https://github.com/ggml-org/llama.cpp/blob/0db81098494023775a704a44042c317d36c91f24/ggml/src/ggml-cuda/ggml-cuda.cu#L4744-L4748
 </details>
 
 <details>
 <summary>Metal Code Example</summary>
 
-```c++
-static ggml_backend_dev_t ggml_backend_metal_reg_device_get(ggml_backend_reg_t reg, size_t index) {
-    GGML_ASSERT(index == 0);
-
-    return &g_ggml_metal_device;
-
-    GGML_UNUSED(reg);
-    GGML_UNUSED(index);
-}
-```
+https://github.com/ggml-org/llama.cpp/blob/0db81098494023775a704a44042c317d36c91f24/ggml/src/ggml-metal/ggml-metal.cpp#L670-L677
 </details>
 
 <br />
@@ -174,121 +137,15 @@ static void * ggml_backend_custom_get_proc_address(ggml_backend_reg_t reg, const
 OPTIONAL - Registers pointers to custom functions in the backend
 
 <details>
-<summary>CPU Code Example</summary>
+<summary>CUDA Code Example</summary>
 
-```c++
-static void * ggml_backend_cpu_get_proc_address(ggml_backend_reg_t reg, const char * name) {
-    if (strcmp(name, "ggml_backend_set_n_threads") == 0) {
-        ggml_backend_set_n_threads_t fct = ggml_backend_cpu_set_n_threads;
-        return (void *)fct;
-    }
-    if (strcmp(name, "ggml_backend_dev_get_extra_bufts") == 0) {
-        ggml_backend_dev_get_extra_bufts_t fct = ggml_backend_cpu_device_get_extra_buffers_type;
-        return (void *)fct;
-    }
-    if (strcmp(name, "ggml_backend_get_features") == 0) {
-        return (void *)ggml_backend_cpu_get_features;
-    }
-    if (strcmp(name, "ggml_backend_set_abort_callback") == 0) {
-        return (void *)ggml_backend_cpu_set_abort_callback;
-    }
-    if (strcmp(name, "ggml_backend_cpu_numa_init") == 0) {
-        return (void *)ggml_numa_init;
-    }
-    if (strcmp(name, "ggml_backend_cpu_is_numa") == 0) {
-        return (void *)ggml_is_numa;
-    }
-
-    // threadpool - TODO:  move to ggml-base
-    if (strcmp(name, "ggml_threadpool_new") == 0) {
-        return (void *)ggml_threadpool_new;
-    }
-    if (strcmp(name, "ggml_threadpool_free") == 0) {
-        return (void *)ggml_threadpool_free;
-    }
-    if (strcmp(name, "ggml_backend_cpu_set_threadpool") == 0) {
-        return (void *)ggml_backend_cpu_set_threadpool;
-    }
-
-    return NULL;
-
-    GGML_UNUSED(reg);
-}
-```
+https://github.com/ggml-org/llama.cpp/blob/0db81098494023775a704a44042c317d36c91f24/ggml/src/ggml-cuda/ggml-cuda.cu#L4811-L4826
 </details>
 
 <details>
-<summary>CUDA Code Example</summary>
+<summary>Metal Code Example</summary>
 
-```c++
-static ggml_backend_feature * ggml_backend_cuda_get_features(ggml_backend_reg_t reg) {
-    static std::vector<ggml_backend_feature> features = []() {
-        std::vector<ggml_backend_feature> features;
-    #define _STRINGIFY(...) #__VA_ARGS__
-    #define STRINGIFY(...) _STRINGIFY(__VA_ARGS__)
-
-    #ifdef __CUDA_ARCH_LIST__
-        features.push_back({ "ARCHS", STRINGIFY(__CUDA_ARCH_LIST__) });
-    #endif
-
-    #ifdef GGML_CUDA_FORCE_MMQ
-        features.push_back({ "FORCE_MMQ", "1" });
-    #endif
-
-    #ifdef GGML_CUDA_FORCE_CUBLAS
-        features.push_back({ "FORCE_CUBLAS", "1" });
-    #endif
-
-    #ifndef GGML_USE_VMM
-        features.push_back({ "NO_VMM", "1" });
-    #endif
-
-    #ifdef GGML_CUDA_NO_PEER_COPY
-        features.push_back({ "NO_PEER_COPY", "1" });
-    #endif
-
-    #ifdef GGML_CUDA_USE_GRAPHS
-        features.push_back({ "USE_GRAPHS", "1" });
-    #endif
-
-    #ifdef GGML_CUDA_PEER_MAX_BATCH_SIZE
-        features.push_back({ "PEER_MAX_BATCH_SIZE", STRINGIFY(GGML_CUDA_PEER_MAX_BATCH_SIZE) });
-    #endif
-
-    #ifdef GGML_CUDA_FA_ALL_QUANTS
-        features.push_back({ "FA_ALL_QUANTS", "1" });
-    #endif
-
-    #undef _STRINGIFY
-    #undef STRINGIFY
-
-        features.push_back({ nullptr, nullptr });
-
-        return features;
-    }();
-
-    return features.data();
-
-    GGML_UNUSED(reg);
-}
-
-static void * ggml_backend_cuda_reg_get_proc_address(ggml_backend_reg_t reg, const char * name) {
-    GGML_UNUSED(reg);
-    if (strcmp(name, "ggml_backend_split_buffer_type") == 0) {
-        return (void *)ggml_backend_cuda_split_buffer_type;
-    }
-    if (strcmp(name, "ggml_backend_register_host_buffer") == 0) {
-        return (void *)ggml_backend_cuda_register_host_buffer;
-    }
-    if (strcmp(name, "ggml_backend_unregister_host_buffer") == 0) {
-        return (void *)ggml_backend_cuda_unregister_host_buffer;
-    }
-    if (strcmp(name, "ggml_backend_get_features") == 0) {
-        return (void *)ggml_backend_cuda_get_features;
-    }
-    return nullptr;
-}
-```
+https://github.com/ggml-org/llama.cpp/blob/0db81098494023775a704a44042c317d36c91f24/ggml/src/ggml-metal/ggml-metal.cpp#L692-L700
 </details>
 
 <br />
@@ -332,24 +189,13 @@ For example, for backends with multiple devices: CUDA0, CUDA1. For backends with
 <details>
 <summary>CUDA Code Example</summary>
 
-```c++
-static const char * ggml_backend_cuda_device_get_name(ggml_backend_dev_t dev) {
-    ggml_backend_cuda_device_context * ctx = (ggml_backend_cuda_device_context *)dev->context;
-    return ctx->name.c_str();
-}
-```
+https://github.com/ggml-org/llama.cpp/blob/0db81098494023775a704a44042c317d36c91f24/ggml/src/ggml-cuda/ggml-cuda.cu#L4122-L4125
 </details>
 
 <details>
 <summary>Metal Code Example</summary>
 
-```c++
-static const char * ggml_backend_metal_device_get_name(ggml_backend_dev_t dev) {
-    return "Metal";
-
-    GGML_UNUSED(dev);
-}
-```
+https://github.com/ggml-org/llama.cpp/blob/0db81098494023775a704a44042c317d36c91f24/ggml/src/ggml-metal/ggml-metal.cpp#L521-L525
 </details>
 
 <br />
@@ -367,24 +213,13 @@ For example, NVIDIA RTX 2060.
 <details>
 <summary>CUDA Code Example</summary>
 
-```c++
-static const char * ggml_backend_cuda_device_get_description(ggml_backend_dev_t dev) {
-    ggml_backend_cuda_device_context * ctx = (ggml_backend_cuda_device_context *)dev->context;
-    return ctx->description.c_str();
-}
-```
+https://github.com/ggml-org/llama.cpp/blob/0db81098494023775a704a44042c317d36c91f24/ggml/src/ggml-cuda/ggml-cuda.cu#L4127-L4130
 </details>
 
 <details>
 <summary>Metal Code Example</summary>
 
-```c++
-static const char * ggml_backend_metal_device_get_description(ggml_backend_dev_t dev) {
-    ggml_metal_device_t ctx_dev = (ggml_metal_device_t)dev->context;
-
-    return ggml_metal_device_get_props(ctx_dev)->name;
-}
-```
+https://github.com/ggml-org/llama.cpp/blob/0db81098494023775a704a44042c317d36c91f24/ggml/src/ggml-metal/ggml-metal.cpp#L527-L531
 </details>
 
 <br />
@@ -400,49 +235,13 @@ Returns the available and total memory of the device.
 <details>
 <summary>CUDA Code Example</summary>
 
-```c++
-static void ggml_backend_cuda_device_get_memory(ggml_backend_dev_t dev, size_t * free, size_t * total) {
-    ggml_backend_cuda_device_context * ctx = (ggml_backend_cuda_device_context *)dev->context;
-    ggml_cuda_set_device(ctx->device);
-    CUDA_CHECK(cudaMemGetInfo(free, total));
-
-// ref: https://github.com/ggml-org/llama.cpp/pull/17368
-#if defined(__linux__)
-    // Check if this is a UMA (Unified Memory Architecture) system
-    cudaDeviceProp prop;
-    CUDA_CHECK(cudaGetDeviceProperties(&prop, ctx->device));
-
-    // Check if UMA is explicitly enabled via environment variable
-    bool uma_env = getenv("GGML_CUDA_ENABLE_UNIFIED_MEMORY") != nullptr;
-    bool is_uma = prop.integrated > 0 || uma_env;
-
-    if (is_uma) {
-        // For UMA systems (like DGX Spark), use system memory info
-        long available_memory_kb = 0;
-        long free_swap_kb = 0;
-
-        if (ggml_backend_cuda_get_available_uma_memory(&available_memory_kb, &free_swap_kb) && available_memory_kb > 0) {
-            *free = (size_t)available_memory_kb * 1024;
-        } else {
-            GGML_LOG_ERROR("%s: /proc/meminfo reading failed, using cudaMemGetInfo\n", __func__);
-        }
-    }
-#endif // defined(__linux__)
-}
-
-```
+https://github.com/ggml-org/llama.cpp/blob/0db81098494023775a704a44042c317d36c91f24/ggml/src/ggml-cuda/ggml-cuda.cu#L4208-L4236
 </details>
 
 <details>
 <summary>Metal Code Example</summary>
 
-```c++
-static void ggml_backend_metal_device_get_memory(ggml_backend_dev_t dev, size_t * free, size_t * total) {
-    ggml_metal_device_t ctx_dev = (ggml_metal_device_t)dev->context;
-
-    ggml_metal_device_get_memory(ctx_dev, free, total);
-}
-```
+https://github.com/ggml-org/llama.cpp/blob/0db81098494023775a704a44042c317d36c91f24/ggml/src/ggml-metal/ggml-metal.cpp#L533-L537
 </details>
 
 <br />

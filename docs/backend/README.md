@@ -252,6 +252,33 @@ https://github.com/ggml-org/llama.cpp/blob/0db81098494023775a704a44042c317d36c91
 static enum ggml_backend_dev_type ggml_backend_custom_device_get_type(ggml_backend_dev_t dev)
 ```
 
+Returns backend type. Choose a type from the following:
+
+```c++
+enum ggml_backend_dev_type {
+    // CPU device using system memory
+    GGML_BACKEND_DEVICE_TYPE_CPU,
+    // GPU device using dedicated memory
+    GGML_BACKEND_DEVICE_TYPE_GPU,
+    // integrated GPU device using host memory
+    GGML_BACKEND_DEVICE_TYPE_IGPU,
+    // accelerator devices intended to be used together with the CPU backend (e.g. BLAS or AMX)
+    GGML_BACKEND_DEVICE_TYPE_ACCEL
+};
+```
+
+<details>
+<summary>CUDA Code Example</summary>
+
+https://github.com/ggml-org/llama.cpp/blob/0db81098494023775a704a44042c317d36c91f24/ggml/src/ggml-cuda/ggml-cuda.cu#L4238-L4241
+</details>
+
+<details>
+<summary>Metal Code Example</summary>
+
+https://github.com/ggml-org/llama.cpp/blob/0db81098494023775a704a44042c317d36c91f24/ggml/src/ggml-metal/ggml-metal.cpp#L539-L543
+</details>
+
 <br />
 
 #### ggml_backend_custom_device_get_props

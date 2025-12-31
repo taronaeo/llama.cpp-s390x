@@ -334,7 +334,7 @@ static ggml_backend_buffer_type_t ggml_backend_custom_device_get_buffer_type(ggm
 
 Returns the preferred buffer type for the device.
 
-If you do not want to manage the buffer, you can return `ggml_backend_cpu_buffer_type()` instead.
+If your backend is able to access host memory and does not need to modify the tensor data via `set_tensor` or `get_tensor` hooks, you can return `ggml_backend_cpu_buffer_type()` instead.
 
 <details>
 <summary>CUDA Code Example</summary>

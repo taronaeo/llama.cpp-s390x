@@ -376,7 +376,7 @@ OPTIONAL - TODO -
 static bool ggml_backend_custom_device_supports_op(ggml_backend_dev_t dev, const ggml_tensor * dst)
 ```
 
-Returns the status operation support for the device.
+Returns the status of operation support for the device.
 
 The GGML scheduler will use this function to check for operation support. If the operation is declared to be supported on the device, the GGML scheduler will allocate the tensor buffer to the device backend.
 

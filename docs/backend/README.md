@@ -376,6 +376,34 @@ OPTIONAL - TODO -
 static bool ggml_backend_custom_device_supports_op(ggml_backend_dev_t dev, const ggml_tensor * dst)
 ```
 
+Returns the status operation support for the device.
+
+The GGML scheduler will use this function to check for operation support. If the operation is declared to be supported on the device, the GGML scheduler will allocate the tensor buffer to the device backend.
+
+> [!IMPORTANT]
+> NOTE 1: If an operation is declared to be supported, you will need to update the `ggml_backend_custom_graph_compute` function and implement support for it.
+
+> [!IMPORTANT]
+> NOTE 2: Do not attempt to reject tensors like this
+> ```c++
+> if (dst->ne[1] == 1) {
+>   return false;
+> }
+> ```
+> This will cause the GGML scheduler to unexpectedly reallocate the tensor buffer to a backend that is able to support it and will be bad for performance.
+
+<details>
+<summary>CUDA Code Example</summary>
+
+https://github.com/ggml-org/llama.cpp/blob/0db81098494023775a704a44042c317d36c91f24/ggml/src/ggml-cuda/ggml-cuda.cu#L4284-L4649
+</details>
+
+<details>
+<summary>Metal Code Example</summary>
+
+https://github.com/ggml-org/llama.cpp/blob/0db81098494023775a704a44042c317d36c91f24/ggml/src/ggml-metal/ggml-metal.cpp#L601-L605
+</details>
+
 <br />
 
 #### ggml_backend_custom_device_supports_buft

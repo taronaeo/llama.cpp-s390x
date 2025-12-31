@@ -378,7 +378,7 @@ static bool ggml_backend_custom_device_supports_op(ggml_backend_dev_t dev, const
 
 Returns the status of operation support for the device.
 
-The GGML scheduler will use this function to check for operation support. If the operation is declared to be supported on the device, the GGML scheduler will allocate the tensor buffer to the device backend.
+`ggml_backend_sched` will use this function to check for operation support. If the operation is declared to be supported on the device, the `ggml_backend_sched` will allocate the tensor buffer to the device backend.
 
 > [!IMPORTANT]
 > NOTE 1: If an operation is declared to be supported, you will need to update the `ggml_backend_custom_graph_compute` function and implement support for it.
@@ -411,6 +411,25 @@ https://github.com/ggml-org/llama.cpp/blob/0db81098494023775a704a44042c317d36c91
 ```c++
 static bool ggml_backend_custom_device_supports_buft(ggml_backend_dev_t dev, ggml_backend_buffer_type_t buft)
 ```
+
+Returns the type of buffers the device can support. You should only return support for your backend buffer type.
+
+> [!WARNING]
+> WARNING: If you return `ggml_backend_buft_is_host(buft)`, you are advertising that your backend can use any buffer type that is in host memory.
+>
+> See: https://github.com/ggml-org/llama.cpp/discussions/14479#discussioncomment-13628999
+
+<details>
+<summary>CUDA Code Example</summary>
+
+https://github.com/ggml-org/llama.cpp/blob/0db81098494023775a704a44042c317d36c91f24/ggml/src/ggml-cuda/ggml-cuda.cu#L4651-L4655
+</details>
+
+<details>
+<summary>Metal Code Example</summary>
+
+https://github.com/ggml-org/llama.cpp/blob/0db81098494023775a704a44042c317d36c91f24/ggml/src/ggml-metal/ggml-metal.cpp#L607-L614
+</details>
 
 <br />
 

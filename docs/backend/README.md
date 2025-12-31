@@ -252,7 +252,7 @@ https://github.com/ggml-org/llama.cpp/blob/0db81098494023775a704a44042c317d36c91
 static enum ggml_backend_dev_type ggml_backend_custom_device_get_type(ggml_backend_dev_t dev)
 ```
 
-Returns backend type. Choose a type from the following:
+Returns the device type. Choose a type from the following:
 
 ```c++
 enum ggml_backend_dev_type {
@@ -287,6 +287,20 @@ https://github.com/ggml-org/llama.cpp/blob/0db81098494023775a704a44042c317d36c91
 static void ggml_backend_custom_device_get_props(ggml_backend_dev_t dev, ggml_backend_dev_props * props)
 ```
 
+Returns the device properties. Use this function to report information on the device capabilities.
+
+<details>
+<summary>CUDA Code Example</summary>
+
+https://github.com/ggml-org/llama.cpp/blob/0db81098494023775a704a44042c317d36c91f24/ggml/src/ggml-cuda/ggml-cuda.cu#L4243-L4265
+</details>
+
+<details>
+<summary>Metal Code Example</summary>
+
+https://github.com/ggml-org/llama.cpp/blob/0db81098494023775a704a44042c317d36c91f24/ggml/src/ggml-metal/ggml-metal.cpp#L545-L558
+</details>
+
 <br />
 
 #### ggml_backend_custom_device_init_backend
@@ -294,6 +308,8 @@ static void ggml_backend_custom_device_get_props(ggml_backend_dev_t dev, ggml_ba
 ```c++
 static ggml_backend_t ggml_backend_custom_device_init_backend(ggml_backend_dev_t dev, const char * params)
 ```
+
+Returns an initialized backend
 
 <br />
 

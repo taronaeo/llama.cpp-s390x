@@ -471,6 +471,73 @@ OPTIONAL - TODO -
 
 <br />
 
+### Backend Buffer Management
+
+```c++
+static const ggml_backend_buffer_type ggml_backend_buffer_type = {
+    /* .iface   = */ {
+        /* .get_name         = */ ggml_backend_buffer_type_get_name,
+        /* .alloc_buffer     = */ ggml_backend_buffer_type_alloc_buffer,
+        /* .get_alignment    = */ ggml_backend_buffer_type_get_alignment,
+        /* .get_max_size     = */ NULL, // defaults to SIZE_MAX
+        /* .get_alloc_size   = */ NULL, // defaults to ggml_nbytes
+        /* .is_host          = */ ggml_backend_buffer_type_is_host,
+    },
+    /* .device  = */ NULL,
+    /* .context = */ NULL,
+};
+```
+
+Buffer Registration Interface
+
+#### ggml_backend_buffer_type_get_name
+
+```c++
+static const char * ggml_backend_buffer_type_get_name(ggml_backend_buffer_type_t buft)
+```
+
+<br />
+
+#### ggml_backend_buffer_type_alloc_buffer
+
+```c++
+static ggml_backend_buffer_t ggml_backend_buffer_type_alloc_buffer(ggml_backend_buffer_type_t buft, size_t size)
+```
+
+<br />
+
+#### ggml_backend_buffer_type_get_alignment
+
+```c++
+static size_t ggml_backend_buffer_type_get_alignment(ggml_backend_buffer_type_t buft)
+```
+
+<br />
+
+#### ggml_backend_buffer_type_get_max_size
+
+```c++
+static size_t ggml_backend_buffer_type_get_max_size(ggml_backend_buffer_type_t buft)
+```
+
+OPTIONAL - TODO -
+
+#### ggml_backend_buffer_type_get_alloc_size
+
+```c++
+static size_t ggml_backend_buffer_type_get_alloc_size(ggml_backend_buffer_type_t buft, const struct ggml_tensor * tensor)
+```
+
+OPTIONAL - TODO -
+
+#### ggml_backend_buffer_type_is_host
+
+```c++
+static size_t ggml_backend_buffer_type_is_host(ggml_backend_buffer_type_t buft)
+```
+
+OPTIONAL - TODO -
+
 ## Backend Structure
 
 Every GGML custom backend consists of the following structure:

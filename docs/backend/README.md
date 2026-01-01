@@ -5,26 +5,26 @@
 - [Introduction](#introduction)
 - [GGML Backend API](#ggml-backend-api)
     - [Backend Registration](#backend-registration)
-        - [ggml_backend_custom_reg_get_name](#ggml_backend_custom_reg_get_name)
-        - [ggml_backend_custom_reg_get_device_count](#ggml_backend_custom_reg_get_device_count)
-        - [ggml_backend_custom_reg_get_device](#ggml_backend_custom_reg_get_device)
-        - [ggml_backend_custom_get_proc_address](#ggml_backend_custom_get_proc_address)
+        - [ggml_backend_reg_get_name](#ggml_backend_reg_get_name)
+        - [ggml_backend_reg_get_device_count](#ggml_backend_reg_get_device_count)
+        - [ggml_backend_reg_get_device](#ggml_backend_reg_get_device)
+        - [ggml_backend_get_proc_address](#ggml_backend_get_proc_address)
     - [Backend Device Registration](#backend-device-registration)
-        - [ggml_backend_custom_device_get_name](#ggml_backend_custom_device_get_name)
-        - [ggml_backend_custom_device_get_description](#ggml_backend_custom_device_get_description)
-        - [ggml_backend_custom_device_get_memory](#ggml_backend_custom_device_get_memory)
-        - [ggml_backend_custom_device_get_type](#ggml_backend_custom_device_get_type)
-        - [ggml_backend_custom_device_get_props](#ggml_backend_custom_device_get_props)
-        - [ggml_backend_custom_device_init_backend](#ggml_backend_custom_device_init_backend)
-        - [ggml_backend_custom_device_get_buffer_type](#ggml_backend_custom_device_get_buffer_type)
-        - [ggml_backend_custom_device_get_host_buffer_type](#ggml_backend_custom_device_get_host_buffer_type)
-        - [ggml_backend_custom_device_get_buffer_from_host_ptr](#ggml_backend_custom_device_get_buffer_from_host_ptr)
-        - [ggml_backend_custom_device_supports_op](#ggml_backend_custom_device_supports_op)
-        - [ggml_backend_custom_device_supports_buft](#ggml_backend_custom_device_supports_buft)
-        - [ggml_backend_custom_device_offload_op](#ggml_backend_custom_device_offload_op)
-        - [ggml_backend_custom_device_event_new](#ggml_backend_custom_device_event_new)
-        - [ggml_backend_custom_device_event_free](#ggml_backend_custom_device_event_free)
-        - [ggml_backend_custom_device_event_synchronize](#ggml_backend_custom_device_event_synchronize)
+        - [ggml_backend_device_get_name](#ggml_backend_device_get_name)
+        - [ggml_backend_device_get_description](#ggml_backend_device_get_description)
+        - [ggml_backend_device_get_memory](#ggml_backend_device_get_memory)
+        - [ggml_backend_device_get_type](#ggml_backend_device_get_type)
+        - [ggml_backend_device_get_props](#ggml_backend_device_get_props)
+        - [ggml_backend_device_init_backend](#ggml_backend_device_init_backend)
+        - [ggml_backend_device_get_buffer_type](#ggml_backend_device_get_buffer_type)
+        - [ggml_backend_device_get_host_buffer_type](#ggml_backend_device_get_host_buffer_type)
+        - [ggml_backend_device_get_buffer_from_host_ptr](#ggml_backend_device_get_buffer_from_host_ptr)
+        - [ggml_backend_device_supports_op](#ggml_backend_device_supports_op)
+        - [ggml_backend_device_supports_buft](#ggml_backend_device_supports_buft)
+        - [ggml_backend_device_offload_op](#ggml_backend_device_offload_op)
+        - [ggml_backend_device_event_new](#ggml_backend_device_event_new)
+        - [ggml_backend_device_event_free](#ggml_backend_device_event_free)
+        - [ggml_backend_device_event_synchronize](#ggml_backend_device_event_synchronize)
 - [Backend Structure](#backend-structure)
 - [Backend Components](#backend-components)
     - [Registering Custom Backend](#registering-custom-backend)
@@ -45,16 +45,14 @@ This guidebook serves as a point-of-reference documentation for implementing and
 
 ## GGML Backend API
 
-**NOTE**: This section will use the backend name of `custom` as an example. You should replace this with the actual backend name.
-
 ### Backend Registration
 
 ```c++
-static const ggml_backend_reg_i ggml_backend_custom_reg_i = {
-    /* .get_name         = */ ggml_backend_custom_reg_get_name,
-    /* .get_device_count = */ ggml_backend_custom_reg_get_device_count,
-    /* .get_device       = */ ggml_backend_custom_reg_get_device,
-    /* .get_proc_address = */ ggml_backend_custom_get_proc_address,
+static const ggml_backend_reg_i ggml_backend_reg_i = {
+    /* .get_name         = */ ggml_backend_reg_get_name,
+    /* .get_device_count = */ ggml_backend_reg_get_device_count,
+    /* .get_device       = */ ggml_backend_reg_get_device,
+    /* .get_proc_address = */ ggml_backend_get_proc_address,
 };
 ```
 
@@ -62,10 +60,10 @@ Backend Registration Interface
 
 <br />
 
-#### ggml_backend_custom_reg_get_name
+#### ggml_backend_reg_get_name
 
 ```c++
-static const char * ggml_backend_custom_reg_get_name(ggml_backend_reg_t reg)
+static const char * ggml_backend_reg_get_name(ggml_backend_reg_t reg)
 ```
 
 Return the name of the backend.
@@ -84,10 +82,10 @@ https://github.com/ggml-org/llama.cpp/blob/0db81098494023775a704a44042c317d36c91
 
 <br />
 
-#### ggml_backend_custom_reg_get_device_count
+#### ggml_backend_reg_get_device_count
 
 ```c++
-static size_t ggml_backend_custom_reg_get_device_count(ggml_backend_reg_t reg)
+static size_t ggml_backend_reg_get_device_count(ggml_backend_reg_t reg)
 ```
 
 Returns the total number of available devices.
@@ -106,10 +104,10 @@ https://github.com/ggml-org/llama.cpp/blob/0db81098494023775a704a44042c317d36c91
 
 <br />
 
-#### ggml_backend_custom_reg_get_device
+#### ggml_backend_reg_get_device
 
 ```c++
-static ggml_backend_dev_t ggml_backend_custom_reg_get_device(ggml_backend_reg_t reg, size_t index)
+static ggml_backend_dev_t ggml_backend_reg_get_device(ggml_backend_reg_t reg, size_t index)
 ```
 
 Returns the GGML device interface via an index.
@@ -128,10 +126,10 @@ https://github.com/ggml-org/llama.cpp/blob/0db81098494023775a704a44042c317d36c91
 
 <br />
 
-#### ggml_backend_custom_get_proc_address
+#### ggml_backend_get_proc_address
 
 ```c++
-static void * ggml_backend_custom_get_proc_address(ggml_backend_reg_t reg, const char * name)
+static void * ggml_backend_get_proc_address(ggml_backend_reg_t reg, const char * name)
 ```
 
 OPTIONAL - Registers pointers to custom functions in the backend
@@ -153,31 +151,31 @@ https://github.com/ggml-org/llama.cpp/blob/0db81098494023775a704a44042c317d36c91
 ### Backend Device Registration
 
 ```c++
-static const ggml_backend_device_i ggml_backend_custom_device_interface = {
-    /* .get_name                = */ ggml_backend_custom_device_get_name,
-    /* .get_description         = */ ggml_backend_custom_device_get_description,
-    /* .get_memory              = */ ggml_backend_custom_device_get_memory,
-    /* .get_type                = */ ggml_backend_custom_device_get_type,
-    /* .get_props               = */ ggml_backend_custom_device_get_props,
-    /* .init_backend            = */ ggml_backend_custom_device_init_backend,
-    /* .get_buffer_type         = */ ggml_backend_custom_device_get_buffer_type,
-    /* .get_host_buffer_type    = */ ggml_backend_custom_device_get_host_buffer_type,
-    /* .buffer_from_host_ptr    = */ ggml_backend_custom_device_get_buffer_from_host_ptr,
-    /* .supports_op             = */ ggml_backend_custom_device_supports_op,
-    /* .supports_buft           = */ ggml_backend_custom_device_supports_buft,
-    /* .offload_op              = */ ggml_backend_custom_device_offload_op,
-    /* .event_new               = */ ggml_backend_custom_device_event_new,
-    /* .event_free              = */ ggml_backend_custom_device_event_free,
-    /* .event_synchronize       = */ ggml_backend_custom_device_event_synchronize,
+static const ggml_backend_device_i ggml_backend_device_interface = {
+    /* .get_name                = */ ggml_backend_device_get_name,
+    /* .get_description         = */ ggml_backend_device_get_description,
+    /* .get_memory              = */ ggml_backend_device_get_memory,
+    /* .get_type                = */ ggml_backend_device_get_type,
+    /* .get_props               = */ ggml_backend_device_get_props,
+    /* .init_backend            = */ ggml_backend_device_init_backend,
+    /* .get_buffer_type         = */ ggml_backend_device_get_buffer_type,
+    /* .get_host_buffer_type    = */ ggml_backend_device_get_host_buffer_type,
+    /* .buffer_from_host_ptr    = */ ggml_backend_device_get_buffer_from_host_ptr,
+    /* .supports_op             = */ ggml_backend_device_supports_op,
+    /* .supports_buft           = */ ggml_backend_device_supports_buft,
+    /* .offload_op              = */ ggml_backend_device_offload_op,
+    /* .event_new               = */ ggml_backend_device_event_new,
+    /* .event_free              = */ ggml_backend_device_event_free,
+    /* .event_synchronize       = */ ggml_backend_device_event_synchronize,
 };
 ```
 
 Device Registration Interface
 
-#### ggml_backend_custom_device_get_name
+#### ggml_backend_device_get_name
 
 ```c++
-static const char * ggml_backend_custom_device_get_name(ggml_backend_dev_t dev)
+static const char * ggml_backend_device_get_name(ggml_backend_dev_t dev)
 ```
 
 Returns the name of the device. It should be in the form of `device name[device number]` where `[]` is optional.
@@ -200,10 +198,10 @@ https://github.com/ggml-org/llama.cpp/blob/0db81098494023775a704a44042c317d36c91
 
 <br />
 
-#### ggml_backend_custom_device_get_description
+#### ggml_backend_device_get_description
 
 ```c++
-static const char * ggml_backend_custom_device_get_description(ggml_backend_dev_t dev)
+static const char * ggml_backend_device_get_description(ggml_backend_dev_t dev)
 ```
 
 Returns the description of the device. You can return the device model here.
@@ -224,10 +222,10 @@ https://github.com/ggml-org/llama.cpp/blob/0db81098494023775a704a44042c317d36c91
 
 <br />
 
-#### ggml_backend_custom_device_get_memory
+#### ggml_backend_device_get_memory
 
 ```c++
-static void ggml_backend_custom_device_get_memory(ggml_backend_dev_t dev, size_t * free, size_t * total)
+static void ggml_backend_device_get_memory(ggml_backend_dev_t dev, size_t * free, size_t * total)
 ```
 
 Returns the available and total memory of the device.
@@ -246,10 +244,10 @@ https://github.com/ggml-org/llama.cpp/blob/0db81098494023775a704a44042c317d36c91
 
 <br />
 
-#### ggml_backend_custom_device_get_type
+#### ggml_backend_device_get_type
 
 ```c++
-static enum ggml_backend_dev_type ggml_backend_custom_device_get_type(ggml_backend_dev_t dev)
+static enum ggml_backend_dev_type ggml_backend_device_get_type(ggml_backend_dev_t dev)
 ```
 
 Returns the device type. Choose a type from the following:
@@ -281,10 +279,10 @@ https://github.com/ggml-org/llama.cpp/blob/0db81098494023775a704a44042c317d36c91
 
 <br />
 
-#### ggml_backend_custom_device_get_props
+#### ggml_backend_device_get_props
 
 ```c++
-static void ggml_backend_custom_device_get_props(ggml_backend_dev_t dev, ggml_backend_dev_props * props)
+static void ggml_backend_device_get_props(ggml_backend_dev_t dev, ggml_backend_dev_props * props)
 ```
 
 Returns the device properties. Use this function to report information on the device capabilities.
@@ -303,10 +301,10 @@ https://github.com/ggml-org/llama.cpp/blob/0db81098494023775a704a44042c317d36c91
 
 <br />
 
-#### ggml_backend_custom_device_init_backend
+#### ggml_backend_device_init_backend
 
 ```c++
-static ggml_backend_t ggml_backend_custom_device_init_backend(ggml_backend_dev_t dev, const char * params)
+static ggml_backend_t ggml_backend_device_init_backend(ggml_backend_dev_t dev, const char * params)
 ```
 
 Returns an initialized backend of the device.
@@ -325,11 +323,11 @@ https://github.com/ggml-org/llama.cpp/blob/0db81098494023775a704a44042c317d36c91
 
 <br />
 
-#### ggml_backend_custom_device_get_buffer_type
+#### ggml_backend_device_get_buffer_type
 
 ```c++
 
-static ggml_backend_buffer_type_t ggml_backend_custom_device_get_buffer_type(ggml_backend_dev_t dev)
+static ggml_backend_buffer_type_t ggml_backend_device_get_buffer_type(ggml_backend_dev_t dev)
 ```
 
 Returns the preferred buffer type for the device.
@@ -350,30 +348,30 @@ https://github.com/ggml-org/llama.cpp/blob/0db81098494023775a704a44042c317d36c91
 
 <br />
 
-#### ggml_backend_custom_device_get_host_buffer_type
+#### ggml_backend_device_get_host_buffer_type
 
 ```c++
-static ggml_backend_buffer_type_t ggml_backend_custom_device_get_host_buffer_type(ggml_backend_dev_t dev)
+static ggml_backend_buffer_type_t ggml_backend_device_get_host_buffer_type(ggml_backend_dev_t dev)
 ```
 
 OPTIONAL - TODO -
 
 <br />
 
-#### ggml_backend_custom_device_get_buffer_from_host_ptr
+#### ggml_backend_device_get_buffer_from_host_ptr
 
 ```c++
-static ggml_backend_buffer_t ggml_backend_custom_device_get_buffer_from_host_ptr(ggml_backend_dev_t dev, void * ptr, size_t size, size_t max_tensor_size)
+static ggml_backend_buffer_t ggml_backend_device_get_buffer_from_host_ptr(ggml_backend_dev_t dev, void * ptr, size_t size, size_t max_tensor_size)
 ```
 
 OPTIONAL - TODO -
 
 <br />
 
-#### ggml_backend_custom_device_supports_op
+#### ggml_backend_device_supports_op
 
 ```c++
-static bool ggml_backend_custom_device_supports_op(ggml_backend_dev_t dev, const ggml_tensor * dst)
+static bool ggml_backend_device_supports_op(ggml_backend_dev_t dev, const ggml_tensor * dst)
 ```
 
 Returns the status of operation support for the device.
@@ -381,7 +379,7 @@ Returns the status of operation support for the device.
 `ggml_backend_sched` will use this function to check for operation support. If the operation is declared to be supported on the device, the `ggml_backend_sched` will allocate the tensor buffer to the device backend.
 
 > [!IMPORTANT]
-> NOTE 1: If an operation is declared to be supported, you will need to update the `ggml_backend_custom_graph_compute` function and implement support for it.
+> NOTE 1: If an operation is declared to be supported, you will need to update the `ggml_backend_graph_compute` function and implement support for it.
 
 > [!IMPORTANT]
 > NOTE 2: Do not attempt to reject tensors like this
@@ -406,10 +404,10 @@ https://github.com/ggml-org/llama.cpp/blob/0db81098494023775a704a44042c317d36c91
 
 <br />
 
-#### ggml_backend_custom_device_supports_buft
+#### ggml_backend_device_supports_buft
 
 ```c++
-static bool ggml_backend_custom_device_supports_buft(ggml_backend_dev_t dev, ggml_backend_buffer_type_t buft)
+static bool ggml_backend_device_supports_buft(ggml_backend_dev_t dev, ggml_backend_buffer_type_t buft)
 ```
 
 Returns the type of buffers the device can support. You should only return support for your backend buffer type.
@@ -433,40 +431,40 @@ https://github.com/ggml-org/llama.cpp/blob/0db81098494023775a704a44042c317d36c91
 
 <br />
 
-#### ggml_backend_custom_device_offload_op
+#### ggml_backend_device_offload_op
 
 ```c++
-static bool ggml_backend_custom_device_offload_op(ggml_backend_dev_t dev, const ggml_tensor * op)
+static bool ggml_backend_device_offload_op(ggml_backend_dev_t dev, const ggml_tensor * op)
 ```
 
 OPTIONAL - TODO -
 
 <br />
 
-#### ggml_backend_custom_device_event_new
+#### ggml_backend_device_event_new
 
 ```c++
-static ggml_backend_event_t ggml_backend_custom_device_event_new(ggml_backend_dev_t dev)
+static ggml_backend_event_t ggml_backend_device_event_new(ggml_backend_dev_t dev)
 ```
 
 OPTIONAL - TODO -
 
 <br />
 
-#### ggml_backend_custom_device_event_free
+#### ggml_backend_device_event_free
 
 ```c++
-static void ggml_backend_custom_device_event_free(ggml_backend_dev_t dev, ggml_backend_event_t event)
+static void ggml_backend_device_event_free(ggml_backend_dev_t dev, ggml_backend_event_t event)
 ```
 
 OPTIONAL - TODO -
 
 <br />
 
-#### ggml_backend_custom_device_event_synchronize
+#### ggml_backend_device_event_synchronize
 
 ```c++
-static void ggml_backend_custom_device_event_synchronize(ggml_backend_dev_t dev, ggml_backend_event_t event)
+static void ggml_backend_device_event_synchronize(ggml_backend_dev_t dev, ggml_backend_event_t event)
 ```
 
 OPTIONAL - TODO -

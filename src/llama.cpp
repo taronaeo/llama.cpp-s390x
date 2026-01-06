@@ -113,6 +113,13 @@ static std::vector<llama_device_memory_data> llama_get_device_memory_data(
     for (size_t i = 0; i < ret.size(); i++) {
         size_t free, total;
         ggml_backend_dev_memory(model->devices[i], &free, &total);
+
+        // devices can return 0 bytes for free and total memory if they do not
+        // have any to report. in this case, we will use the host memory as a fallback
+        // fixes: https://github.com/ggml-org/llama.cpp/issues/18577
+        if (free == 0 && total == 0) {
+            ggml_backend_get_host_memory(&free, &total);
+        }
         ret[i].free  = free;
         ret[i].total = total;
     }

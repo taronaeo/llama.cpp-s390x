@@ -27,10 +27,6 @@
 #include <sys/sysctl.h>
 #endif
 
-#ifndef _WIN32
-#include <unistd.h>
-#endif
-
 
 // backend buffer type
 
@@ -1882,22 +1878,6 @@ ggml_backend_t ggml_backend_sched_get_tensor_backend(ggml_backend_sched_t sched,
 }
 
 // utils
-
-void ggml_backend_get_host_memory(size_t * free, size_t * total) {
-#ifdef _WIN32
-    MEMORYSTATUSEX status;
-    status.dwLength = sizeof(status);
-    GlobalMemoryStatusEx(&status);
-    *total = status.ullTotalPhys;
-    *free = status.ullAvailPhys;
-#else
-    long pages = sysconf(_SC_PHYS_PAGES);
-    long page_size = sysconf(_SC_PAGE_SIZE);
-    *total = pages * page_size;
-    // "free" system memory is ill-defined, for practical purposes assume that all of it is free:
-    *free = *total;
-#endif
-}
 
 enum ggml_status ggml_backend_view_init(struct ggml_tensor * tensor) {
     GGML_ASSERT(tensor);

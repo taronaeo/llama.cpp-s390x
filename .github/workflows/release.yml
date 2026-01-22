@@ -107,6 +107,16 @@ jobs:
         id: tag
         uses: ./.github/actions/get-tag-name
 
+      - name: Determine release information
+        id: release-info
+        shell: bash
+        run: |
+            COMMIT_TITLE="$(git log -1 --pretty=%s)"
+            DCO="$(git show -s --format='%(trailers:key=Signed-off-by,valueonly=true,separator=%x0A)' "$GITHUB_SHA")"
+
+            echo "COMMIT_TITLE=$COMMIT_TITLE" >> $GITHUB_ENV
+            echo "DCO=$DCO" >> $GITHUB_ENV
+
       - name: Download artifacts
         id: download-artifact
         uses: actions/download-artifact@v7
@@ -132,9 +142,17 @@ jobs:
           body: |
             <details open>
 
+            <summary>${{ env.COMMIT_TITLE }}</summary>
+
             ${{ github.event.head_commit.message }}
 
+            Signed-off-by: ${{ env.DCO }}
+
             </details>
+
+            ---
+
+            ### Download Binaries
 
             **macOS/iOS:**
             - [macOS Apple Silicon (arm64)](https://github.com/ggml-org/llama.cpp/releases/download/${{ steps.tag.outputs.name }}/llama-${{ steps.tag.outputs.name }}-bin-macos-arm64.tar.gz)

@@ -15,24 +15,20 @@ jobs:
   release:
     permissions:
       contents: write
+    runs-on: ubuntu-latest
+    steps:
+      - name: Upload release
+        id: upload_release
+        uses: actions/github-script@v8
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const release_id = "b6792";
+            await github.rest.repos.uploadReleaseAsset({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              release_id,
+              name: 'abc123.bin',
+              data: Buffer.from([0x01, 0x01, 0x01]),
+            });
 
-  runs-on: ubuntu-latest
-
-  steps:
-    - name: Upload release
-      id: upload_release
-      uses: actions/github-script@v8
-      with:
-        github-token: ${{ secrets.GITHUB_TOKEN }}
-        script: |
-          const path = require('path');
-          const fs = require('fs');
-          const release_id = 'abc123'
-
-          await github.repos.uploadReleaseAsset({
-            owner: context.repo.owner,
-            repo: context.repo.repo,
-            release_id: release_id,
-            name: 'abc123'
-            data: Buffer.from([0x01, 0x01, 0x01])
-          });

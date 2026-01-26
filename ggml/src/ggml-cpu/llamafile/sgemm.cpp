@@ -1802,16 +1802,16 @@ struct mma_instr;
 
 template<>
 struct mma_instr<ggml_bf16_t> {
-   static inline void outer_product(acc_t *acc, vec_t a, vec_t b) {
-       __builtin_mma_xvbf16ger2pp(acc, a, b);
-   }
+    static inline void outer_product(acc_t *acc, vec_t a, vec_t b) {
+        __builtin_mma_xvbf16ger2pp(acc, a, b);
+    }
 };
 
 template<>
 struct mma_instr<ggml_fp16_t> {
-   static inline void outer_product(acc_t *acc, vec_t a, vec_t b) {
-       __builtin_mma_xvf16ger2pp(acc, a, b);
-   }
+    static inline void outer_product(acc_t *acc, vec_t a, vec_t b) {
+        __builtin_mma_xvf16ger2pp(acc, a, b);
+    }
 };
 
 template <typename TA, typename TB, typename TC>
@@ -3435,16 +3435,19 @@ bool llamafile_sgemm(const struct ggml_compute_params * params, int64_t m, int64
             return tb.matmul(m, n);
         }
 #elif defined(__MMA__)
-        if ((k % 8))
-                return false;
-        if(Btype == GGML_TYPE_BF16) {
-           tinyBLAS_HP16_PPC<ggml_bf16_t, ggml_bf16_t, float> tb{ k,
-            (const ggml_bf16_t *)A, lda,
-            (const ggml_bf16_t *)B, ldb,
-            (float *)C, ldc,
-            params->ith, params->nth};
-        tb.matmul(m, n);
-        return true;
+        if (k % 8) {
+            return false;
+        }
+
+        if (Btype == GGML_TYPE_BF16) {
+            tinyBLAS_HP16_PPC<ggml_bf16_t, ggml_bf16_t, float> tb{ k,
+                (const ggml_bf16_t *)A, lda,
+                (const ggml_bf16_t *)B, ldb,
+                (float *)C, ldc,
+                params->ith, params->nth };
+
+            tb.matmul(m, n);
+            return true;
         }
 #elif defined(__riscv_zvfbfwma)
         #if LMUL == 1
@@ -3534,18 +3537,20 @@ bool llamafile_sgemm(const struct ggml_compute_params * params, int64_t m, int64
             return tb.matmul(m, n);
         }
 #elif defined(__MMA__)
-        if (k % 8)
-           return false;
-        if (Btype == GGML_TYPE_F16) {
-           tinyBLAS_HP16_PPC<ggml_fp16_t, ggml_fp16_t, float> tb{ k,
-           (const ggml_fp16_t *)A, lda,
-           (const ggml_fp16_t *)B, ldb,
-           (float *)C, ldc,
-           params->ith, params->nth};
-        tb.matmul(m, n);
-        return true;
+        if (k % 8) {
+            return false;
         }
 
+        if (Btype == GGML_TYPE_F16) {
+            tinyBLAS_HP16_PPC<ggml_fp16_t, ggml_fp16_t, float> tb{ k,
+                (const ggml_fp16_t *)A, lda,
+                (const ggml_fp16_t *)B, ldb,
+                (float *)C, ldc,
+                params->ith, params->nth };
+
+            tb.matmul(m, n);
+            return true;
+        }
 #endif
         return false;
     }

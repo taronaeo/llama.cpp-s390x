@@ -1223,7 +1223,7 @@ static inline void __lzs_f16cx4_store(ggml_fp16_t * x, float32x4_t v_y) {
 
 #define GGML_BF16x8         __vector unsigned short
 #define GGML_BF16x8_ZERO    vec_splats((unsigned short)0)
-#define GGML_BF16x8_LOAD(p) vec_xl(0, (const unsigned short *)p)
+#define GGML_BF16x8_LOAD(p) vec_xl(0, (const unsigned short *)(p))
 
 #define GGML_BF16_VEC      GGML_BF16x8
 #define GGML_BF16_VEC_ZERO GGML_BF16x8_ZERO
@@ -1231,9 +1231,9 @@ static inline void __lzs_f16cx4_store(ggml_fp16_t * x, float32x4_t v_y) {
 #define GGML_BF16_TO_F32_LO(v) ((float32x4_t) vec_mergel((v), GGML_BF16_VEC_ZERO))
 #define GGML_BF16_TO_F32_HI(v) ((float32x4_t) vec_mergeh((v), GGML_BF16_VEC_ZERO))
 #define GGML_BF16_FMA_LO(acc, x, y) \
-    (acc) = GGML_F32x4_FMA((acc), GGML_BF16_TO_FP32_LO(x), GGML_BF16_TO_FP32_LO(y))
+    (acc) = GGML_F32x4_FMA((acc), GGML_BF16_TO_F32_LO(x), GGML_BF16_TO_F32_LO(y))
 #define GGML_BF16_FMA_HI(acc, x, y) \
-    (acc) = GGML_F32x4_FMA((acc), GGML_BF16_TO_FP32_HI(x), GGML_BF16_TO_FP32_HI(y))
+    (acc) = GGML_F32x4_FMA((acc), GGML_BF16_TO_F32_HI(x), GGML_BF16_TO_F32_HI(y))
 
 #elif defined(__riscv_v_intrinsic)
 

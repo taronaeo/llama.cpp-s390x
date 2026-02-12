@@ -92,7 +92,10 @@ static std::vector<llama_device_memory_data> llama_get_device_memory_data(
 
     std::map<ggml_backend_buffer_type_t, llama_memory_breakdown_data> memory_breakdown = ctx->memory_breakdown();
 
+    // loop through backend buffers
     for (const auto & [buft, mb] : memory_breakdown) {
+
+        // if backend buffer is a host buffer i.e., CPU backend, skip
         if (ggml_backend_buft_is_host(buft)) {
             continue;
         }
@@ -101,6 +104,8 @@ static std::vector<llama_device_memory_data> llama_get_device_memory_data(
         if (!dev) {
             continue;
         }
+
+        // report backend memory breakdown
         for (size_t i = 0; i < ret.size(); i++) {
             if (model->devices[i] == dev) {
                 ret[i].mb.model   += mb.model;

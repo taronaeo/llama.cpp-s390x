@@ -485,7 +485,7 @@ extern "C" {
         LLAMA_PARAMS_FIT_STATUS_ERROR   = 2, // a hard error occurred, e.g. because no model could be found at the specified path
     };
 
-    // fits mparams and cparams to free device memory (assumes system memory is unlimited)
+    // fits mparams and cparams to free device and system memory
     //   - returns true if the parameters could be successfully modified to fit device memory
     //   - this function is NOT thread safe because it modifies the global llama logger state
     //   - only parameters that have the same value as in llama_default_model_params are modified

@@ -174,19 +174,46 @@ static void llama_params_fit_impl(
     LLAMA_LOG_DEBUG("%s: getting device memory data for initial parameters:\n", __func__);
     const dmds_t dmds_full = llama_get_device_memory_data(path_model, mparams, cparams, devs, hp_ngl, hp_nct, hp_nex, log_level);
     const size_t nd = devs.size(); // number of devices
-    if (nd == 0) {
-        LLAMA_LOG_INFO("%s: no devices with dedicated memory found\n", __func__);
-        return;
-    }
 
+    int64_t sum_free            = 0;
+    int64_t sum_projected_free  = 0;
+    int64_t sum_projected_used  = 0;
+    int64_t sum_projected_model = 0;
+    std::vector<int64_t> projected_free_per_device;
     std::vector<int64_t> margins; // this function uses int64_t rather than size_t for memory sizes to more conveniently handle deficits
-    margins.reserve(nd);
-    for (size_t id = 0; id < nd; id++) {
-        margins.push_back(margins_s[id]);
-    }
-
     std::vector<std::string> dev_names;
-    {
+
+    if (nd == 0) {
+        LLAMA_LOG_INFO("%s: no devices with dedicated memory found, using CPU memory\n", __func__);
+
+        // Get CPU backend and query its memory
+        ggml_backend_dev_t cpu_dev = ggml_backend_dev_by_type(GGML_BACKEND_DEVICE_TYPE_CPU);
+        if (cpu_dev == nullptr) {
+            throw std::runtime_error(format("%s: no CPU backend found", __func__));
+        }
+
+        size_t cpu_free, cpu_total;
+        ggml_backend_dev_memory(cpu_dev, &cpu_free, &cpu_total);
+
+        sum_free = static_cast<int64_t>(cpu_free);
+        sum_projected_free = static_cast<int64_t>(cpu_free);
+        sum_projected_used = 0; // No device memory projected usage when using CPU only
+
+        LLAMA_LOG_INFO("%s: CPU memory: %" PRId64 " MiB total, %" PRId64 " MiB free\n",
+            __func__, static_cast<int64_t>(cpu_total)/MiB, sum_free/MiB);
+
+        // Set up margins and projected_free for CPU as a single device
+        margins.push_back(margins_s ? static_cast<int64_t>(margins_s[0]) : 0);
+        projected_free_per_device.push_back(sum_free);
+
+        // Add CPU device name for logging
+        dev_names.push_back("CPU");
+    } else {
+        margins.reserve(nd);
+        for (size_t id = 0; id < nd; id++) {
+            margins.push_back(margins_s[id]);
+        }
+
         dev_names.reserve(nd);
         size_t max_length = 0;
         for (ggml_backend_dev_t dev : devs) {
@@ -200,42 +227,41 @@ static void llama_params_fit_impl(
         for (std::string & dn : dev_names) {
             dn.insert(dn.end(), max_length - dn.length(), ' ');
         }
-    }
 
-    int64_t sum_free            = 0;
-    int64_t sum_projected_free  = 0;
-    int64_t sum_projected_used  = 0;
-    int64_t sum_projected_model = 0;
-    std::vector<int64_t> projected_free_per_device;
-    projected_free_per_device.reserve(nd);
-
-    if (nd > 1) {
-        LLAMA_LOG_INFO("%s: projected memory use with initial parameters [MiB]:\n", __func__);
-    }
-    for (size_t id = 0; id < nd; id++) {
-        const llama_device_memory_data & dmd = dmds_full[id];
-
-        const int64_t projected_used = dmd.mb.total();
-        const int64_t projected_free = dmd.free - projected_used;
-        projected_free_per_device.push_back(projected_free);
-
-        sum_free            += dmd.free;
-        sum_projected_used  += projected_used;
-        sum_projected_free  += projected_free;
-        sum_projected_model += dmd.mb.model;
+        projected_free_per_device.reserve(nd);
 
         if (nd > 1) {
-            LLAMA_LOG_INFO("%s:   - %s: %6" PRId64 " total, %6" PRId64 " used, %6" PRId64 " free vs. target of %6" PRId64 "\n",
-                __func__, dev_names[id].c_str(), dmd.total/MiB, projected_used/MiB, projected_free/MiB, margins[id]/MiB);
+            LLAMA_LOG_INFO("%s: projected memory use with initial parameters [MiB]:\n", __func__);
+        }
+        for (size_t id = 0; id < nd; id++) {
+            const llama_device_memory_data & dmd = dmds_full[id];
+
+            const int64_t projected_used = dmd.mb.total();
+            const int64_t projected_free = dmd.free - projected_used;
+            projected_free_per_device.push_back(projected_free);
+
+            sum_free            += dmd.free;
+            sum_projected_used  += projected_used;
+            sum_projected_free  += projected_free;
+            sum_projected_model += dmd.mb.model;
+
+            if (nd > 1) {
+                LLAMA_LOG_INFO("%s:   - %s: %6" PRId64 " total, %6" PRId64 " used, %6" PRId64 " free vs. target of %6" PRId64 "\n",
+                    __func__, dev_names[id].c_str(), dmd.total/MiB, projected_used/MiB, projected_free/MiB, margins[id]/MiB);
+            }
         }
     }
+
     assert(sum_free >= 0 && sum_projected_used >= 0);
     LLAMA_LOG_INFO("%s: projected to use %" PRId64 " MiB of device memory vs. %" PRId64 " MiB of free device memory\n",
         __func__, sum_projected_used/MiB, sum_free/MiB);
-    if (nd == 1) {
+
+    // Check if changes are needed (handle both nd == 0 and nd >= 1 cases)
+    if (nd == 0 || nd == 1) {
         if (projected_free_per_device[0] >= margins[0]) {
-            LLAMA_LOG_INFO("%s: will leave %" PRId64 " >= %" PRId64 " MiB of free device memory, no changes needed\n",
-                __func__, projected_free_per_device[0]/MiB, margins[0]/MiB);
+            const char * mem_type = nd == 0 ? "CPU memory" : "device memory";
+            LLAMA_LOG_INFO("%s: will leave %" PRId64 " >= %" PRId64 " MiB of free %s, no changes needed\n",
+                __func__, projected_free_per_device[0]/MiB, margins[0]/MiB, mem_type);
             return;
         }
     } else {
@@ -256,13 +282,14 @@ static void llama_params_fit_impl(
 
     {
         int64_t global_surplus = sum_projected_free;
-        for (size_t id = 0; id < nd; id++) {
+        for (size_t id = 0; id < margins.size(); id++) {
             global_surplus -= margins[id];
         }
         if (global_surplus < 0) {
-            if (nd == 1) {
-                LLAMA_LOG_INFO("%s: cannot meet free memory target of %" PRId64 " MiB, need to reduce device memory by %" PRId64 " MiB\n",
-                    __func__, margins[0]/MiB, -global_surplus/MiB);
+            if (nd == 0 || nd == 1) {
+                const char * mem_type = nd == 0 ? "CPU memory" : "device memory";
+                LLAMA_LOG_INFO("%s: cannot meet free memory target of %" PRId64 " MiB, need to reduce %s by %" PRId64 " MiB\n",
+                    __func__, margins[0]/MiB, mem_type, -global_surplus/MiB);
             } else {
                 LLAMA_LOG_INFO(
                     "%s: cannot meet free memory targets on all devices, need to use %" PRId64 " MiB less in total\n",
@@ -271,7 +298,7 @@ static void llama_params_fit_impl(
             if (cparams->n_ctx == 0) {
                 if (hp_nct > n_ctx_min) {
                     int64_t sum_used_target = sum_free;
-                    for (size_t id = 0; id < nd; id++) {
+                    for (size_t id = 0; id < margins.size(); id++) {
                         sum_used_target -= margins[id];
                     }
                     if (nd > 1) {
@@ -300,8 +327,9 @@ static void llama_params_fit_impl(
                         const int64_t memory_reduction = (hp_nct - cparams->n_ctx) * bytes_per_ctx;
                         LLAMA_LOG_INFO("%s: context size reduced from %" PRIu32 " to %" PRIu32 " -> need %" PRId64 " MiB less memory in total\n",
                             __func__, hp_nct, cparams->n_ctx, memory_reduction/MiB);
-                        if (nd == 1) {
-                            LLAMA_LOG_INFO("%s: entire model can be fit by reducing context\n", __func__);
+                        if (nd == 0 || nd == 1) {
+                            const char * mem_type = nd == 0 ? "CPU memory" : "device";
+                            LLAMA_LOG_INFO("%s: entire model can be fit in %s by reducing context\n", __func__, mem_type);
                             return;
                         }
                         LLAMA_LOG_INFO("%s: entire model should be fit across devices by reducing context\n", __func__);
@@ -322,6 +350,13 @@ static void llama_params_fit_impl(
                 LLAMA_LOG_INFO("%s: context size set by user to %" PRIu32 " -> no change\n", __func__, cparams->n_ctx);
             }
         }
+    }
+
+    // If no GPU devices available, we can only use CPU memory and context reduction
+    // No further optimization (layer allocation) is possible
+    if (nd == 0) {
+        LLAMA_LOG_INFO("%s: no GPU devices available for layer offloading, using CPU only\n", __func__);
+        return;
     }
 
     if (mparams->n_gpu_layers != default_mparams.n_gpu_layers) {

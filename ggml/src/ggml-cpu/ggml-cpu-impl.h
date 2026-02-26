@@ -501,6 +501,11 @@ inline static int32x4_t ggml_vec_dot(int32x4_t acc, int8x16_t a, int8x16_t b) {
     return acc + (vec_unpackh(p) + vec_unpackl(p));
 }
 
+inline static float32x4_t ggml_vmulq_laneq_f32(float32x4_t a, float32x4_t b, int32_t lane) {
+    float32x4_t scalar = vec_splats(b[lane]);
+    return vec_mul(a, scalar);
+}
+
 inline static int32x4_t ggml_vdot_laneq_s32(int32x4_t acc, int8x16_t a, int8x16_t b, int32_t lane) {
     int8x16_t b_selected = (int8x16_t)vec_splats(((int32x4_t)b)[lane]);
 

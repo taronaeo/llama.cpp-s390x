@@ -501,6 +501,19 @@ inline static int32x4_t ggml_vec_dot(int32x4_t acc, int8x16_t a, int8x16_t b) {
     return acc + (vec_unpackh(p) + vec_unpackl(p));
 }
 
+inline static int32x4_t ggml_vdot_laneq_s32(int32x4_t acc, int8x16_t a, int8x16_t b, int32_t lane) {
+    int8x16_t b_selected = (int8x16_t)vec_splats(((int32x4_t)b)[lane]);
+
+    const int16x8_t ab_even = vec_mule(a, b_selected);
+    const int16x8_t ab = vec_moadd(a, b_selected, ab_even);
+
+    int32x4_t r_odd = vec_unpackh((int16x8_t)vec_pack((int32x4_t)ab, (int32x4_t)ab));
+    int32x4_t r_even = (int32x4_t)ab >> 16;
+
+    const int32x4_t result = acc + r_odd + r_even;
+    return result;
+}
+
 #endif
 
 #if defined(__loongarch_sx)

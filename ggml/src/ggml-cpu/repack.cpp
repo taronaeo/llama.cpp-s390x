@@ -3198,6 +3198,11 @@ static const ggml::cpu::tensor_traits * ggml_repack_get_optimal_repack_type(cons
                 return &q8_0_4x4_q8_0;
             }
         }
+        if (ggml_cpu_has_vxe()) {
+            if (cur->ne[1] % 4 == 0) {
+                return &q8_0_4x4_q8_0;
+            }
+        }
     }
 
     return nullptr;

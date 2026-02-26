@@ -83,12 +83,10 @@ void ggml_gemm_q8_0_4x4_q8_0(int n, float * GGML_RESTRICT s, size_t bs, const vo
                     }
                 }
 
-                sumf[0] = vec_madd(vmulq_laneq_f32(b_d, a_d, 0), vec_float(sumi_0), sumf[0]);
-                // TODO: translate vmulq_laneq_f32 for s390x
-                // sumf[0] = vmlaq_f32(sumf[0], vmulq_laneq_f32(b_d, a_d, 0), vcvtq_f32_s32(sumi_0));
-                // sumf[1] = vmlaq_f32(sumf[1], vmulq_laneq_f32(b_d, a_d, 1), vcvtq_f32_s32(sumi_1));
-                // sumf[2] = vmlaq_f32(sumf[2], vmulq_laneq_f32(b_d, a_d, 2), vcvtq_f32_s32(sumi_2));
-                // sumf[3] = vmlaq_f32(sumf[3], vmulq_laneq_f32(b_d, a_d, 3), vcvtq_f32_s32(sumi_3));
+                sumf[0] = vec_madd(ggml_vmulq_laneq_f32(b_d, a_d, 0), vec_float(sumi_0), sumf[0]);
+                sumf[1] = vec_madd(ggml_vmulq_laneq_f32(b_d, a_d, 1), vec_float(sumi_1), sumf[1]);
+                sumf[2] = vec_madd(ggml_vmulq_laneq_f32(b_d, a_d, 2), vec_float(sumi_2), sumf[2]);
+                sumf[3] = vec_madd(ggml_vmulq_laneq_f32(b_d, a_d, 3), vec_float(sumi_3), sumf[3]);
             }
 
             for (int m = 0; m < 4; m++) {
@@ -97,7 +95,7 @@ void ggml_gemm_q8_0_4x4_q8_0(int n, float * GGML_RESTRICT s, size_t bs, const vo
         }
     }
     return;
-#endif  // defined(__aarch64__) && defined(__ARM_NEON) && defined(__ARM_FEATURE_DOTPROD)
+#endif  // defined(__VXE__) || defined(__VXE2__)
     ggml_gemm_q8_0_4x4_q8_0_generic(n, s, bs, vx, vy, nr, nc);
 }
 

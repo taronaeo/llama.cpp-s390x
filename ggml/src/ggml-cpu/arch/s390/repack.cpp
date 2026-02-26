@@ -61,7 +61,7 @@ void ggml_gemm_q8_0_4x4_q8_0(int n, float * GGML_RESTRICT s, size_t bs, const vo
                     GGML_CPU_FP16_TO_FP32(b_ptr[l].d[1]),
                     GGML_CPU_FP16_TO_FP32(b_ptr[l].d[2]),
                     GGML_CPU_FP16_TO_FP32(b_ptr[l].d[3]),
-                }
+                };
 
                 float32x4_t a_d = vec_xl(0, (const float *)a_df);
                 float32x4_t b_d = vec_xl(0, (const float *)b_df);
@@ -72,14 +72,14 @@ void ggml_gemm_q8_0_4x4_q8_0(int n, float * GGML_RESTRICT s, size_t bs, const vo
                 int32x4_t sumi_3 = vec_splats(0);
 
                 for (int k_group = 0; k_group < 8; k_group += 4) {
-                    int8x16x4_t a = ggml_vec_xl_s8x4(a_ptr[l].qs + 16 * k_group);
-                    int8x16x4_t b = ggml_vec_xl_s8x4(b_ptr[l].qs + 16 * k_group);
+                    ggml_int8x16x4_t a = ggml_vec_xl_s8x4(a_ptr[l].qs + 16 * k_group);
+                    ggml_int8x16x4_t b = ggml_vec_xl_s8x4(b_ptr[l].qs + 16 * k_group);
 
                     for (int k = 0; k < 4; k++) {
-                        sumi_0 = ggml_vdotq_laneq_s32(sumi_0, b.val[k], a.val[k], 0);
-                        sumi_1 = ggml_vdotq_laneq_s32(sumi_1, b.val[k], a.val[k], 1);
-                        sumi_2 = ggml_vdotq_laneq_s32(sumi_2, b.val[k], a.val[k], 2);
-                        sumi_3 = ggml_vdotq_laneq_s32(sumi_3, b.val[k], a.val[k], 3);
+                        sumi_0 = ggml_vdot_laneq_s32(sumi_0, b.val[k], a.val[k], 0);
+                        sumi_1 = ggml_vdot_laneq_s32(sumi_1, b.val[k], a.val[k], 1);
+                        sumi_2 = ggml_vdot_laneq_s32(sumi_2, b.val[k], a.val[k], 2);
+                        sumi_3 = ggml_vdot_laneq_s32(sumi_3, b.val[k], a.val[k], 3);
                     }
                 }
 

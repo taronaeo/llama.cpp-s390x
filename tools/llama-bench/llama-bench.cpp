@@ -1072,6 +1072,8 @@ static cmd_params parse_cmd_params(int argc, char ** argv) {
     // if so, we disable mmap to avoid the situation where they see no difference
     if (params.use_mmap.empty() && !params.use_direct_io.empty()) {
         params.use_mmap.push_back(false);
+    } else if (params.use_mmap.size() > 0 && params.use_direct_io.empty()) {
+        params.use_direct_io.push_back(false);
     } else if (params.use_mmap.size() != params.use_direct_io.size()) {
         // if both are specified, they must have the same number of values
         fprintf(stderr, "error: --mmap and --direct-io must have the same number of values\n");

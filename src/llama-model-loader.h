@@ -127,8 +127,6 @@ struct llama_model_loader {
         std::vector<std::string> & splits, // optional, only need if the split does not follow naming scheme
         FILE * file,
         enum llama_load_mode load_mode,
-        // bool use_mmap,
-        // bool use_direct_io,
         bool check_tensors,
         bool no_alloc,
         const llama_model_kv_override * param_overrides_p,

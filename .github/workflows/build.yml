@@ -1061,7 +1061,7 @@ jobs:
 # TODO: simplify the following workflows using a matrix
 # TODO: run lighter CI on PRs and the full CI only on master (if needed)
   ggml-ci-x64-cpu-low-perf:
-    runs-on: ubuntu-22.04
+    runs-on: self-hosted, X64
 
     steps:
       - name: Clone
@@ -1113,7 +1113,7 @@ jobs:
           LLAMA_ARG_THREADS=$(nproc) GG_BUILD_LOW_PERF=1 bash ./ci/run.sh ./tmp/results ./tmp/mnt
 
   ggml-ci-x64-cpu-high-perf:
-    runs-on: ubuntu-22.04
+    runs-on: self-hosted, X64
 
     steps:
       - name: Clone

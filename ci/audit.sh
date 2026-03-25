@@ -23,10 +23,6 @@
 FAIL=0
 COUNT=0
 
-RUNNER_NAME="${ runner.name }"
-# Truncate runner name if it's too long for display
-(( ${#RUNNER_NAME} > 20 )) && RUNNER_NAME="${RUNNER_NAME:0:17}..."
-
 assert_fail() {
   if output=$(eval "$1" 2>&1); then
     printf "| %3d: %-89s |\n" "$COUNT" "FAIL: $1 should have failed"
@@ -34,18 +30,20 @@ assert_fail() {
     FAIL=$((FAIL + 1))
   else
     printf "| %3d: %-89s |\n" "$COUNT" "PASS: $1: $output"
+    COUNT=$((COUNT + 1))
   fi
 }
 
 printf ""
 printf "+$(printf '%0.s-' {1..89})+\n"
-printf "| GitHub Self-Hosted Actions Audit   Name: %-20s Arch: %-6s Date: %-10s |\n" "$RUNNER_NAME" "$(uname -m)" "$(date +'%Y-%m-%d')"
+printf "| GitHub Self-Hosted Actions Audit  %-20s (%-6s)   %-10s |\n" "${{ runner.name }}" "$(uname -m)" "$(date +'%Y-%m-%d')"
 printf "+$(printf '%0.s=' {1..89})+\n"
 
 # 1. Check non-root
 if [ "$(id -u)" -eq 0 ]; then
   printf "| %3d: %-89s |\n" "$COUNT" "FAIL: Runner should not run as root"
   FAIL=$((FAIL + 1))
+  COUNT=$((COUNT + 1))
 fi
 
 # 2. Sensitive files
@@ -53,7 +51,20 @@ for file in /etc/passwd /etc/shadow /etc/sudoers /etc/ssh/sshd_config; do
   assert_fail "cat $file"
 done
 
+# 3. SSH private keys
+if find /root/.ssh /Users/*/.ssh -name "id_*" ! -name "*.pub" 2>/dev/null | grep -q .; then
+  printf "| %3d: %-89s |\n" "$COUNT" "FAIL: SSH private keys should not be findable"
+  FAIL=$((FAIL + 1))
+  COUNT=$((COUNT + 1))
+else
+  printf "| %3d: %-89s |\n" "$COUNT" "PASS: No SSH private keys found"
+  COUNT=$((COUNT + 1))
+fi
+
+# 4. Sudo without password
+assert_fail "sudo -n true"
+
 if [ "$FAIL" -gt 0 ]; then
-  echo "| Some checks failed. Please review the above output and take appropriate actions.           |"
+  printf "| Some checks failed. Please review the above output and take appropriate actions.           |\n"
   exit 1
 fi

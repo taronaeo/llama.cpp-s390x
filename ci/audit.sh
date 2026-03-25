@@ -48,7 +48,7 @@ fi
 
 # 2. Sensitive files
 for file in /etc/passwd /etc/shadow /etc/sudoers /etc/ssh/sshd_config; do
-  assert_fail "cat $file"
+  assert_fail "ls $file"
 done
 
 # 3. SSH private keys
@@ -63,6 +63,18 @@ fi
 
 # 4. Sudo without password
 assert_fail "sudo -n true"
+
+# 5. Docker socket
+assert_fail "ls /var/run/docker.sock"
+
+# 6. World-writable files
+IFS=: read -ra PATH_DIRS <<< "$PATH"
+for dir in "${PATH_DIRS[@]}"; do
+  if [ -d "$dir" ] && [ -w "$dir" ]; then
+    assert_fail "ls $dir"
+  fi
+done
+
 
 if [ "$FAIL" -gt 0 ]; then
   printf "| Some checks failed. Please review the above output and take appropriate actions.           |\n"

@@ -1,0 +1,23 @@
+name: Audit CI Self-Hosted Runners
+
+on:
+  workflow_dispatch: # trigger manual audit when necessary
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref && github.ref || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  audit-sg-hl1-ci-cpu-amd:
+    runs-on: [self-hosted, Linux, X64, sg-hl1-ci-cpu-amd]
+
+    steps:
+      - name: Audit
+        id: audit
+        run: |
+          echo "Auditing self-hosted runner: ${{ runner.name }}"
+          echo "Runner labels: ${{ runner.labels }}"
+          echo "Runner OS: ${{ runner.os }}"
+          echo "Runner architecture: ${{ runner.arch }}"
+          echo "Listing /tmp directory:"
+          ls -la /tmp

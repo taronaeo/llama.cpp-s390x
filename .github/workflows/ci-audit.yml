@@ -12,6 +12,10 @@ jobs:
     runs-on: [self-hosted, Linux, X64, sg-hl1-ci-cpu-amd]
 
     steps:
+      - name: Clone
+        id: checkout
+        uses: actions/checkout@v6
+
       - name: Audit
         id: audit
         run: |

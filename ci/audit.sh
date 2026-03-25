@@ -68,12 +68,15 @@ assert_fail "sudo -n true"
 assert_fail "ls /var/run/docker.sock"
 
 # 6. World-writable files
+WORLD_WRITABLE_IN_PATH=""
 IFS=: read -ra PATH_DIRS <<< "$PATH"
 for dir in "${PATH_DIRS[@]}"; do
   if [ -d "$dir" ] && [ -w "$dir" ]; then
-    assert_fail "ls $dir"
+    WORLD_WRITABLE_IN_PATH="$dir $WORLD_WRITABLE_IN_PATH"
   fi
 done
+
+assert_fail "[ -n \"$WORLD_WRITABLE_IN_PATH\" ]"
 
 
 if [ "$FAIL" -gt 0 ]; then

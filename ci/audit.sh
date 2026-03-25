@@ -25,11 +25,11 @@ COUNT=0
 
 assert_fail() {
   if output=$(eval "$1" 2>&1); then
-    printf "| %3d: %-89s |\n" "$COUNT" "FAIL: ${1//\$/\\$} should have failed"
+    printf "| %3d: %-89s |\n" "$COUNT" "FAIL: $1 should have failed"
     COUNT=$((COUNT + 1))
     FAIL=$((FAIL + 1))
   else
-    printf "| %3d: %-89s |\n" "$COUNT" "PASS: ${1//\$/\\$}: $output"
+    printf "| %3d: %-89s |\n" "$COUNT" "PASS: $1: $output"
     COUNT=$((COUNT + 1))
   fi
 }
@@ -40,6 +40,7 @@ printf "| GitHub Self-Hosted Actions Audit  %-20s (%-6s)   %-10s |\n" "${{ runne
 printf "+$(printf '%0.s=' {1..89})+\n"
 
 # 1. Check non-root
+printf "| %-89s |\n" "Checking if running as root..."
 if [ "$(id -u)" -eq 0 ]; then
   printf "| %3d: %-89s |\n" "$COUNT" "FAIL: Runner should not run as root"
   FAIL=$((FAIL + 1))
@@ -47,11 +48,13 @@ if [ "$(id -u)" -eq 0 ]; then
 fi
 
 # 2. Sensitive files
+printf "| %-89s |\n" "Checking access to sensitive files..."
 for file in /etc/passwd /etc/shadow /etc/sudoers /etc/ssh/sshd_config; do
   assert_fail "ls $file"
 done
 
 # 3. SSH private keys
+printf "| %-89s |\n" "Checking for SSH private keys..."
 if find /root/.ssh /Users/*/.ssh -name "id_*" ! -name "*.pub" 2>/dev/null | grep -q .; then
   printf "| %3d: %-89s |\n" "$COUNT" "FAIL: SSH private keys should not be findable"
   FAIL=$((FAIL + 1))
@@ -62,21 +65,22 @@ else
 fi
 
 # 4. Sudo without password
+printf "| %-89s |\n" "Checking for passwordless sudo access..."
 assert_fail "sudo -n true"
 
 # 5. Docker socket
+printf "| %-89s |\n" "Checking for Docker socket access..."
 assert_fail "ls /var/run/docker.sock"
 
 # 6. World-writable files
+printf "| %-89s |\n" "Checking for world-writable files..."
 WORLD_WRITABLE_IN_PATH=""
 IFS=: read -ra PATH_DIRS <<< "$PATH"
 for dir in "${PATH_DIRS[@]}"; do
   if [ -d "$dir" ] && [ -w "$dir" ]; then
-    WORLD_WRITABLE_IN_PATH="$dir $WORLD_WRITABLE_IN_PATH"
+    assert_fail "ls $dir"
   fi
 done
-
-assert_fail "[ -n \"$WORLD_WRITABLE_IN_PATH\" ]"
 
 
 if [ "$FAIL" -gt 0 ]; then

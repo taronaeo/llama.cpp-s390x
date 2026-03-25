@@ -43,10 +43,10 @@ for file in /etc/passwd /etc/shadow /etc/sudoers /etc/ssh/sshd_config; do
 done
 
 # Generate report
-echo ""
-echo "+-----------------------------------------------------------------------------------------+"
-echo "| GitHub Self-Hosted Runners Security Audit Report                        FAILURES: $FAIL |"
-echo "|=========================================================================================|"
+printf ""
+printf "+-----------------------------------------------------------------------------------------+"
+printf "| GitHub Self-Hosted Runners Security Audit Report                        FAILURES: %-3s |" $FAIL
+printf "|=========================================================================================|"
 
 if [ "$FAIL" -gt 0 ]; then
   echo "| Some checks failed. Please review the above output and take appropriate actions.           |"

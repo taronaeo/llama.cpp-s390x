@@ -21,26 +21,30 @@
 #
 
 FAIL=0
-RUNNER_NAME="\${{ runner.name }}"
+COUNT=0
+
+RUNNER_NAME="${ runner.name }"
+# Truncate runner name if it's too long for display
 (( ${#RUNNER_NAME} > 20 )) && RUNNER_NAME="${RUNNER_NAME:0:17}..."
 
 assert_fail() {
   if output=$(eval "$1" 2>&1); then
-    echo "FAIL: $1 should have failed" >&2
+    printf "| %3d: %-89s |\n" "$COUNT" "FAIL: $1 should have failed"
+    COUNT=$((COUNT + 1))
     FAIL=$((FAIL + 1))
   else
-    echo "OK: $1: $output"
+    printf "| %3d: %-89s |\n" "$COUNT" "PASS: $1: $output"
   fi
 }
 
 printf ""
 printf "+$(printf '%0.s-' {1..89})+\n"
-printf "| GitHub Self-Hosted Actions Audit   Name: %-20s   Arch: %-6s  Date: %-10s |\n" "$RUNNER_NAME" "$(uname -m)" "$(date +'%Y-%m-%d')"
+printf "| GitHub Self-Hosted Actions Audit   Name: %-20s Arch: %-6s Date: %-10s |\n" "$RUNNER_NAME" "$(uname -m)" "$(date +'%Y-%m-%d')"
 printf "+$(printf '%0.s=' {1..89})+\n"
 
 # 1. Check non-root
 if [ "$(id -u)" -eq 0 ]; then
-  echo "FAIL: Runner should not run as root" >&2
+  printf "| %3d: %-89s |\n" "$COUNT" "FAIL: Runner should not run as root"
   FAIL=$((FAIL + 1))
 fi
 

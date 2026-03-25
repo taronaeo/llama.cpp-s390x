@@ -41,11 +41,7 @@ printf "+$(printf '%0.s=' {1..89})+\n"
 
 # 1. Check non-root
 printf "| %-89s |\n" "Checking if running as root..."
-if [ "$(id -u)" -eq 0 ]; then
-  printf "| %3d: %-89s |\n" "$COUNT" "FAIL: Runner should not run as root"
-  FAIL=$((FAIL + 1))
-  COUNT=$((COUNT + 1))
-fi
+assert_fail "[ $(id -u) -eq 0 ]"
 
 # 2. Sensitive files
 printf "| %-89s |\n" "Checking access to sensitive files..."
@@ -91,6 +87,9 @@ printf "| %-89s |\n" "Checking for sensitive environment variables..."
 LEAKED_KEYS=""
 for key in $(env | cut -d= -f1); do
   case "$key" in
+    GITHUB_API_URL)
+      # Whitelisted environment variables, do nothing
+      ;;
     *SECRET*|*TOKEN*|*PASSWORD*|*KEY*|*CREDENTIAL*|*API*)
       LEAKED_KEYS="$LEAKED_KEYS $key"
       ;;

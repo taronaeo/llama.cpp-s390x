@@ -21,7 +21,7 @@
 #
 
 FAIL=0
-RUNNER_NAME="${{ runner.name }}"
+RUNNER_NAME="\${{ runner.name }}"
 (( ${#RUNNER_NAME} > 20 )) && RUNNER_NAME="${RUNNER_NAME:0:17}..."
 
 assert_fail() {
@@ -35,7 +35,7 @@ assert_fail() {
 
 printf ""
 printf "+$(printf '%0.s-' {1..89})+\n"
-printf "| GitHub Self-Hosted Actions Audit   Name: %-20s   Date: %-10s  |\n" "$RUNNER_NAME" "$(date +'%Y-%m-%d')"
+printf "| GitHub Self-Hosted Actions Audit   Name: %-20s   Arch: %-6s  Date: %-10s |\n" "$RUNNER_NAME" "$(uname -m)" "$(date +'%Y-%m-%d')"
 printf "+$(printf '%0.s=' {1..89})+\n"
 
 # 1. Check non-root

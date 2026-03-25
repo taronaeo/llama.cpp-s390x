@@ -31,6 +31,11 @@ assert_fail() {
   fi
 }
 
+printf ""
+printf "+$(printf '%0.s-' {1..89})+\n"
+printf "| GitHub Self-Hosted Actions Audit   Name: %-26s  Date: %-10s |\n" "$USER" "$(date +'%Y-%m-%d')"
+printf "+$(printf '%0.s=' {1..89})+\n"
+
 # 1. Check non-root
 if [ "$(id -u)" -eq 0 ]; then
   echo "FAIL: Runner should not run as root" >&2
@@ -41,12 +46,6 @@ fi
 for file in /etc/passwd /etc/shadow /etc/sudoers /etc/ssh/sshd_config; do
   assert_fail "cat $file"
 done
-
-# Generate report
-printf ""
-printf "+-----------------------------------------------------------------------------------------+"
-printf "| GitHub Self-Hosted Runners Security Audit Report                        FAILURES: %-3s |" $FAIL
-printf "|=========================================================================================|"
 
 if [ "$FAIL" -gt 0 ]; then
   echo "| Some checks failed. Please review the above output and take appropriate actions.           |"

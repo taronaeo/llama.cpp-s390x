@@ -118,11 +118,10 @@ fi
 
 printf "+$(printf '%0.s=' {1..89})+\n"
 printh "Total: $COUNT checks, $FAIL failures."
-
-if [ "$FAIL" -gt 0 ]; then
-  printh "Some checks failed compliance. Please refer to SECURITY.md for guidelines."
-  exit 1
-fi
-
 printf "+$(printf '%0.s-' {1..89})+\n"
 printf ""
+
+if [ "$FAIL" -gt 0 ]; then
+  printf "Some checks failed compliance. Please refer to SECURITY.md for guidelines."
+  exit 1
+fi

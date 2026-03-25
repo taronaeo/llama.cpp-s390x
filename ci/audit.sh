@@ -25,11 +25,18 @@ COUNT=0
 
 assert_fail() {
   if output=$(eval "$1" 2>&1); then
-    printf "| %3d: %-89s |\n" "$COUNT" "FAIL: $1 should have failed"
+    MESSAGE="FAIL: $1 should have failed"
+    # truncate the message
+    (( ${#MESSAGE} > 86 )) && MESSAGE="${MESSAGE:0:83}..."
+    printf "| %3d: %-89s |\n" "$COUNT" "$MESSAGE"
+
     COUNT=$((COUNT + 1))
     FAIL=$((FAIL + 1))
   else
-    printf "| %3d: %-89s |\n" "$COUNT" "PASS: $1: $output"
+    MESSAGE="PASS: $1: $output"
+    # truncate the message
+    (( ${#MESSAGE} > 86 )) && MESSAGE="${MESSAGE:0:83}..."
+    printf "| %3d: %-89s |\n" "$COUNT" "$MESSAGE"
     COUNT=$((COUNT + 1))
   fi
 }

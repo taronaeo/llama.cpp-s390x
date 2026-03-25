@@ -12,8 +12,8 @@ concurrency:
 jobs:
   audit:
     strategy:
+      fail-fast: false
       matrix:
-        fail-fast: false
         runner:
           - [self-hosted, Linux, X64, ggml-6-x86-vulkan-t4]
           - [self-hosted, Linux, X64, ggml-8-x86-nvidia-a10]

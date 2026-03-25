@@ -82,6 +82,29 @@ for dir in "${PATH_DIRS[@]}"; do
   fi
 done
 
+# 7. SUID/GUID binaries
+printf "| %-89s |\n" "Checking for SUID/SGID binaries..."
+printf "| %-89s |\n" "SUID/SGID binaries test skipped for now"
+
+# 8. Environment variables
+printf "| %-89s |\n" "Checking for sensitive environment variables..."
+LEAKED_KEYS=""
+for key in $(env | cut -d= -f1); do
+  case "$key" in
+    *SECRET*|*TOKEN*|*PASSWORD*|*KEY*|*CREDENTIAL*|*API*)
+      LEAKED_KEYS="$LEAKED_KEYS $key"
+      ;;
+  esac
+done
+
+if [ -n "$LEAKED_KEYS" ]; then
+  printf "| %3d: %-89s |\n" "$COUNT" "FAIL: Found potentially sensitive environment variables: $LEAKED_KEYS"
+  FAIL=$((FAIL + 1))
+  COUNT=$((COUNT + 1))
+else
+  printf "| %3d: %-89s |\n" "$COUNT" "PASS: No sensitive environment variables found"
+  COUNT=$((COUNT + 1))
+fi
 
 if [ "$FAIL" -gt 0 ]; then
   printf "| Some checks failed. Please review the above output and take appropriate actions.           |\n"

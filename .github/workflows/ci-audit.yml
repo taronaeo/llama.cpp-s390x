@@ -2,14 +2,27 @@ name: Audit CI Self-Hosted Runners
 
 on:
   workflow_dispatch: # trigger manual audit when necessary
+  schedule:
+    - cron: '0 0 1 1,4,7,10 *' # automatically run every quarter
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref && github.ref || github.run_id }}
   cancel-in-progress: true
 
 jobs:
-  audit-sg-hl1-ci-cpu-amd:
-    runs-on: [self-hosted, Linux, X64, sg-hl1-ci-cpu-amd]
+  audit:
+    strategy:
+      matrix:
+        fail-fast: false
+        runner:
+          - [self-hosted, Linux, X64, ggml-6-x86-vulkan-t4]
+          - [self-hosted, Linux, X64, ggml-8-x86-nvidia-a10]
+          - [self-hosted, Linux, X64, sg-hl1-ci-cpu-amd]
+          - [self-hosted, Linux, X64, sg-hl1-ci-nvidia-vulkan-cm]
+          - [self-hosted, Linux, ARM64, ggml-200-spark]
+          - [self-hosted, Linux, ARM64, ggml-201-spark]
+
+    runs-on: ${{ matrix.runner }}
 
     steps:
       - name: Clone
@@ -20,23 +33,3 @@ jobs:
         id: audit
         run: |
           bash ./ci/audit.sh
-          # echo "Auditing self-hosted runner: ${{ runner.name }}"
-          # echo "Runner OS: ${{ runner.os }}"
-          # echo "Runner architecture: ${{ runner.arch }}"
-          # echo "$ cat /etc/passwd"
-          # if output=$(cat /etc/passwd 2>&1); then
-          #   echo "FAIL: /etc/passwd should NOT be readable by the runner."
-          #   exit 1
-          # else
-          #   echo "OK: cat /etc/passwd: $output"
-          # fi
-
-          # echo "$ cat /etc/shadow"
-          # if output=$(cat /etc/shadow 2>&1); then
-          #   echo "FAIL: /etc/shadow should NOT be readable by the runner."
-          #   exit 1
-          # else
-          #   echo "OK: cat /etc/shadow: $output"
-          # fi
-          # echo "Listing /tmp directory:"
-          # ls -la /tmp

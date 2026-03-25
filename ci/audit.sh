@@ -63,11 +63,11 @@ done
 # 3. SSH private keys
 printh "Checking for SSH private keys..."
 if find /root/.ssh /Users/*/.ssh -name "id_*" ! -name "*.pub" 2>/dev/null | grep -q .; then
-  printf "| %3d: %-89s |\n" "$COUNT" "FAIL: SSH private keys should not be findable"
+  printf "| %3d: %-82s |\n" "$COUNT" "FAIL: SSH private keys should not be findable"
   FAIL=$((FAIL + 1))
   COUNT=$((COUNT + 1))
 else
-  printf "| %3d: %-89s |\n" "$COUNT" "PASS: No SSH private keys found"
+  printf "| %3d: %-82s |\n" "$COUNT" "PASS: No SSH private keys found"
   COUNT=$((COUNT + 1))
 fi
 
@@ -112,11 +112,17 @@ if [ -n "$LEAKED_KEYS" ]; then
   FAIL=$((FAIL + 1))
   COUNT=$((COUNT + 1))
 else
-  printf "| %3d: %-89s |\n" "$COUNT" "PASS: No sensitive environment variables found"
+  printf "| %3d: %-82s |\n" "$COUNT" "PASS: No sensitive environment variables found"
   COUNT=$((COUNT + 1))
 fi
 
+printf "+$(printf '%0.s=' {1..89})+\n"
+printh "Total: $COUNT checks, $FAIL failures."
+
 if [ "$FAIL" -gt 0 ]; then
-  printf "| Some checks failed. Please review the above output and take appropriate actions.           |\n"
+  printh "Some checks failed compliance. Please refer to SECURITY.md for guidelines."
   exit 1
 fi
+
+printf "+$(printf '%0.s-' {1..89})+\n"
+printf ""

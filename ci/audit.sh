@@ -27,23 +27,23 @@ assert_fail() {
   if output=$(eval "$1" 2>&1); then
     MESSAGE="FAIL: $1 should have failed"
     # truncate the message
-    (( ${#MESSAGE} > 79 )) && MESSAGE="${MESSAGE:0:80}..."
-    printf "| %3d: %-82s |\n" "$COUNT" "$MESSAGE"
+    (( ${#MESSAGE} > 74 )) && MESSAGE="${MESSAGE:0:80}..."
+    printf "| %3d: %-77s |\n" "$COUNT" "$MESSAGE"
 
     COUNT=$((COUNT + 1))
     FAIL=$((FAIL + 1))
   else
     MESSAGE="PASS: $1: $output"
     # truncate the message
-    (( ${#MESSAGE} > 79 )) && MESSAGE="${MESSAGE:0:80}..."
-    printf "| %3d: %-82s |\n" "$COUNT" "$MESSAGE"
+    (( ${#MESSAGE} > 74 )) && MESSAGE="${MESSAGE:0:80}..."
+    printf "| %3d: %-77s |\n" "$COUNT" "$MESSAGE"
     COUNT=$((COUNT + 1))
   fi
 }
 
 printf ""
 printf "+$(printf '%0.s-' {1..89})+\n"
-printf "| GitHub Self-Hosted Actions Audit  %43s   %-10s |\n" "$RUNNER_NAME $(uname -m)" "$(date +'%Y-%m-%d')"
+printf "| GitHub Self-Hosted Actions Audit %43s %-10s |\n" "$RUNNER_NAME ($(uname -m))" "$(date +'%Y-%m-%d')"
 printf "+$(printf '%0.s=' {1..89})+\n"
 
 # 1. Check non-root

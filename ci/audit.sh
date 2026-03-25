@@ -25,11 +25,11 @@ COUNT=0
 
 assert_fail() {
   if output=$(eval "$1" 2>&1); then
-    printf "| %3d: %-89s |\n" "$COUNT" "FAIL: $1 should have failed"
+    printf "| %3d: %-89s |\n" "$COUNT" "FAIL: ${1//\$/\\$} should have failed"
     COUNT=$((COUNT + 1))
     FAIL=$((FAIL + 1))
   else
-    printf "| %3d: %-89s |\n" "$COUNT" "PASS: $1: $output"
+    printf "| %3d: %-89s |\n" "$COUNT" "PASS: ${1//\$/\\$}: $output"
     COUNT=$((COUNT + 1))
   fi
 }

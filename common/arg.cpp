@@ -2203,7 +2203,7 @@ common_params_context common_params_parser_init(common_params & params, llama_ex
         {"--mlock"},
         "DEPRECATED: force system to keep model in RAM rather than swapping or compressing",
         [](common_params & params) {
-            LOG_WRN("DEPRECATED: --mlock is deprecated. use --load-mode mlock instead");
+            LOG_WRN("DEPRECATED: --mlock is deprecated. use --load-mode mlock instead\n");
             params.load_mode = LLAMA_LOAD_MODE_MLOCK;
         }
     ).set_env("LLAMA_ARG_MLOCK"));
@@ -2212,7 +2212,7 @@ common_params_context common_params_parser_init(common_params & params, llama_ex
         {"--no-mmap"},
         "DEPRECATED: whether to memory-map model. (if mmap disabled, slower load but may reduce pageouts if not using mlock)",
         [](common_params & params, bool value) {
-            LOG_WRN("DEPRECATED: --mmap and --no-mmap are deprecated. use --load-mode mmap instead");
+            LOG_WRN("DEPRECATED: --mmap and --no-mmap are deprecated. use --load-mode mmap instead\n");
             params.load_mode = value ? LLAMA_LOAD_MODE_MMAP : LLAMA_LOAD_MODE_NONE;
         }
     ).set_env("LLAMA_ARG_MMAP"));
@@ -2221,7 +2221,7 @@ common_params_context common_params_parser_init(common_params & params, llama_ex
         {"-ndio", "--no-direct-io"},
         "DEPRECATED: use DirectIO if available",
         [](common_params & params, bool value) {
-            LOG_WRN("DEPRECATED: -dio/--direct-io and -ndio/--no-direct-io are deprecated. use --load-mode dio instead");
+            LOG_WRN("DEPRECATED: -dio/--direct-io and -ndio/--no-direct-io are deprecated. use --load-mode dio instead\n");
             params.load_mode = value ? LLAMA_LOAD_MODE_DIRECT_IO : LLAMA_LOAD_MODE_NONE;
         }
     ).set_env("LLAMA_ARG_DIO"));

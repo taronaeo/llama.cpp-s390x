@@ -174,14 +174,19 @@ struct llama_file::impl {
 #else
     impl(const char * fname, const char * mode, [[maybe_unused]] const bool use_direct_io = false) : fname(fname) {
 #ifdef __linux__
+        direct_io_requested = use_direct_io;
+        printf("%s: opening '%s' mode='%s' use_direct_io=%d\n", __func__, fname, mode, use_direct_io);
         // Try unbuffered I/O for read only
-        printf("DEBUG: llama_file::impl constructor called: fname=%s, mode=%s, use_direct_io=%d\n", fname, mode, use_direct_io);
         if (use_direct_io && std::strcmp(mode, "rb") == 0) {
             if (init_fd()) {
+                printf("%s: Direct I/O enabled for '%s' (fd=%d, alignment=%zu, size=%zu)\n",
+                        __func__, fname, fd, alignment, size);
                 return;
             }
             LLAMA_LOG_WARN("Failed to open file '%s' with error: %s. Falling back to buffered I/O",
                            fname, strerror(errno));
+        } else if (use_direct_io) {
+            printf("%s: Direct I/O requested for '%s' but mode='%s' is not compatible\n", __func__, fname, mode);
         }
 #endif
         init_fp(mode);
@@ -190,7 +195,9 @@ struct llama_file::impl {
 #ifdef __linux__
     bool init_fd() {
         fd = open(fname.c_str(), O_RDONLY | O_DIRECT);
-        printf("DEBUG: direct IO init_fd: fname=%s, fd=%d\n", fname.c_str(), fd);
+        if (fd == -1) {
+            printf("%s: open(O_DIRECT) failed for '%s': %s\n", __func__, fname.c_str(), strerror(errno));
+        }
 
         if (fd != -1) {
             struct stat file_stats{};
@@ -283,7 +290,7 @@ struct llama_file::impl {
                     }
                     // Fallback to std::fread in case the DMA controller cannot access the buffer
                     if (errno == EFAULT || errno == EINVAL) {
-                        LLAMA_LOG_WARN("%s: Falling back to buffered IO due to %s\n", __func__, strerror(errno));
+                        LLAMA_LOG_WARN("%s: Falling back to buffered IO for '%s' due to %s\n", __func__, fname.c_str(), strerror(errno));
                         auto curr_off = tell();
                         close(fd);
                         fd = -1;
@@ -336,6 +343,13 @@ struct llama_file::impl {
 
     void read_raw(void * ptr, size_t len) {
         if (has_direct_io()) {
+            if (!direct_io_usage_logged) {
+                printf("%s: Direct I/O read path active for '%s' (fd=%d, alignment=%zu)\n",
+                        __func__, fname.c_str(), fd, alignment);
+                direct_io_usage_logged = true;
+            }
+            direct_io_read_calls++;
+            direct_io_read_bytes += len;
             read_aligned_chunk(ptr, len);
         } else {
             read_raw_unsafe(ptr, len);
@@ -368,6 +382,13 @@ struct llama_file::impl {
     }
 
     ~impl() {
+        if (direct_io_read_calls > 0) {
+            printf("%s: Direct I/O usage summary for '%s': reads=%zu, requested_bytes=%zu\n",
+                    __func__, fname.c_str(), direct_io_read_calls, direct_io_read_bytes);
+        } else if (direct_io_requested) {
+            printf("%s: Direct I/O was requested for '%s' but never used\n", __func__, fname.c_str());
+        }
+
         if (fd != -1) {
             close(fd);
         } else if (owns_fp) {
@@ -376,6 +397,10 @@ struct llama_file::impl {
     }
     int fd = -1;
     std::string fname;
+    bool direct_io_requested = false;
+    bool direct_io_usage_logged = false;
+    size_t direct_io_read_calls = 0;
+    size_t direct_io_read_bytes = 0;
 #endif
 
     size_t read_alignment() const {
@@ -437,7 +462,7 @@ struct llama_mmap::impl {
     std::vector<std::pair<size_t, size_t>> mapped_fragments;
 
     impl(struct llama_file * file, size_t prefetch, bool numa) {
-        printf("DEBUG: llama_mmap::impl constructor called: file_size=%zu, prefetch=%zu, numa=%d\n", file->size(), prefetch, numa);
+        printf("%s: file_size=%zu, prefetch=%zu, numa=%d\n", __func__, file->size(), prefetch, numa);
         size = file->size();
         int fd = file->file_id();
         int flags = MAP_SHARED;
@@ -453,7 +478,7 @@ struct llama_mmap::impl {
         if (addr == MAP_FAILED) {
             throw std::runtime_error(format("mmap failed: %s", strerror(errno)));
         }
-        printf("DEBUG: mmap activated: addr=%p, size=%zu\n", addr, file->size());
+        printf("%s: mmap activated: addr=%p, size=%zu\n", __func__, addr, file->size());
 
         if (prefetch > 0) {
             if (posix_madvise(addr, std::min(file->size(), prefetch), POSIX_MADV_WILLNEED)) {

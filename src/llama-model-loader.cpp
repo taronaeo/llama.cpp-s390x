@@ -532,6 +532,9 @@ llama_model_loader::llama_model_loader(
 
     tensor_buft_overrides = param_tensor_buft_overrides_p;
 
+    this->use_mmap      = (load_mode == LLAMA_LOAD_MODE_MMAP);
+    this->use_direct_io = (load_mode == LLAMA_LOAD_MODE_DIRECT_IO);
+
     if (!fname.empty()) {
         // Load the main GGUF
         struct ggml_context * ctx = NULL;
@@ -790,13 +793,11 @@ llama_model_loader::llama_model_loader(
         }
     }
 
-    if (!llama_mmap::SUPPORTED) {
+    if (this->use_mmap && !llama_mmap::SUPPORTED) {
         LLAMA_LOG_WARN("%s: mmap is not supported on this platform\n", __func__);
-        use_mmap = false;
+        this->use_mmap = false;
     }
 
-    this->use_mmap = load_mode == LLAMA_LOAD_MODE_MMAP;
-    this->use_direct_io = load_mode == LLAMA_LOAD_MODE_DIRECT_IO;
     this->check_tensors = check_tensors;
     this->no_alloc = no_alloc;
 }

@@ -175,6 +175,7 @@ struct llama_file::impl {
     impl(const char * fname, const char * mode, [[maybe_unused]] const bool use_direct_io = false) : fname(fname) {
 #ifdef __linux__
         // Try unbuffered I/O for read only
+        printf("DEBUG: llama_file::impl constructor called: fname=%s, mode=%s, use_direct_io=%d\n", fname, mode, use_direct_io);
         if (use_direct_io && std::strcmp(mode, "rb") == 0) {
             if (init_fd()) {
                 return;
@@ -189,6 +190,7 @@ struct llama_file::impl {
 #ifdef __linux__
     bool init_fd() {
         fd = open(fname.c_str(), O_RDONLY | O_DIRECT);
+        printf("DEBUG: direct IO init_fd: fname=%s, fd=%d\n", fname.c_str(), fd);
 
         if (fd != -1) {
             struct stat file_stats{};
@@ -435,6 +437,7 @@ struct llama_mmap::impl {
     std::vector<std::pair<size_t, size_t>> mapped_fragments;
 
     impl(struct llama_file * file, size_t prefetch, bool numa) {
+        printf("DEBUG: llama_mmap::impl constructor called: file_size=%zu, prefetch=%zu, numa=%d\n", file->size(), prefetch, numa);
         size = file->size();
         int fd = file->file_id();
         int flags = MAP_SHARED;
@@ -450,6 +453,7 @@ struct llama_mmap::impl {
         if (addr == MAP_FAILED) {
             throw std::runtime_error(format("mmap failed: %s", strerror(errno)));
         }
+        printf("DEBUG: mmap activated: addr=%p, size=%zu\n", addr, file->size());
 
         if (prefetch > 0) {
             if (posix_madvise(addr, std::min(file->size(), prefetch), POSIX_MADV_WILLNEED)) {
@@ -633,6 +637,7 @@ struct llama_mlock::impl {
 
     bool raw_lock(const void * addr, size_t size) const {
         if (!mlock(addr, size)) {
+            printf("DEBUG: mlock succeeded for addr=%p, size=%zu\n", addr, size);
             return true;
         }
 
@@ -681,6 +686,7 @@ struct llama_mlock::impl {
     bool raw_lock(void * ptr, size_t len) const {
         for (int tries = 1; ; tries++) {
             if (VirtualLock(ptr, len)) {
+                printf("DEBUG: VirtualLock succeeded for ptr=%p, len=%zu\n", ptr, len);
                 return true;
             }
             if (tries == 2) {

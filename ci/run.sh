@@ -627,8 +627,36 @@ function gg_sum_rerank_tiny {
 }
 
 function gg_check_build_requirements {
+    if ! command -v git &> /dev/null; then
+        gg_printf 'git not found, please install'
+    fi
+
+    if ! command -v git-lfs &> /dev/null; then
+        gg_printf 'git-lfs not found, please install'
+    fi
+
+    if ! command -v wget &> /dev/null; then
+        gg_printf 'wget not found, please install'
+    fi
+
+    if ! command -v python3 &> /dev/null; then
+        gg_printf 'python3 not found, please install'
+    fi
+
+    if ! command -v pip3 &> /dev/null; then
+        gg_printf 'pip3 not found, please install'
+    fi
+
+    if ! python3 -m ensurepip --help &> /dev/null; then
+        gg_printf 'ensurepip not found, please install python3-venv package'
+    fi
+
     if ! command -v cmake &> /dev/null; then
         gg_printf 'cmake not found, please install'
+    fi
+
+    if ! command -v ccache &> /dev/null; then
+        gg_printf 'ccache not found, please consider installing for faster builds'
     fi
 
     if ! command -v ctest &> /dev/null; then

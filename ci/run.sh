@@ -221,7 +221,7 @@ function gg_run_ctest_debug {
 
     set -e
 
-    # Check cmake and ctest are installed
+    # Check required binaries are installed
     gg_check_build_requirements
 
     (cmake -G "${CMAKE_GENERATOR}" -DCMAKE_BUILD_TYPE=Debug ${CMAKE_EXTRA} .. ) 2>&1 | tee -a $OUT/${ci}-cmake.log
@@ -252,7 +252,7 @@ function gg_run_ctest_release {
 
     set -e
 
-    # Check cmake and ctest are installed
+    # Check required binaries are installed
     gg_check_build_requirements
 
     (cmake -G "${CMAKE_GENERATOR}" -DCMAKE_BUILD_TYPE=Release ${CMAKE_EXTRA} .. ) 2>&1 | tee -a $OUT/${ci}-cmake.log

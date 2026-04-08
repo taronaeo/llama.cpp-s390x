@@ -843,13 +843,37 @@ static cmd_params parse_cmd_params(int argc, char ** argv) {
                     invalid_param = true;
                     break;
                 }
-                throw std::invalid_argument("error: -mmp/--mmap option is deprecated; please use -lm/--load-mode mmap instead");
+                auto p = string_split<bool>(argv[i], split_delim);
+
+                std::vector<llama_load_mode> modes;
+                for (const auto & m : p) {
+                    llama_load_mode mode;
+                    if (m) {
+                        mode = LLAMA_LOAD_MODE_MMAP;
+                    } else {
+                        mode = LLAMA_LOAD_MODE_NONE;
+                    }
+                    modes.push_back(mode);
+                }
+                params.load_mode.insert(params.load_mode.end(), modes.begin(), modes.end());
             } else if (arg == "-dio" || arg == "--direct-io") {
                 if (++i >= argc) {
                     invalid_param = true;
                     break;
                 }
-                throw std::invalid_argument("error: -dio/--direct-io option is deprecated; please use -lm/--load-mode dio instead");
+                auto p = string_split<bool>(argv[i], split_delim);
+
+                std::vector<llama_load_mode> modes;
+                for (const auto & m : p) {
+                    llama_load_mode mode;
+                    if (m) {
+                        mode = LLAMA_LOAD_MODE_DIRECT_IO;
+                    } else {
+                        mode = LLAMA_LOAD_MODE_NONE;
+                    }
+                    modes.push_back(mode);
+                }
+                params.load_mode.insert(params.load_mode.end(), modes.begin(), modes.end());
             } else if (arg == "-embd" || arg == "--embeddings") {
                 if (++i >= argc) {
                     invalid_param = true;

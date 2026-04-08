@@ -14,7 +14,6 @@
 #include <numeric>
 #include <regex>
 #include <sstream>
-#include <stdexcept>
 #include <string>
 #include <thread>
 #include <vector>
@@ -1324,35 +1323,33 @@ static std::vector<cmd_params_instance> get_cmd_params_instances(const cmd_param
                 continue;
             }
             cmd_params_instance instance = {
-                /* .model        = */ m,
-                /* .n_prompt     = */ n_prompt,
-                /* .n_gen        = */ 0,
-                /* .n_depth      = */ nd,
-                /* .n_batch      = */ nb,
-                /* .n_ubatch     = */ nub,
-                /* .type_k       = */ tk,
-                /* .type_v       = */ tv,
-                /* .n_threads    = */ nt,
-                /* .cpu_mask     = */ cm,
-                /* .cpu_strict   = */ cs,
-                /* .poll         = */ pl,
-                /* .n_gpu_layers = */ nl,
-                /* .n_cpu_moe    = */ ncmoe,
-                /* .split_mode   = */ sm,
-                /* .load_mode    = */ lm,
-                /* .main_gpu     = */ mg,
-                /* .no_kv_offload= */ nkvo,
-                /* .flash_attn   = */ fa,
-                /* .devices      = */ devs,
-                /* .tensor_split = */ ts,
+                /* .model         = */ m,
+                /* .n_prompt      = */ n_prompt,
+                /* .n_gen         = */ 0,
+                /* .n_depth       = */ nd,
+                /* .n_batch       = */ nb,
+                /* .n_ubatch      = */ nub,
+                /* .type_k        = */ tk,
+                /* .type_v        = */ tv,
+                /* .n_threads     = */ nt,
+                /* .cpu_mask      = */ cm,
+                /* .cpu_strict    = */ cs,
+                /* .poll          = */ pl,
+                /* .n_gpu_layers  = */ nl,
+                /* .n_cpu_moe     = */ ncmoe,
+                /* .split_mode    = */ sm,
+                /* .load_mode     = */ lm,
+                /* .main_gpu      = */ mg,
+                /* .no_kv_offload = */ nkvo,
+                /* .flash_attn    = */ fa,
+                /* .devices       = */ devs,
+                /* .tensor_split  = */ ts,
                 /* .tensor_buft_overrides = */ ot,
-                // /* .use_mmap     = */ mmp,
-                // /* .use_direct_io= */ dio,
-                /* .embeddings   = */ embd,
-                /* .no_op_offload= */ nopo,
-                /* .no_host      = */ noh,
-                /* .fit_target   = */ fpt,
-                /* .fit_min_ctx  = */ fpc,
+                /* .embeddings    = */ embd,
+                /* .no_op_offload = */ nopo,
+                /* .no_host       = */ noh,
+                /* .fit_target    = */ fpt,
+                /* .fit_min_ctx   = */ fpc,
             };
             instances.push_back(instance);
         }
@@ -1461,8 +1458,6 @@ struct test {
     std::vector<ggml_backend_dev_t> devices;
     std::vector<float>       tensor_split;
     std::vector<llama_model_tensor_buft_override> tensor_buft_overrides;
-    // bool                     use_mmap;
-    // bool                     use_direct_io;
     bool                     embeddings;
     bool                     no_op_offload;
     bool                     no_host;
@@ -1836,21 +1831,15 @@ struct markdown_printer : public printer {
         if (field == "split_mode") {
             return 6;
         }
+        if (field == "load_mode") {
+            return 5;
+        }
         if (field == "flash_attn") {
             return 2;
         }
         if (field == "devices") {
             return -12;
         }
-        if (field == "load_mode") {
-            return 5;
-        }
-        // if (field == "use_mmap") {
-        //     return 4;
-        // }
-        // if (field == "use_direct_io") {
-        //     return 3;
-        // }
         if (field == "test") {
             return 15;
         }

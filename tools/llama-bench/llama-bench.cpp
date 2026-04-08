@@ -25,6 +25,7 @@
 #include "fit.h"
 #include "ggml.h"
 #include "llama.h"
+#include "log.h"
 
 #ifdef _WIN32
 #    define WIN32_LEAN_AND_MEAN
@@ -842,6 +843,7 @@ static cmd_params parse_cmd_params(int argc, char ** argv) {
                     invalid_param = true;
                     break;
                 }
+                LOG_WRN("DEPRECATED: -mmp and --mmap are deprecated. use --load-mode mmap instead\n");
                 auto p = string_split<bool>(argv[i], split_delim);
 
                 std::vector<llama_load_mode> modes;
@@ -860,6 +862,7 @@ static cmd_params parse_cmd_params(int argc, char ** argv) {
                     invalid_param = true;
                     break;
                 }
+                LOG_WRN("DEPRECATED: -dio and --direct-io are deprecated. use --load-mode dio instead\n");
                 auto p = string_split<bool>(argv[i], split_delim);
 
                 std::vector<llama_load_mode> modes;

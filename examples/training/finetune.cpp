@@ -26,7 +26,7 @@ int main(int argc, char ** argv) {
         return 1;
     }
 
-    if (params.load_mode == LLAMA_LOAD_MODE_MMAP) {
+    if (params.load_mode != LLAMA_LOAD_MODE_NONE) {
         LOG_INF("%s: force disabling memory mapping because it would result in-read-only pointers to the weights\n",
                 __func__);
         params.load_mode = LLAMA_LOAD_MODE_NONE;

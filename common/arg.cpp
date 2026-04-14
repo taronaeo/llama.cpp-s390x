@@ -2244,7 +2244,7 @@ common_params_context common_params_parser_init(common_params & params, llama_ex
         "model loading mode (default: mmap)\n"
         "- none: no special loading mode\n"
         "- mmap: memory-map model (if mmap disabled, slower load but may reduce pageouts if not using mlock)\n"
-        "- mlock: force system to keep model in RAM rather than swapping or compressing\n"
+        "- mlock: mmap + force system to keep model in RAM rather than swapping or compressing\n"
         "- dio: use DirectIO if available\n",
         [](common_params & params, const std::string & value) {
             /**/ if (value == "none")  { params.load_mode = LLAMA_LOAD_MODE_NONE;      }

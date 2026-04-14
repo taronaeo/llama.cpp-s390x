@@ -205,6 +205,8 @@ extern "C" {
         LLAMA_LOAD_MODE_DIRECT_IO = 3, // use direct I/O if available
     };
 
+    LLAMA_API const char * llama_load_mode_name(enum llama_load_mode load_mode);
+
     // TODO: simplify (https://github.com/ggml-org/llama.cpp/pull/9294#pullrequestreview-2286561979)
     typedef struct llama_token_data {
         llama_token id; // token id

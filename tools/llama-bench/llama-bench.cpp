@@ -270,21 +270,6 @@ static const char * split_mode_str(llama_split_mode mode) {
     }
 }
 
-static const char * load_mode_str(llama_load_mode mode) {
-    switch (mode) {
-        case LLAMA_LOAD_MODE_NONE:
-            return "none";
-        case LLAMA_LOAD_MODE_MLOCK:
-            return "mlock";
-        case LLAMA_LOAD_MODE_MMAP:
-            return "mmap";
-        case LLAMA_LOAD_MODE_DIRECT_IO:
-            return "dio";
-        default:
-            GGML_ABORT("invalid load mode");
-    }
-}
-
 static std::string pair_str(const std::pair<int, int> & p) {
     static char buf[32];
     snprintf(buf, sizeof(buf), "%d,%d", p.first, p.second);
@@ -469,7 +454,7 @@ static void print_usage(int /* argc */, char ** argv) {
     printf("  -dev, --device <dev0/dev1/...>              (default: auto)\n");
     printf("  -mmp, --mmap <0|1>                          (DEPRECATED)\n");
     printf("  -dio, --direct-io <0|1>                     (DEPRECATED)\n");
-    printf("  -lm, --load-mode <none|mlock|mmap|dio>      (default: %s)\n", join(transform_to_str(cmd_params_defaults.load_mode, load_mode_str), ",").c_str());
+    printf("  -lm, --load-mode <none|mlock|mmap|dio>      (default: %s)\n", join(transform_to_str(cmd_params_defaults.load_mode, llama_load_mode_name), ",").c_str());
     printf("  -embd, --embeddings <0|1>                   (default: %s)\n", join(cmd_params_defaults.embeddings, ",").c_str());
     printf("  -ts, --tensor-split <ts0/ts1/..>            (default: 0)\n");
     printf("  -ot --override-tensor <tensor name pattern>=<buffer type>;...\n");
@@ -1655,7 +1640,7 @@ struct test {
                                             devices_to_string(devices),
                                             tensor_split_str,
                                             tensor_buft_overrides_str,
-                                            load_mode_str(load_mode),
+                                            llama_load_mode_name(load_mode),
                                             std::to_string(embeddings),
                                             std::to_string(no_op_offload),
                                             std::to_string(no_host),

@@ -534,8 +534,8 @@ llama_model_loader::llama_model_loader(
 
     tensor_buft_overrides = param_tensor_buft_overrides_p;
 
-    this->use_mmap      = (load_mode == LLAMA_LOAD_MODE_MMAP || load_mode == LLAMA_LOAD_MODE_MLOCK);
-    this->use_direct_io = (load_mode == LLAMA_LOAD_MODE_DIRECT_IO);
+    this->use_mmap      = load_mode == LLAMA_LOAD_MODE_MMAP || load_mode == LLAMA_LOAD_MODE_MLOCK;
+    this->use_direct_io = load_mode == LLAMA_LOAD_MODE_DIRECT_IO;
 
     if (!fname.empty()) {
         // Load the main GGUF

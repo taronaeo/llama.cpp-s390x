@@ -2970,7 +2970,7 @@ void llama_model::load_vocab(llama_model_loader & ml) {
 
 bool llama_model::load_tensors(llama_model_loader & ml) {
     const auto & split_mode   = params.split_mode;
-    const auto & use_mlock    = params.load_mode == LLAMA_LOAD_MODE_MLOCK;
+    const bool   use_mlock    = params.load_mode == LLAMA_LOAD_MODE_MLOCK;
     const auto & tensor_split = params.tensor_split;
 
     const int n_layer      = hparams.n_layer;

@@ -27,8 +27,7 @@ int main(int argc, char ** argv) {
     }
 
     if (params.load_mode != LLAMA_LOAD_MODE_NONE) {
-        LOG_INF("%s: force disabling memory mapping because it would result in-read-only pointers to the weights\n",
-                __func__);
+        LOG_INF("%s: forcing load_mode = none to enable writable pointers to the weights\n", __func__);
         params.load_mode = LLAMA_LOAD_MODE_NONE;
     }
     if (params.cache_type_k != GGML_TYPE_F32) {

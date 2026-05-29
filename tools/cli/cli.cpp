@@ -64,6 +64,12 @@ struct cli_context {
     std::atomic<bool> loading_show;
 
     cli_context(const common_params & params) {
+        sync_params(params);
+
+        verbose_prompt = params.verbose_prompt;
+    }
+
+    void sync_params(const common_params & params) {
         defaults.sampling    = params.sampling;
         defaults.speculative = params.speculative;
         defaults.n_keep      = params.n_keep;
@@ -73,8 +79,6 @@ struct cli_context {
         defaults.stream = true; // make sure we always use streaming mode
         defaults.timings_per_token = true; // in order to get timings even when we cancel mid-way
         // defaults.return_progress = true; // TODO: show progress
-
-        verbose_prompt = params.verbose_prompt;
     }
 
     std::string generate_completion(result_timings & out_timings) {
@@ -396,6 +400,8 @@ int llama_cli(int argc, char ** argv) {
         console::error("\nFailed to load the model\n");
         return 1;
     }
+
+    ctx_cli.sync_params(params);
 
     console::spinner::stop();
     console::log("\n");

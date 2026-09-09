@@ -43,7 +43,7 @@ void llama_model_granite::load_arch_hparams(llama_model_loader & ml) {
                 case 2048: type = LLM_TYPE_2B; break;
                 case 2560: type = LLM_TYPE_3B; break;
                 case 4096: type = LLM_TYPE_8B; break;
-                default: type = LLM_TYPE_UNKNOWN; break;
+                default: type = LLM_TYPE_UNKNOWN;
             }
             break;
         }

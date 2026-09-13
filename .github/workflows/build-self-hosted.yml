@@ -506,5 +506,3 @@ jobs:
             echo "error: no nrc=2 results, i8mm kernels were not compiled into this build" >&2
             exit 1
           fi
-
->>>>>>> 84cc86202 (tests(arm): test nrc = 2)

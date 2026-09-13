@@ -481,7 +481,7 @@ jobs:
             -DCMAKE_BUILD_TYPE=Release \
             -DLLAMA_FATAL_WARNINGS=ON \
             -DLLAMA_OPENSSL=OFF \
-            -DGGML_NATIVE=ON \
+            -DGGML_NATIVE=ON
           cmake --build build --config Release --target test-quantize-fns -j $(nproc)
 
       - name: Test

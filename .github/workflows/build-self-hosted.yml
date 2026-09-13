@@ -445,17 +445,7 @@ jobs:
           bash ./ci/run.sh ~/results/llama.cpp ~/mnt/llama.cpp
 
   cpu-arm64-graviton4-i8mm:
-    name: cpu-arm64-graviton4-i8mm / ${{ matrix.name }}
     runs-on: ah-ubuntu_24_04-c8g_8x
-
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - name: 'i8mm+sve'
-            arch: 'armv8.5-a+fp16+i8mm+sve'
-          - name: 'i8mm+no-sve'
-            arch: 'armv8.5-a+fp16+i8mm'
 
     steps:
       - name: Clone
@@ -491,8 +481,7 @@ jobs:
             -DCMAKE_BUILD_TYPE=Release \
             -DLLAMA_FATAL_WARNINGS=ON \
             -DLLAMA_OPENSSL=OFF \
-            -DGGML_NATIVE=OFF \
-            -DGGML_CPU_ARM_ARCH=${{ matrix.arch }}
+            -DGGML_NATIVE=ON \
           cmake --build build --config Release --target test-quantize-fns -j $(nproc)
 
       - name: Test
@@ -506,3 +495,4 @@ jobs:
             echo "error: no nrc=2 results, i8mm kernels were not compiled into this build" >&2
             exit 1
           fi
+

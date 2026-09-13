@@ -443,3 +443,68 @@ jobs:
           GG_BUILD_EXTRA_TESTS_0=1 \
           GG_BUILD_HIGH_PERF=1 \
           bash ./ci/run.sh ~/results/llama.cpp ~/mnt/llama.cpp
+
+  cpu-arm64-graviton4-i8mm:
+    name: cpu-arm64-graviton4-i8mm / ${{ matrix.name }}
+    runs-on: ah-ubuntu_24_04-c8g_8x
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: 'i8mm+sve'
+            arch: 'armv8.5-a+fp16+i8mm+sve'
+          - name: 'i8mm+no-sve'
+            arch: 'armv8.5-a+fp16+i8mm'
+
+    steps:
+      - name: Clone
+        id: checkout
+        uses: actions/checkout@v6
+
+      - name: Dependencies
+        id: depends
+        run: |
+          set -euxo pipefail
+          sudo apt-get update
+          sudo DEBIAN_FRONTEND=noninteractive NEEDRESTART_MODE=a \
+          apt-get install -y \
+          build-essential \
+          gpg \
+          wget
+
+          # install the latest cmake
+          sudo install -d /usr/share/keyrings
+          wget -O - https://apt.kitware.com/keys/kitware-archive-latest.asc \
+            | gpg --dearmor \
+            | sudo tee /usr/share/keyrings/kitware-archive-keyring.gpg >/dev/null
+          echo 'deb [signed-by=/usr/share/keyrings/kitware-archive-keyring.gpg] https://apt.kitware.com/ubuntu/ jammy main' \
+            | sudo tee /etc/apt/sources.list.d/kitware.list
+          sudo apt-get update
+          sudo apt-get install -y cmake
+
+      - name: Build
+        id: cmake_build
+        run: |
+          set -euxo pipefail
+          cmake -B build \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DLLAMA_FATAL_WARNINGS=ON \
+            -DLLAMA_OPENSSL=OFF \
+            -DGGML_NATIVE=OFF \
+            -DGGML_CPU_ARM_ARCH=${{ matrix.arch }}
+          cmake --build build --config Release --target test-quantize-fns -j $(nproc) 
+
+      - name: Test
+        id: test_quantize_fns
+        run: |
+          set -euo pipefail
+          ./build/bin/test-quantize-fns -v | tee test-quantize-fns.log
+
+          # fail if nrc = 2 is not tested
+          if ! grep -q 'nrc=2' test-quantize-fns.log; then
+            echo "error: no nrc=2 results, i8mm kernels were not compiled into this build" >&2
+            exit 1
+          fi
+
+>>>>>>> 84cc86202 (tests(arm): test nrc = 2)

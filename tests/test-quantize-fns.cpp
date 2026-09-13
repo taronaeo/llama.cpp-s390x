@@ -234,7 +234,7 @@ static int test_vec_dot_q(bool verbose) {
                 failed = !(vec_dot_error_nrc2 < max_allowed_error);
                 num_failed += failed;
                 if (failed || verbose) {
-                    printf("%5s dot product error (nrc=2):    %s (%f)\n", ggml_type_name(type), RESULT_STR[failed], vec_dot_error_nrc2);
+                    printf("%5s dot product error (nrc=2):      %s (%f)\n", ggml_type_name(type), RESULT_STR[failed], vec_dot_error_nrc2);
                 }
             }
         }

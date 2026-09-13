@@ -493,7 +493,7 @@ jobs:
             -DLLAMA_OPENSSL=OFF \
             -DGGML_NATIVE=OFF \
             -DGGML_CPU_ARM_ARCH=${{ matrix.arch }}
-          cmake --build build --config Release --target test-quantize-fns -j $(nproc) 
+          cmake --build build --config Release --target test-quantize-fns -j $(nproc)
 
       - name: Test
         id: test_quantize_fns

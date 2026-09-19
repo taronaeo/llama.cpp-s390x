@@ -651,6 +651,37 @@ class Qwen3_5MoeTextModel(_Qwen35MRopeMixin, _LinearAttentionVReorderBase):
 class DFlashModel(Qwen3Model):
     model_arch = gguf.MODEL_ARCH.DFLASH
 
+    def __init__(self, dir_model, *args, **kwargs):
+        hparams = kwargs.pop("hparams", None)
+        if hparams is None:
+            hparams = ModelBase.load_hparams(dir_model, False)
+
+        # EAGLE3-style exports use the 1+N bonus-anchor block, DFlash-lineage exports sample from the anchor
+        self._sample_from_anchor = hparams.get(
+            "sample_from_anchor",
+            "transformer_layer_config" not in hparams and "aux_hidden_state_layer_ids" not in hparams)
+        if "transformer_layer_config" in hparams:
+            hparams = {**hparams, **hparams["transformer_layer_config"]}
+
+        super().__init__(dir_model, *args, hparams=hparams, **kwargs)
+
+        # normalize both schemas to DFlash's nested dflash_config
+        if "aux_hidden_state_layer_ids" in self.hparams:
+            self.hparams.setdefault("dflash_config", {
+                "mask_token_id": self.hparams.get("mask_token_id"),
+                "target_layer_ids": [i - 1 for i in self.hparams["aux_hidden_state_layer_ids"]],
+            })
+        else:
+            self.hparams.setdefault("dflash_config", {
+                k: self.hparams[k] for k in ("target_layer_ids", "mask_token_id") if k in self.hparams
+            })
+
+        n_vocab = self.hparams["vocab_size"]
+        self._n_vocab_draft = self.hparams.get("draft_vocab_size") or n_vocab
+        if self._n_vocab_draft > n_vocab:
+            raise ValueError(f"draft_vocab_size {self._n_vocab_draft} exceeds vocab_size {n_vocab}")
+        self._d2t: Tensor | None = None
+
     def set_vocab(self):
         if self.target_model_dir is None:
             raise ValueError(
@@ -747,6 +778,8 @@ class DFlashModel(Qwen3Model):
 
     @classmethod
     def filter_tensors(cls, item: tuple[str, Callable[[], Tensor]]) -> tuple[str, Callable[[], Tensor]] | None:
+        if item[0] == "t2d":  # not used at runtime
+            return None
         name, gen = item
         if not name.startswith("model."):
             name = "model." + name
@@ -765,6 +798,10 @@ class DFlashModel(Qwen3Model):
         if name == "model.embed_tokens.weight" and not self.hparams.get("has_embed_tokens", True):
             return
 
+        if name == "model.d2t":
+            self._d2t = data_torch
+            return
+
         # interleaved-rope checkpoints (rope_is_neox_style = false) -> NeoX layout: per head, even dims first then odd
         if not self.hparams.get("rope_is_neox_style", True) and name.endswith(self._ROPE_PERMUTE_SUFFIXES):
             head_dim = self.hparams["head_dim"]
@@ -776,90 +813,6 @@ class DFlashModel(Qwen3Model):
             "model.candidate_selector.successor_codebook",
         ):
             name += ".weight"
-
-        yield from super().modify_tensors(data_torch, name, bid)
-
-
-@ModelBase.register(
-    "Qwen3DSparkModel",
-    "DSparkDraftModel",
-    "DSparkSpeculator",
-    "Lfm2DSparkDraftModel",
-    "LingDSparkModel",
-)
-@ModelBase.example("satgeze/Qwen3.6-27B-DSpark")
-class DSparkModel(DFlashModel):
-    # DSpark = DFlash + a semi-autoregressive Markov head.
-    model_arch = gguf.MODEL_ARCH.DFLASH
-
-    def __init__(self, dir_model, *args, **kwargs):
-        hparams = kwargs.pop("hparams", None)
-        if hparams is None:
-            hparams = ModelBase.load_hparams(dir_model, False)
-
-        # EAGLE3-style exports use the 1+N bonus-anchor block, DFlash-lineage exports sample from the anchor
-        self._sample_from_anchor = hparams.get(
-            "sample_from_anchor",
-            "transformer_layer_config" not in hparams and "aux_hidden_state_layer_ids" not in hparams)
-        if "transformer_layer_config" in hparams:
-            hparams = {**hparams, **hparams["transformer_layer_config"]}
-
-        super().__init__(dir_model, *args, hparams=hparams, **kwargs)
-
-        # normalize both schemas to DFlash's nested dflash_config
-        if "aux_hidden_state_layer_ids" in self.hparams:
-            self.hparams.setdefault("dflash_config", {
-                "mask_token_id": self.hparams.get("mask_token_id"),
-                "target_layer_ids": [i - 1 for i in self.hparams["aux_hidden_state_layer_ids"]],
-            })
-        else:
-            self.hparams.setdefault("dflash_config", {
-                k: self.hparams[k] for k in ("target_layer_ids", "mask_token_id") if k in self.hparams
-            })
-
-        if (markov_head_type := self.hparams.get("markov_head_type", "vanilla")) != "vanilla":
-            raise ValueError(f"unsupported markov_head_type {markov_head_type!r} (only 'vanilla' is supported)")
-
-        n_vocab = self.hparams["vocab_size"]
-        self._n_vocab_draft = self.hparams.get("draft_vocab_size") or n_vocab
-        if self._n_vocab_draft > n_vocab:
-            raise ValueError(f"draft_vocab_size {self._n_vocab_draft} exceeds vocab_size {n_vocab}")
-        self._d2t: Tensor | None = None
-
-    def set_gguf_parameters(self):
-        super().set_gguf_parameters()
-        self.gguf_writer.add_sample_from_anchor(self._sample_from_anchor)
-
-        # confidence head is optional: vanilla-markov exports ship without it
-        has_conf = any("confidence_head.proj" in name for name in self.model_tensors)
-        self.gguf_writer.add_has_confidence_head(has_conf)
-
-    @classmethod
-    def filter_tensors(cls, item: tuple[str, Callable[[], Tensor]]) -> tuple[str, Callable[[], Tensor]] | None:
-        if item[0] == "t2d":  # not used at runtime
-            return None
-        return super().filter_tensors(item)
-
-    _ROPE_PERMUTE_SUFFIXES = (
-        "self_attn.q_proj.weight",
-        "self_attn.k_proj.weight",
-        "self_attn.q_norm.weight",
-        "self_attn.k_norm.weight",
-    )
-
-    def modify_tensors(self, data_torch: Tensor, name: str, bid: int | None) -> Iterable[tuple[str, Tensor]]:
-        if name == "model.d2t":
-            self._d2t = data_torch
-            return
-
-        if self._n_vocab_draft == self.hparams["vocab_size"] and name.endswith("lm_head.weight"):
-            return
-
-        # interleaved-rope checkpoints (rope_is_neox_style = false) -> NeoX layout: per head, even dims first then odd
-        if not self.hparams.get("rope_is_neox_style", True) and name.endswith(self._ROPE_PERMUTE_SUFFIXES):
-            head_dim = self.hparams["head_dim"]
-            shape = data_torch.shape
-            data_torch = data_torch.reshape(-1, head_dim // 2, 2, *shape[1:]).transpose(1, 2).reshape(shape)
 
         yield from super().modify_tensors(data_torch, name, bid)
 
@@ -882,3 +835,49 @@ class DSparkModel(DFlashModel):
                 raise ValueError("d2t contains duplicate target ids")
             logger.info(f"{'d2t,':<30} --> I64, shape = {{{data.size}}}")
             self.gguf_writer.add_tensor("d2t", data, raw_dtype=gguf.GGMLQuantizationType.I64)
+
+
+@ModelBase.register(
+    "Qwen3DSparkModel",
+    "DSparkDraftModel",
+    "DSparkSpeculator",
+    "Lfm2DSparkDraftModel",
+    "LingDSparkModel",
+)
+@ModelBase.example("satgeze/Qwen3.6-27B-DSpark")
+class DSparkModel(DFlashModel):
+    # DSpark = DFlash + a semi-autoregressive Markov head.
+    model_arch = gguf.MODEL_ARCH.DFLASH
+
+    def __init__(self, dir_model, *args, **kwargs):
+        super().__init__(dir_model, *args, **kwargs)
+
+        if (markov_head_type := self.hparams.get("markov_head_type", "vanilla")) != "vanilla":
+            raise ValueError(f"unsupported markov_head_type {markov_head_type!r} (only 'vanilla' is supported)")
+
+    def set_gguf_parameters(self):
+        super().set_gguf_parameters()
+        self.gguf_writer.add_sample_from_anchor(self._sample_from_anchor)
+
+        # confidence head is optional: vanilla-markov exports ship without it
+        has_conf = any("confidence_head.proj" in name for name in self.model_tensors)
+        self.gguf_writer.add_has_confidence_head(has_conf)
+
+    _ROPE_PERMUTE_SUFFIXES = (
+        "self_attn.q_proj.weight",
+        "self_attn.k_proj.weight",
+        "self_attn.q_norm.weight",
+        "self_attn.k_norm.weight",
+    )
+
+    def modify_tensors(self, data_torch: Tensor, name: str, bid: int | None) -> Iterable[tuple[str, Tensor]]:
+        if self._n_vocab_draft == self.hparams["vocab_size"] and name.endswith("lm_head.weight"):
+            return
+
+        # interleaved-rope checkpoints (rope_is_neox_style = false) -> NeoX layout: per head, even dims first then odd
+        if not self.hparams.get("rope_is_neox_style", True) and name.endswith(self._ROPE_PERMUTE_SUFFIXES):
+            head_dim = self.hparams["head_dim"]
+            shape = data_torch.shape
+            data_torch = data_torch.reshape(-1, head_dim // 2, 2, *shape[1:]).transpose(1, 2).reshape(shape)
+
+        yield from super().modify_tensors(data_torch, name, bid)

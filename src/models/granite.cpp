@@ -143,6 +143,7 @@ llama_model_granite::graph::graph(
     auto * inp_attn = build_attn_inp_kv();
 
     ggml_tensor * inp_out_ids = build_inp_out_ids();
+    const bool extract_final_inp = (size_t) n_layer < cparams.embeddings_layer_inp.size() && cparams.embeddings_layer_inp[n_layer];
 
     for (int il = 0; il < n_layer; ++il) {
 
@@ -159,6 +160,8 @@ llama_model_granite::graph::graph(
             cb(inpL, "deepstack_in", il);
         }
 
+        res->t_layer_inp[il] = inpL;
+
         ggml_tensor * inpSA = inpL;
 
         // norm
@@ -172,7 +175,7 @@ llama_model_granite::graph::graph(
             cur, inp_pos, inp_attn,
             model, n_embd_head, il);
 
-        if (il == n_layer - 1 && inp_out_ids) {
+        if (il == n_layer - 1 && inp_out_ids && !extract_final_inp) {
             cur   = ggml_get_rows(ctx0,   cur, inp_out_ids);
             inpSA = ggml_get_rows(ctx0, inpSA, inp_out_ids);
         }
@@ -183,6 +186,14 @@ llama_model_granite::graph::graph(
         inpL = cur;
     }
     cur = inpL;
+
+    if (extract_final_inp) {
+        res->t_layer_inp[n_layer] = cur;
+
+        if (inp_out_ids) {
+            cur = ggml_get_rows(ctx0, cur, inp_out_ids);
+        }
+    }
 
     cur = build_norm(cur,
             model.output_norm, NULL,

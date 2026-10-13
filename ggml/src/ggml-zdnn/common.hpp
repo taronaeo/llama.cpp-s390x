@@ -69,6 +69,10 @@ struct ggml_backend_zdnn_context {
     // zero bias for stacked quantized matmuls, keyed by (n_stacks, ne0)
     std::map<std::pair<int64_t, int64_t>, std::unique_ptr<ggml_backend_zdnn_buffer>> zero_bias;
 
+    // last converted flash attention mask and the F16 mask rows it was converted from
+    std::unique_ptr<ggml_backend_zdnn_buffer> fattn_mask;
+    std::vector<ggml_fp16_t>                  fattn_mask_rows;
+
     ggml_zdnn_pool pool;  // scratch memory of the ops
 };
 

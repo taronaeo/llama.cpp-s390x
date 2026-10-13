@@ -9,6 +9,71 @@ static inline float ggml_zdnn_fattn_mask_value(ggml_fp16_t m) {
     return std::max(GGML_FP16_TO_FP32(m), -65504.0f);
 }
 
+// converted mask, reused while its rows and shape are unchanged, as every layer of a batch uses the same mask
+static const zdnn_ztensor & ggml_zdnn_fattn_mask(ggml_backend_zdnn_context * ctx,
+                                           const zdnn_tensor_desc          * pre_tfm_desc,
+                                           const ggml_tensor               * mask) {
+
+    const int64_t n_kv     = pre_tfm_desc->dim1;
+    const int64_t n_rows   = pre_tfm_desc->layout == ZDNN_3DS ? pre_tfm_desc->dim2 : 1;
+    const int64_t n_stacks = pre_tfm_desc->layout == ZDNN_3DS ? pre_tfm_desc->dim3 : pre_tfm_desc->dim2;
+
+    std::unique_ptr<ggml_backend_zdnn_buffer> & cached = ctx->fattn_mask;
+    std::vector<ggml_fp16_t>                  & rows   = ctx->fattn_mask_rows;
+
+    const bool same_shape = cached != nullptr &&
+                            cached->pre_tfm_desc.layout == pre_tfm_desc->layout &&
+                            cached->pre_tfm_desc.dim4   == pre_tfm_desc->dim4 &&
+                            cached->pre_tfm_desc.dim3   == pre_tfm_desc->dim3 &&
+                            cached->pre_tfm_desc.dim2   == pre_tfm_desc->dim2 &&
+                            cached->pre_tfm_desc.dim1   == pre_tfm_desc->dim1;
+
+    bool same_rows = same_shape;
+    for (int64_t ir = 0; same_rows && ir < n_rows; ir++) {
+        same_rows = memcmp(rows.data() + ir*n_kv, (const char *) mask->data + ir*mask->nb[1], n_kv*sizeof(ggml_fp16_t)) == 0;
+    }
+
+    if (same_rows) {
+        return cached->ztensor;
+    }
+
+    if (same_shape) {
+        zdnn_reset_ztensor(&cached->ztensor);
+    } else {
+        if (cached != nullptr) {
+            ZDNN_CHECK(zdnn_free_ztensor_buffer(&cached->ztensor));
+        }
+
+        cached = std::make_unique<ggml_backend_zdnn_buffer>();
+        cached->pre_tfm_desc = *pre_tfm_desc;
+        ZDNN_CHECK(zdnn_generate_transformed_desc(&cached->pre_tfm_desc, &cached->tfm_desc));
+        ZDNN_CHECK(zdnn_init_ztensor_with_malloc(&cached->pre_tfm_desc, &cached->tfm_desc, &cached->ztensor));
+    }
+
+    ggml_zdnn_pool_alloc<float> mask_host_alloc(ctx->pool, n_stacks*n_rows*n_kv);
+    float * mask_host = mask_host_alloc.get();
+
+    rows.resize(n_rows*n_kv);
+
+    ggml_zdnn_parallel_for(ctx->n_threads, n_rows, [&](int64_t ir_start, int64_t ir_end) {
+        for (int64_t ir = ir_start; ir < ir_end; ir++) {
+            const ggml_fp16_t * mask_row = (const ggml_fp16_t *)((const char *) mask->data + ir*mask->nb[1]);
+            float             * host_row = mask_host + ir*n_kv;
+
+            memcpy(rows.data() + ir*n_kv, mask_row, n_kv*sizeof(ggml_fp16_t));
+            for (int64_t ik = 0; ik < n_kv; ik++) {
+                host_row[ik] = ggml_zdnn_fattn_mask_value(mask_row[ik]);
+            }
+            for (int64_t is = 1; is < n_stacks; is++) {
+                memcpy(mask_host + (is*n_rows + ir)*n_kv, host_row, n_kv*sizeof(float));
+            }
+        }
+    });
+
+    ZDNN_CHECK(zdnn_transform_ztensor(&cached->ztensor, mask_host));
+    return cached->ztensor;
+}
+
 bool ggml_zdnn_supports_flash_attn_ext(const ggml_backend_zdnn_device_context * ctx_dev, const ggml_tensor * op) {
     const ggml_tensor * q    = op->src[0];
     const ggml_tensor * k    = op->src[1];
@@ -71,19 +136,15 @@ void ggml_zdnn_flash_attn_ext(ggml_backend_zdnn_context * ctx, ggml_tensor * dst
     // one query runs all heads in one call with the mask row as the K*Q bias, more queries run per head and add the mask
     const bool single = n_q == 1;
 
-    const int64_t n_mask = mask ? (single ? n_head_kv*n_kv : n_q*n_kv) : 0;
-
     ggml_zdnn_pool_alloc<float>       q_host_alloc(ctx->pool, n_head*n_q*d_k);
     ggml_zdnn_pool_alloc<float>       o_host_alloc(ctx->pool, n_head*n_q*d_v);
-    ggml_zdnn_pool_alloc<float>       mask_host_alloc(ctx->pool, n_mask);
     ggml_zdnn_pool_alloc<ggml_fp16_t> k_host_alloc(ctx->pool, n_head_kv*n_kv*d_k);
     ggml_zdnn_pool_alloc<ggml_fp16_t> v_host_alloc(ctx->pool, n_head_kv*n_kv*d_v);
 
-    float       * q_host    = q_host_alloc.get();
-    float       * o_host    = o_host_alloc.get();
-    float       * mask_host = mask_host_alloc.get();
-    ggml_fp16_t * k_host    = k_host_alloc.get();
-    ggml_fp16_t * v_host    = v_host_alloc.get();
+    float       * q_host = q_host_alloc.get();
+    float       * o_host = o_host_alloc.get();
+    ggml_fp16_t * k_host = k_host_alloc.get();
+    ggml_fp16_t * v_host = v_host_alloc.get();
 
     // q is [n_head][n_q][d_k] with the scale folded in, k and v are [n_head_kv][n_kv][d]
     ggml_zdnn_parallel_for(n_threads, n_head, [&](int64_t h_start, int64_t h_end) {
@@ -149,25 +210,11 @@ void ggml_zdnn_flash_attn_ext(ggml_backend_zdnn_context * ctx, ggml_tensor * dst
 
     if (single) {
         // the bias of K*Q is the mask row of the query, repeated for every kv head
-        zdnn_tensor_desc bias_pre_tfm_desc, bias_tfm_desc;
-        zdnn_ztensor     bias_ztensor;
-
-        ggml_zdnn_pool_alloc<uint8_t> bias_ztensor_alloc;
-
         const zdnn_ztensor * bias = &ggml_zdnn_zero_bias(ctx, n_head_kv, n_kv);
         if (mask != nullptr) {
-            const ggml_fp16_t * mask_row = (const ggml_fp16_t *) mask->data;
-            for (int64_t hk = 0; hk < n_head_kv; hk++) {
-                for (int64_t ik = 0; ik < n_kv; ik++) {
-                    mask_host[hk*n_kv + ik] = ggml_zdnn_fattn_mask_value(mask_row[ik]);
-                }
-            }
-
+            zdnn_tensor_desc bias_pre_tfm_desc;
             zdnn_init_pre_transformed_desc(ZDNN_2DS, FP32, &bias_pre_tfm_desc, n_head_kv, n_kv);
-            ZDNN_CHECK(zdnn_generate_transformed_desc(&bias_pre_tfm_desc, &bias_tfm_desc));
-            ggml_zdnn_init_scratch_ztensor_dlf16(ctx, &bias_pre_tfm_desc, &bias_tfm_desc, &bias_ztensor, bias_ztensor_alloc);
-            ZDNN_CHECK(zdnn_transform_ztensor(&bias_ztensor, mask_host));
-            bias = &bias_ztensor;
+            bias = &ggml_zdnn_fattn_mask(ctx, &bias_pre_tfm_desc, mask);
         }
 
         zdnn_init_pre_transformed_desc(ZDNN_3DS, FP32, &s_pre_tfm_desc, n_head_kv, group, n_kv);
@@ -179,25 +226,11 @@ void ggml_zdnn_flash_attn_ext(ggml_backend_zdnn_context * ctx, ggml_tensor * dst
         ZDNN_CHECK(zdnn_softmax(&s_ztensor, softmax_save_area.get(), SOFTMAX_ACT_NONE, &s2_ztensor));
         ZDNN_CHECK(zdnn_matmul_op(&s2_ztensor, &v_ztensor, &ggml_zdnn_zero_bias(ctx, n_head_kv, d_v), MATMUL_OP_ADDITION, &o_ztensor));
     } else {
-        zdnn_tensor_desc mask_pre_tfm_desc, mask_tfm_desc;
-        zdnn_ztensor     mask_ztensor;
-
-        ggml_zdnn_pool_alloc<uint8_t> mask_ztensor_alloc;
-
+        const zdnn_ztensor * mask_ztensor = nullptr;
         if (mask != nullptr) {
-            ggml_zdnn_parallel_for(n_threads, n_q, [&](int64_t iq_start, int64_t iq_end) {
-                for (int64_t iq = iq_start; iq < iq_end; iq++) {
-                    const ggml_fp16_t * mask_row = (const ggml_fp16_t *)((const char *) mask->data + iq*mask->nb[1]);
-                    for (int64_t ik = 0; ik < n_kv; ik++) {
-                        mask_host[iq*n_kv + ik] = ggml_zdnn_fattn_mask_value(mask_row[ik]);
-                    }
-                }
-            });
-
+            zdnn_tensor_desc mask_pre_tfm_desc;
             zdnn_init_pre_transformed_desc(ZDNN_3DS, FP32, &mask_pre_tfm_desc, 1, n_q, n_kv);
-            ZDNN_CHECK(zdnn_generate_transformed_desc(&mask_pre_tfm_desc, &mask_tfm_desc));
-            ggml_zdnn_init_scratch_ztensor_dlf16(ctx, &mask_pre_tfm_desc, &mask_tfm_desc, &mask_ztensor, mask_ztensor_alloc);
-            ZDNN_CHECK(zdnn_transform_ztensor(&mask_ztensor, mask_host));
+            mask_ztensor = &ggml_zdnn_fattn_mask(ctx, &mask_pre_tfm_desc, mask);
         }
 
         zdnn_init_pre_transformed_desc(ZDNN_3DS, FP32, &s_pre_tfm_desc, 1, n_q, n_kv);
@@ -225,7 +258,7 @@ void ggml_zdnn_flash_attn_ext(ggml_backend_zdnn_context * ctx, ggml_tensor * dst
             zdnn_ztensor * scores = &s_ztensor;
             zdnn_ztensor * probs  = &s2_ztensor;
             if (mask != nullptr) {
-                ZDNN_CHECK(zdnn_add(&s_ztensor, &mask_ztensor, &s2_ztensor));
+                ZDNN_CHECK(zdnn_add(&s_ztensor, mask_ztensor, &s2_ztensor));
                 scores = &s2_ztensor;
                 probs  = &s_ztensor;
                 probs->is_transformed = false;

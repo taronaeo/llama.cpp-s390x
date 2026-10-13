@@ -214,6 +214,9 @@ static void ggml_zdnn_free(ggml_backend_zdnn_context * ctx) {
     for (const auto & it : ctx->zero_bias) {
         ZDNN_CHECK(zdnn_free_ztensor_buffer(&it.second->ztensor));
     }
+    if (ctx->fattn_mask) {
+        ZDNN_CHECK(zdnn_free_ztensor_buffer(&ctx->fattn_mask->ztensor));
+    }
 
     delete ctx;
 }

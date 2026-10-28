@@ -66,12 +66,6 @@ jobs:
             libjpeg-dev build-essential libssl-dev \
             git-lfs
 
-      - name: Toolchain workaround (GCC 15)
-        run: |
-          sudo apt-get install -y gcc-15 g++-15
-          echo "CC=gcc-15" >> "$GITHUB_ENV"
-          echo "CXX=g++-15" >> "$GITHUB_ENV"
-
       - name: Python Dependencies
         id: python_depends
         run: |
@@ -129,12 +123,6 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
             build-essential libssl-dev libzdnn-dev
-
-      - name: Toolchain workaround (GCC 15)
-        run: |
-          sudo apt-get install -y gcc-15 g++-15
-          echo "CC=gcc-15" >> "$GITHUB_ENV"
-          echo "CXX=g++-15" >> "$GITHUB_ENV"
 
       - name: Build with zDNN Backend
         id: cmake_build
